@@ -497,10 +497,12 @@
       if (enemyAlive === 0) {
         document.getElementById('result-message').innerText = "🏴‍☠️ A팀 승리! 🎉";
         document.getElementById('result-message').style.display = 'block';
+	document.getElementById('reset').style.display = 'block';
         break;
       } else if (allyAlive === 0) {
         document.getElementById('result-message').innerText = "🏴‍☠️ B팀 승리! 🎉";
         document.getElementById('result-message').style.display = 'block';
+	document.getElementById('reset').style.display = 'block';
         break;
       }
 
