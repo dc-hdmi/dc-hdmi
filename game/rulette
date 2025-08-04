@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>트크 룰렛 게임</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      text-align: center;
+      font-family: sans-serif;
+      padding: 20px;
+    }
+
+    #inputArea {
+      margin-bottom: 20px;
+    }
+
+    input {
+      margin: 5px;
+      padding: 5px;
+      width: 120px;
+    }
+
+    select {
+      margin-bottom: 10px;
+      padding: 5px;
+      font-size: 16px;
+    }
+
+    button {
+      padding: 10px 20px;
+      margin: 10px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    canvas {
+      border: 2px solid #888;
+      margin-top: 20px;
+      max-width: 90%;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎡 룰렛 게임</h1>
+
+  <div>
+    참가자 수:
+    <select id="participantCount" onchange="updateInputFields()">
+      <!-- 2~20까지 선택 가능 -->
+      <option value="2">2명</option>
+      <option value="3">3명</option>
+      <option value="4">4명</option>
+      <option value="5">5명</option>
+      <option value="6">6명</option>
+      <option value="7">7명</option>
+      <option value="8">8명</option>
+      <option value="9">9명</option>
+      <option value="10">10명</option>
+      <option value="11">11명</option>
+      <option value="12">12명</option>
+      <option value="13">13명</option>
+      <option value="14">14명</option>
+      <option value="15">15명</option>
+      <option value="16">16명</option>
+      <option value="17">17명</option>
+      <option value="18">18명</option>
+      <option value="19">19명</option>
+      <option value="20">20명</option>
+    </select>
+  </div>
+
+  <div id="inputArea">
+    <!-- 입력창들이 여기에 동적으로 생성됨 -->
+    <button onclick="spin()">돌리기!</button>
+  </div>
+
+  <canvas id="wheelCanvas" width="400" height="400"></canvas>
+
+  <script>
+    const canvas = document.getElementById("wheelCanvas");
+    const ctx = canvas.getContext("2d");
+    const radius = canvas.width / 2;
+    const center = { x: radius, y: radius };
+    let items = [];
+    let colors = [];
+    let angleOffset = 0;
+    let spinning = false;
+
+    function updateInputFields() {
+      const count = parseInt(document.getElementById("participantCount").value);
+      const inputArea = document.getElementById("inputArea");
+
+      // 기존 입력창 제거 (버튼 제외)
+      inputArea.innerHTML = '';
+      
+      for (let i = 0; i < count; i++) {
+        const input = document.createElement("input");
+        input.type = "text";
+        input.placeholder = `항목 ${i + 1}`;
+        input.id = `item${i}`;
+        inputArea.appendChild(input);
+      }
+
+      // 돌리기 버튼 다시 추가
+      const button = document.createElement("button");
+      button.textContent = "돌리기!";
+      button.onclick = spin;
+      inputArea.appendChild(document.createElement("br"));
+      inputArea.appendChild(button);
+      
+      drawWheel();
+    }
+
+    function getItems() {
+      items = [];
+      const count = parseInt(document.getElementById("participantCount").value);
+      for (let i = 0; i < count; i++) {
+        const el = document.getElementById(`item${i}`);
+        if (el && el.value.trim()) items.push(el.value.trim());
+      }
+      if (items.length < 2) {
+        alert("최소 2개 이상의 항목을 입력하세요.");
+        return false;
+      }
+      generateColors();
+      return true;
+    }
+
+    function generateColors() {
+      colors = [];
+      const usedHues = new Set();
+      while (colors.length < items.length) {
+        let hue;
+        do {
+          hue = Math.floor(Math.random() * 360);
+        } while (usedHues.has(hue));
+        usedHues.add(hue);
+        colors.push(`hsl(${hue}, 70%, 70%)`);
+      }
+    }
+
+    function drawWheel() {
+      if (items.length === 0) return;
+
+      const angle = 2 * Math.PI / items.length;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      for (let i = 0; i < items.length; i++) {
+        const startAngle = angle * i + angleOffset;
+        const endAngle = startAngle + angle;
+        ctx.beginPath();
+        ctx.moveTo(center.x, center.y);
+        ctx.arc(center.x, center.y, radius, startAngle, endAngle);
+        ctx.fillStyle = colors[i];
+        ctx.fill();
+        ctx.stroke();
+
+        // 텍스트
+        ctx.save();
+        ctx.translate(center.x, center.y);
+        ctx.rotate(startAngle + angle / 2);
+        ctx.textAlign = "right";
+        ctx.fillStyle = "#000";
+        ctx.font = "bold 16px sans-serif";
+        ctx.fillText(items[i], radius - 10, 5);
+        ctx.restore();
+      }
+
+      // 중앙 화살표
+      ctx.beginPath();
+      ctx.moveTo(center.x - 10, 10);
+      ctx.lineTo(center.x + 10, 10);
+      ctx.lineTo(center.x, 30);
+      ctx.fillStyle = "#e74c3c";
+      ctx.fill();
+    }
+
+    function spin() {
+      if (!getItems() || spinning) return;
+      spinning = true;
+
+      let spinAngle = Math.random() * 360 + 1440; // 최소 4바퀴
+      let duration = 4000;
+      let start = null;
+
+      function animate(timestamp) {
+        if (!start) start = timestamp;
+        const elapsed = timestamp - start;
+
+        const easing = (t) => 1 - Math.pow(1 - t, 3); // easeOutCubic
+        const t = Math.min(1, elapsed / duration);
+        const currentAngle = spinAngle * easing(t);
+        angleOffset = currentAngle * Math.PI / 180;
+
+        drawWheel();
+
+        if (t < 1) {
+          requestAnimationFrame(animate);
+        } else {
+          spinning = false;
+          showResult();
+        }
+      }
+
+      requestAnimationFrame(animate);
+    }
+
+    function showResult() {
+      const anglePerItem = 2 * Math.PI / items.length;
+      const finalAngle = (2 * Math.PI - (angleOffset % (2 * Math.PI))) % (2 * Math.PI);
+      const selectedIndex = Math.floor(finalAngle / anglePerItem);
+      const selected = items[selectedIndex];
+    }
+
+    window.onload = () => {
+      updateInputFields(); // 초기 2개 세팅
+    };
+  </script>
+</body>
+</html>
