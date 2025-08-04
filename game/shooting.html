@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>트갤 랜덤 사격 게임</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      text-align: center;
+      font-family: sans-serif;
+      margin: 0;
+      padding: 20px;
+    }
+
+    canvas {
+      border: 2px solid #333;
+      max-width: 100%;
+      margin-top: 10px;
+    }
+
+    #score {
+      font-size: 20px;
+      margin-top: 15px;
+      color: #d63031;
+    }
+
+    #shotsLeft {
+      font-size: 18px;
+      margin-top: 10px;
+      color: #0984e3;
+    }
+
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      margin-top: 10px;
+      cursor: pointer;
+      margin: 5px;
+    }
+  </style>
+</head>
+<body>
+  <h1>트갤 랜덤 사격 게임</h1>
+
+  <canvas id="targetCanvas" width="400" height="400"></canvas>
+  <div id="score">점수: 0</div>
+  <div id="shotsLeft">남은 사격: 10발</div>
+  <button onclick="resetGame()">게임 리셋</button>
+  <button id="shootRandomBtn">랜덤 사격</button>
+
+  <script>
+    const canvas = document.getElementById("targetCanvas");
+    const ctx = canvas.getContext("2d");
+    const center = { x: canvas.width / 2, y: canvas.height / 2 };
+    const maxRadius = 150;
+    const rings = 5;
+    const shots = [];
+    let totalScore = 0;
+    let shotsLeft = 10;
+
+    // 5점(중앙) → 1점(바깥)
+    const ringColors = ["#e74c3c", "#f39c12", "#f1c40f", "#2ecc71", "#3498db"];
+
+    function drawTarget() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      for (let i = 0; i < rings; i++) {
+        const outerRadius = maxRadius * (rings - i) / rings;
+        const innerRadius = i === rings - 1 ? 0 : maxRadius * (rings - i - 1) / rings;
+
+        // Draw ring segment
+        ctx.beginPath();
+        ctx.arc(center.x, center.y, outerRadius, 0, Math.PI * 2);
+        ctx.arc(center.x, center.y, innerRadius, 0, Math.PI * 2, true);
+        ctx.closePath();
+        ctx.fillStyle = ringColors[i];
+        ctx.fill();
+        ctx.stroke();
+
+        // 점수 라벨 표시 (중심에서 위쪽 방향으로)
+        const labelRadius = (outerRadius + innerRadius) / 2;
+        ctx.fillStyle = "black";
+        ctx.font = "bold 18px sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(`${i + 1}`, center.x, center.y - labelRadius);
+      }
+    }
+
+    function getDistance(x1, y1, x2, y2) {
+      return Math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2);
+    }
+
+    function getScore(distance) {
+      const step = maxRadius / rings;
+      for (let i = 0; i < rings; i++) {
+        if (distance <= step * (i + 1)) {
+          return rings - i; // 중앙이 5점, 바깥이 1점
+        }
+      }
+      return 0;
+    }
+
+    function shoot(x, y) {
+      if (shotsLeft <= 0) {
+        alert("더 이상 사격할 수 없습니다. 게임을 리셋하세요.");
+        return;
+      }
+
+      const distance = getDistance(x, y, center.x, center.y);
+      const score = getScore(distance);
+      totalScore += score;
+      shots.push({ x, y, score });
+      shotsLeft--;
+      updateUI();
+      redrawAll();
+    }
+
+    function updateUI() {
+      document.getElementById("score").innerText = `점수: ${totalScore}`;
+      document.getElementById("shotsLeft").innerText = `남은 사격: ${shotsLeft}발`;
+    }
+
+    function redrawAll() {
+      drawTarget();
+      for (const shot of shots) {
+        ctx.beginPath();
+        ctx.arc(shot.x, shot.y, 6, 0, Math.PI * 2);
+        ctx.fillStyle = "black";
+        ctx.fill();
+
+        ctx.fillStyle = "white";
+        ctx.font = "bold 12px sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(shot.score, shot.x, shot.y);
+      }
+    }
+
+    canvas.addEventListener("click", (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      shoot(x, y);
+    });
+
+    canvas.addEventListener("touchstart", (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.touches[0].clientX - rect.left;
+      const y = e.touches[0].clientY - rect.top;
+      shoot(x, y);
+    });
+
+    function resetGame() {
+      totalScore = 0;
+      shotsLeft = 10;
+      shots.length = 0;
+      updateUI();
+      drawTarget();
+    }
+
+    function shootRandom() {
+      if (shotsLeft <= 0) {
+        alert("더 이상 사격할 수 없습니다. 게임을 리셋하세요.");
+        return;
+      }
+
+      let x, y, dist;
+      do {
+        x = Math.random() * canvas.width;
+        y = Math.random() * canvas.height;
+        dist = getDistance(x, y, center.x, center.y);
+      } while (dist > maxRadius);
+
+      shoot(x, y);
+    }
+
+    document.getElementById("shootRandomBtn").addEventListener("click", shootRandom);
+
+    window.onload = () => {
+      drawTarget();
+      updateUI();
+    };
+  </script>
+</body>
+</html>
