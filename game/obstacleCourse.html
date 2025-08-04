@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>고잉메리호 장애물 넘기 게임</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      text-align: center;
+      font-family: sans-serif;
+      background: #f4f4f4;
+    }
+    #gameArea {
+      position: relative;
+      width: 100%;
+      max-width: 600px;
+      height: 200px;
+      background: #fff;
+      margin: 20px auto;
+      overflow: hidden;
+      border: 2px solid #333;
+    }
+    #player {
+      position: absolute;
+	  width: 80px;
+	  height: 80px;
+	  background-image: url("game/images/sunny.png");
+	  background-size: cover;
+	  bottom: 0;
+	  left: 50px;
+	  animation: run 0.4s steps(4) infinite;
+    }
+
+    @keyframes run {
+      0% { transform: translateY(0); }
+      50% { transform: translateY(2px); }
+      100% { transform: translateY(0); }
+    }
+
+    .obstacle {
+      position: absolute;
+      width: 20px;
+      height: 30px;
+      background: #2f3542;
+      bottom: 0;
+    }
+
+    #score {
+      font-size: 20px;
+      margin-top: 10px;
+      color: #333;
+    }
+
+    #gameOver {
+      font-size: 24px;
+      color: red;
+      font-weight: bold;
+      display: none;
+      margin-top: 10px;
+    }
+
+    #timer {
+      font-size: 18px;
+      color: #0984e3;
+      margin-top: 5px;
+    }
+    
+    #startBtn {
+	  margin-top: 10px;
+	  padding: 10px 20px;
+	  font-size: 18px;
+	}
+	
+	#jumpBtn {
+	  display: none;
+	  margin: 20px auto;
+	  width: 100px;
+	  height: 100px;
+	  font-size: 22px;
+	  border-radius: 50%;
+	  background-color: #00cec9;
+	  color: white;
+	  border: none;
+	  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+	  cursor: pointer;
+	}
+	#jumpBtn:active {
+	  background-color: #0984e3;
+	}
+  </style>
+</head>
+<body>
+  <h1>고잉메리호 장애물 넘기 게임</h1>
+
+  <div id="gameArea">
+    <div id="player"></div>
+  </div>
+
+  <div id="score">점수: 0</div>
+  <div id="timer">남은 시간: 60초</div>
+  <button id="jumpBtn">점프</button>
+  <div id="gameOver"> 게임 오버!</div>
+  <button id="startBtn">게임 시작</button>
+
+  <script>
+    const startBtn = document.getElementById("startBtn");
+    const jumpBtn = document.getElementById("jumpBtn");
+
+    startBtn.addEventListener("click", () => {
+    	  resetGame();
+    	  gameRunning = true;
+    	  updateScore();
+    	  updateTimer();
+    	  setInterval(updateTimer, 1000);
+    	  createObstacle();
+
+    	  startBtn.style.display = "none";
+    	  jumpBtn.style.display = "block"; // 점프 버튼 보이기
+    	});
+    
+    document.getElementById("jumpBtn").addEventListener("click", jump);
+    
+    const gameArea = document.getElementById("gameArea");
+    const player = document.getElementById("player");
+    const scoreDisplay = document.getElementById("score");
+    const gameOverText = document.getElementById("gameOver");
+    const timerDisplay = document.getElementById("timer");
+
+    let isJumping = false;
+    let score = 0;
+    let gameRunning = true;
+    let timeLeft = 60;
+
+    function jump() {
+      if (isJumping || !gameRunning) return;
+      isJumping = true;
+      let jumpHeight = 0;
+      let upInterval = setInterval(() => {
+        if (jumpHeight >= 80) {
+          clearInterval(upInterval);
+          let downInterval = setInterval(() => {
+            if (jumpHeight <= 0) {
+              clearInterval(downInterval);
+              isJumping = false;
+            } else {
+              jumpHeight -= 4;
+              player.style.bottom = jumpHeight + "px";
+            }
+          }, 20);
+        } else {
+          jumpHeight += 4;
+          player.style.bottom = jumpHeight + "px";
+        }
+      }, 20);
+    }
+
+    function createObstacle() {
+      if (!gameRunning) return;
+
+      const obstacle = document.createElement("div");
+      obstacle.classList.add("obstacle");
+      const height = 20 + Math.random() * 25; // 20~55px
+      obstacle.style.height = `${height}px`;
+      obstacle.style.left = "100%";
+      obstacle.style.bottom = "0";
+      gameArea.appendChild(obstacle);
+
+      let obstacleLeft = gameArea.offsetWidth;
+      const moveInterval = setInterval(() => {
+        if (!gameRunning) {
+          clearInterval(moveInterval);
+          obstacle.remove();
+          return;
+        }
+
+        obstacleLeft -= 7;
+        obstacle.style.left = obstacleLeft + "px";
+
+        const playerBottom = parseInt(window.getComputedStyle(player).bottom);
+        const playerLeft = 50;
+        const playerRight = 90;
+        const obstacleHeight = parseInt(obstacle.style.height);
+
+        if (
+          obstacleLeft + 20 >= playerLeft &&
+          obstacleLeft <= playerRight - 10 &&
+          playerBottom < obstacleHeight
+        ) {
+          endGame();
+          clearInterval(moveInterval);
+        }
+
+        if (obstacleLeft < -30) {
+          clearInterval(moveInterval);
+          obstacle.remove();
+          score++;
+          updateScore();
+        }
+      }, 30);
+
+      // 다음 장애물 생성 시간 설정
+      const nextDelay = 1500 + Math.random() * 1500;
+      setTimeout(createObstacle, nextDelay);
+    }
+
+    function updateScore() {
+      scoreDisplay.innerText = `점수: ${score}`;
+    }
+
+    function updateTimer() {
+      if (!gameRunning) return;
+      timeLeft--;
+      timerDisplay.innerText = `남은 시간: ${timeLeft}초`;
+      if (timeLeft <= 0) {
+        endGame();
+      }
+    }
+
+    function endGame() {
+    	  gameRunning = false;
+    	  gameOverText.style.display = "block";
+    	  startBtn.style.display = "inline-block"; // 시작 버튼 다시 보이기
+    	  jumpBtn.style.display = "none";          // 점프 버튼 숨기기
+    	}
+    
+    function resetGame() {
+    	// 초기화
+    	score = 0;
+    	timeLeft = 60;
+    	gameOverText.style.display = "none";
+    	scoreDisplay.innerText = "점수: 0";
+    	timerDisplay.innerText = "남은 시간: 60초";
+
+    	// 기존 장애물 제거
+    	const obstacles = document.querySelectorAll(".obstacle");
+    	obstacles.forEach(o => o.remove());
+    }
+
+    // 입력
+    document.addEventListener("keydown", (e) => {
+      if (e.code === "Space") jump();
+    });
+    document.addEventListener("touchstart", jump);
+
+  </script>
+</body>
+</html>
