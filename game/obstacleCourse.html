@@ -100,6 +100,7 @@
 
   <div id="score">점수: 0</div>
   <div id="timer">남은 시간: 180초</div>
+  <div id="doubleJumpCount" style="color:red;">2단 점프 남은 횟수: 5</div>
   <button id="jumpBtn">점프</button>
   <div id="gameOver"> 게임 오버!</div>
   <button id="startBtn">게임 시작</button>
@@ -107,6 +108,8 @@
   <script>
     const startBtn = document.getElementById("startBtn");
     const jumpBtn = document.getElementById("jumpBtn");
+    
+    let doubleJumpUses = 5;  // 2단 점프 가능한 총 횟수
 
     startBtn.addEventListener("click", () => {
     	  resetGame();
@@ -128,34 +131,68 @@
     const gameOverText = document.getElementById("gameOver");
     const timerDisplay = document.getElementById("timer");
 
+    let jumpCount = 0;
+    let maxJump = 2;
     let isJumping = false;
+    let isFalling = false;
+    let currentBottom = 0;
+    
     let score = 0;
     let gameRunning = true;
     let timeLeft = 120;
 
     function jump() {
-      if (isJumping || !gameRunning) return;
-      isJumping = true;
-      let jumpHeight = 0;
-      let upInterval = setInterval(() => {
-        if (jumpHeight >= 80) {
-          clearInterval(upInterval);
-          let downInterval = setInterval(() => {
-            if (jumpHeight <= 0) {
-              clearInterval(downInterval);
-              isJumping = false;
-            } else {
-              jumpHeight -= 4;
-              player.style.bottom = jumpHeight + "px";
-            }
-          }, 20);
-        } else {
-          jumpHeight += 4;
-          player.style.bottom = jumpHeight + "px";
-        }
-      }, 20);
-    }
+    	if (!gameRunning || jumpCount >= maxJump || isJumping) return;
+    	if (jumpCount >= 1 && doubleJumpUses <= 0) return; // 2단 점프 회수 초과 시 차단
 
+    	  jumpCount++;
+    	  if (jumpCount === 2) doubleJumpUses--;
+    	  updateDoubleJumpDisplay();
+    	  let jumpHeight = 70;
+    	  let jumpTarget = currentBottom + jumpHeight;
+    	  let velocity = 4;
+
+    	  clearInterval(player.jumpInterval);
+    	  clearInterval(player.fallInterval);
+    	  isJumping = true;
+    	  isFalling = false;
+
+    	  player.jumpInterval = setInterval(() => {
+    	    if (currentBottom >= jumpTarget) {
+    	      clearInterval(player.jumpInterval);
+    	      isJumping = false;
+    	      startFall();  // 항상 낙하하도록 강제
+    	    } else {
+    	      currentBottom += velocity;
+    	      player.style.bottom = currentBottom + "px";
+    	    }
+    	  }, 20);
+    	}
+
+    function updateDoubleJumpDisplay() {
+    	  const doubleJumpDisplay = document.getElementById("doubleJumpCount");
+    	  doubleJumpDisplay.innerText = `2단 점프 남은 횟수: ${doubleJumpUses}`;
+    	}
+    
+    function startFall() {
+    	  clearInterval(player.fallInterval);
+    	  isFalling = true;
+
+    	  player.fallInterval = setInterval(() => {
+    	    if (currentBottom <= 0) {
+    	      clearInterval(player.fallInterval);
+    	      currentBottom = 0;
+    	      player.style.bottom = "0px";
+    	      isFalling = false;
+    	      jumpCount = 0;
+    	    } else {
+    	      currentBottom -= 4;
+    	      player.style.bottom = currentBottom + "px";
+    	    }
+    	  }, 20);
+    	}
+
+    
     function createObstacle() {
       if (!gameRunning) return;
 
@@ -263,6 +300,13 @@
     	gameOverText.style.display = "none";
     	scoreDisplay.innerText = "점수: 0";
     	timerDisplay.innerText = "남은 시간: 180초";
+    	
+    	doubleJumpUses = 5;
+    	updateDoubleJumpDisplay();
+    	
+    	jumpCount = 0;
+    	currentBottom = 0;
+    	player.style.bottom = "0px";
 
     	// 기존 장애물 제거
     	const obstacles = document.querySelectorAll(".obstacle");
