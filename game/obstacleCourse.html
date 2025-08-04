@@ -175,7 +175,28 @@
           return;
         }
 
-        obstacleLeft -= 7;
+        let speed = 7;
+        if (timeLeft <= 60) {
+          speed = 16;
+        } else if (timeLeft <= 80) {
+          speed = 15;
+        } else if (timeLeft <= 100) {
+          speed = 14;
+        } else if (timeLeft <= 110) {
+          speed = 13;
+        } else if (timeLeft <= 120) {
+          speed = 12;
+        } else if (timeLeft <= 130) {
+          speed = 11;
+        } else if (timeLeft <= 140) {
+          speed = 10;
+        } else if (timeLeft <= 150) {
+          speed = 9;
+        } else if (timeLeft <= 160) {
+          speed = 8;
+        }
+        obstacleLeft -= speed;
+        
         obstacle.style.left = obstacleLeft + "px";
 
         const playerBottom = parseInt(window.getComputedStyle(player).bottom);
