@@ -176,7 +176,17 @@
         }
 
         let speed = 7;
-        if (timeLeft <= 60) {
+        if (timeLeft <= 20) {
+	  speed = 21;
+	} else if (timeLeft <= 30){
+          speed = 20;
+	} else if (timeLeft <= 40){
+          speed = 19;
+	} else if (timeLeft <= 50){
+          speed = 18;
+	} else if (timeLeft <= 60){
+          speed = 17;
+	} else if (timeLeft <= 70){
           speed = 16;
         } else if (timeLeft <= 80) {
           speed = 15;
