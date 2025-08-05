@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<script src="jquery.min.js"></script>
-<title>메리호 줍줍 게임</title>
+<script src="common/libs/js/jquery.min.js"></script>
+<title>아이템 먹기 게임</title>
 <style>
     body {
         margin: 0;
@@ -238,6 +238,7 @@
 </style>
 </head>
 <body>
+<div id="current-time" style="position: absolute; top: 10px; right: 10px; font-size: 16px; z-index: 1000;"></div>
 <div id="preview">
 	<table id="item-preview">
 	  <tr>
@@ -447,6 +448,22 @@ game.addEventListener("touchstart", e => {
 game.addEventListener("touchmove", e => {
     e.preventDefault(); // 드래그처럼 따라오는 것도 막음
 }, { passive: false });
+
+function updateTime() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const date = String(now.getDate()).padStart(2, "0");
+    const hours = String(now.getHours()).padStart(2, "0");
+    const minutes = String(now.getMinutes()).padStart(2, "0");
+    const seconds = String(now.getSeconds()).padStart(2, "0");
+
+    const formattedTime = `${year}-${month}-${date} ${hours}:${minutes}:${seconds}`;
+    document.getElementById("current-time").textContent = formattedTime;
+}
+
+updateTime();
+setInterval(updateTime, 1000);
 </script>
 </body>
 </html>
