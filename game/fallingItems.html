@@ -60,6 +60,7 @@
         background-size: cover;
         background-position: center;
     }
+
     .item-p1 { 
     	width: 45px; /* 원래의 절반 */
 	  	height: 45px;
@@ -115,6 +116,13 @@
 	  	background-position: 6px -90px;
 	  	background-repeat: no-repeat;
 	  	background-size: 256px 256px;
+	}
+	
+	.item-reset { 
+	    width: 45px;
+	    height: 45px;
+	    background-image: url('popuptext_slot_megabomb.png'); 
+	    background-repeat: no-repeat;
 	}
 	
     .item-tp1 { 
@@ -286,6 +294,7 @@ let timeLeft = 60;
 let timerInterval;
 let fallSpeed = 3;
 let speedUpInterval;
+let resetItemCount = 0;
 
 const items = [
     { value: 1, class: "item-p1" },
@@ -294,7 +303,8 @@ const items = [
     { value: 4, class: "item-p4" },
     { value: 5, class: "item-p5" },
     { value: -5, class: "item-n1" },
-    { value: -10, class: "item-n2" }
+    { value: -10, class: "item-n2" },
+    { value: "reset", class: "item-reset" }
 ];
 
 function centerPlayer() {
@@ -304,12 +314,22 @@ function centerPlayer() {
 
 // 아이템 생성
 function createItem() {
-    const itemData = items[Math.floor(Math.random() * items.length)];
+    let itemData;
+    
+    // 확률적으로 2번만 reset 아이템 등장
+    if (resetItemCount < 2 && Math.random() < 0.01) {
+        itemData = { value: "reset", class: "item-reset" };
+        resetItemCount++;
+    } else {
+        // 기존 아이템 중 하나 선택
+        itemData = items[Math.floor(Math.random() * (items.length - 1))]; // reset 제외
+    }
+
     const item = document.createElement("div");
     item.className = "game-item " + itemData.class;
     item.style.left = Math.random() * (game.clientWidth - 30) + "px";
     item.style.top = "0px";
-    item.textContent = itemData.value;
+    item.textContent = itemData.value === "reset" ? "X" : itemData.value;
     item.dataset.value = itemData.value;
     game.appendChild(item);
 }
@@ -341,19 +361,24 @@ function gameLoop() {
         const ix = parseFloat(item.style.left);
         const iy = y;
         if (
-            ix < px + player.clientWidth &&
-            ix + 30 > px &&
-            iy < py + player.clientHeight &&
-            iy + 30 > py
-        ) {
-            score += parseInt(item.dataset.value);
-            drawScore(score);
-            item.remove();
+        	    ix < px + player.clientWidth &&
+        	    ix + 30 > px &&
+        	    iy < py + player.clientHeight &&
+        	    iy + 30 > py
+        	) {
+        	    const val = item.dataset.value;
+        	    if (val === "reset") {
+        	        score = 0; // 점수 리셋
+        	    } else {
+        	        score += parseInt(val);
+        	    }
+        	    drawScore(score);
+        	    item.remove();
 
-            if (score < 0) {
-                endGame(false, true);
-            }
-        }
+        	    if (score < 0) {
+        	        endGame(false, true);
+        	    }
+        	}
         if (y > game.clientHeight) item.remove();
     });
 
