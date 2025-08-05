@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>아이템 먹기 게임</title>
+<script src="common/libs/js/jquery.min.js"></script>
+<title>메리호 줍줍 게임</title>
 <style>
     body {
         margin: 0;
@@ -34,6 +35,19 @@
 	    z-index: 2; /* 드래그 영역보다 위에 보이게 */
 	}
     .item {
+        position: absolute;
+        width: 45px;
+        height: 45px;
+        text-align: center;
+        line-height: 45px;
+        font-weight: bold;
+        font-size: 20px;
+        color: white;
+        border-radius: 50%;
+        background-size: cover;
+        background-position: center;
+    }
+    .game-item {
         position: absolute;
         width: 45px;
         height: 45px;
@@ -211,37 +225,41 @@
 	  width: 335px;
 	  height: 110px;
 	  text-align: center;
-	  background: rgba(0, 0, 0, 0.5);
+	  background: rgba(0, 0, 0, 0.5); /* 배경 살짝 투명하게 보기 좋게 */
 	  padding: 10px;
 	  border-radius: 10px;
 	}
 	#item-preview td {
 	  padding: 2px;
 	}
-	
+	.hidden {
+	  display: none !important;
+	}
 </style>
 </head>
 <body>
-<table id="item-preview">
-  <tr>
-    <td><div class="item item-p1"></div></td>
-    <td><div class="item item-tp2"></div></td>
-    <td><div class="item item-tp3"></div></td>
-    <td><div class="item item-tp4"></div></td>
-    <td><div class="item item-tp5"></div></td>
-    <td><div class="item item-tn1"></div></td>
-    <td><div class="item item-tn2"></div></td>
-  </tr>
-  <tr>
-    <td>1점</td>
-    <td>2점</td>
-    <td>3점</td>
-    <td>4점</td>
-    <td>5점</td>
-    <td><span style="margin-left: -5px;">-5점</span></td>
-    <td><span style="margin-left: -5px;">-10점</span></td>
-  </tr>
-</table>
+<div id="preview">
+	<table id="item-preview">
+	  <tr>
+	    <td><div class="item item-p1"></div></td>
+	    <td><div class="item item-tp2"></div></td>
+	    <td><div class="item item-tp3"></div></td>
+	    <td><div class="item item-tp4"></div></td>
+	    <td><div class="item item-tp5"></div></td>
+	    <td><div class="item item-tn1"></div></td>
+	    <td><div class="item item-tn2"></div></td>
+	  </tr>
+	  <tr>
+	    <td>1점</td>
+	    <td>2점</td>
+	    <td>3점</td>
+	    <td>4점</td>
+	    <td>5점</td>
+	    <td><span style="margin-left: -5px;">-5점</span></td>
+	    <td><span style="margin-left: -5px;">-10점</span></td>
+	  </tr>
+	</table>
+</div>
 <div id="score">점수: 0</div>
 <div id="timer">남은 시간: 60초</div>
 <div id="controls">
@@ -261,7 +279,6 @@ const dragArea = document.getElementById("drag-area");
 const scoreEl = document.getElementById("score");
 const timerEl = document.getElementById("timer");
 const startBtn = document.getElementById("startBtn");
-const itemPreview = document.getElementById("item-preview");
 
 let score = 0;
 let playerX = (game.clientWidth - player.clientWidth) / 2;
@@ -290,7 +307,7 @@ function centerPlayer() {
 function createItem() {
     const itemData = items[Math.floor(Math.random() * items.length)];
     const item = document.createElement("div");
-    item.className = "item " + itemData.class;
+    item.className = "game-item " + itemData.class;
     item.style.left = Math.random() * (game.clientWidth - 30) + "px";
     item.style.top = "0px";
     item.textContent = itemData.value;
@@ -304,8 +321,11 @@ function gameLoop() {
 
     if (Math.random() < 0.03) createItem();
 
-    const allItems = document.querySelectorAll(".item");
+    const allItems = game.querySelectorAll(".game-item");
     allItems.forEach(item => {
+    	
+    	if (item.closest("#item-preview")) return;
+    	
         let y = parseFloat(item.style.top);
         y += fallSpeed;
         item.style.top = y + "px";
@@ -361,12 +381,13 @@ function startGame() {
     scoreEl.textContent = "점수: 0";
     timeLeft = 60;
     timerEl.textContent = `남은 시간: ${timeLeft}초`;
-    document.querySelectorAll(".item").forEach(el => el.remove());
+    //document.querySelectorAll(".item").forEach(el => el.remove());
+    game.querySelectorAll(".game-item").forEach(el => el.remove());
     fallSpeed = 3;
 
     gameRunning = true;
     startBtn.style.display = "none";
-    itemPreview.style.display = "none";
+    $("#preview").hide();
 
     startTimer();
     startSpeedUp();
@@ -388,7 +409,7 @@ function endGame(timeOver = false, negativeScore = false) {
     }
 
     startBtn.style.display = "inline-block";
-    itemPreview.style.display = "table";
+    $("#preview").show();
 }
 
 // 마우스 드래그 이동
