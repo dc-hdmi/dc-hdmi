@@ -60,13 +60,6 @@
         background-size: cover;
         background-position: center;
     }
-
-    /* 점수별 아이템 색상/이미지 */
-    /* .item-p1 { background-color: red; }
-    .item-p2 { background-color: orange; }
-    .item-p3 { background-color: yellow; color: black; }
-    .item-p4 { background-color: green; }
-    .item-p5 { background-color: blue; } */
     .item-p1 { 
     	width: 45px; /* 원래의 절반 */
 	  	height: 45px;
@@ -261,7 +254,9 @@
 	</table>
 </div>
 <div id="current-time"></div>
-<canvas id="scoreCanvas" width="200" height="40" style="position: absolute; top: 10px; left: 10px; z-index: 1000;"></canvas>
+<div style="display: flex; justify-content: center; margin-top: 10px;">
+  <canvas id="scoreCanvas" width="200" height="40" style="z-index: 1000;"></canvas>
+</div>
 <div id="timer">남은 시간: 60초</div>
 <div id="controls">
     <button id="startBtn">게임 시작</button>
