@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>아이템 먹기 게임</title>
+<title>메리호 줍줍 게임</title>
 <style>
     body {
         margin: 0;
@@ -124,7 +124,7 @@ const timerEl = document.getElementById("timer");
 const startBtn = document.getElementById("startBtn");
 
 let score = 0;
-let playerX = 230;
+let playerX = (game.clientWidth - player.clientWidth) / 2;
 let gameRunning = false;
 let timeLeft = 60;
 let timerInterval;
@@ -140,6 +140,11 @@ const items = [
     { value: -5, class: "item-n1" },
     { value: -10, class: "item-n2" }
 ];
+
+function centerPlayer() {
+    playerX = (game.clientWidth - player.clientWidth) / 2;
+    player.style.left = playerX + "px";
+}
 
 // 아이템 생성
 function createItem() {
@@ -206,11 +211,12 @@ function startSpeedUp() {
     speedUpInterval = setInterval(() => {
         if (!gameRunning) return;
         fallSpeed += 1;
-    }, 20000);
+    }, 10000);
 }
 
 // 게임 시작
 function startGame() {
+	centerPlayer();
     score = 0;
     scoreEl.textContent = "점수: 0";
     timeLeft = 60;
