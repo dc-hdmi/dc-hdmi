@@ -2,6 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>아이템 먹기 게임</title>
 <style>
     body {
@@ -15,10 +16,8 @@
 	    position: relative;
 	    margin: 0 auto;
 	    background: #333;
-	    width: 90vw;
-	    height: 90vh;
-	    max-width: 500px;
-	    max-height: 600px;
+	    width: 100vw;
+	    height: calc(100vh - 120px); /* 상단 점수, 버튼 높이 고려 */
 	    border: 2px solid #555;
 	    touch-action: none;
 	}
@@ -28,7 +27,7 @@
 	    left: 230px;
 	    width: 60px;
 	    height: 60px;
-	    background-image: url('ship.png');
+	    background-image: url('display/images/ship.png');
 	    background-size: cover;
 	    background-position: center;
 	    border-radius: 5px;
@@ -84,7 +83,6 @@
         border-radius: 6px;
     }
     #startBtn { background: green; color: white; }
-    #restartBtn { background: orange; color: white; }
     #drag-area {
 	    position: absolute;
 	    bottom: 0;
@@ -106,10 +104,9 @@
 </head>
 <body>
 <div id="score">점수: 0</div>
-<div id="timer">남은 시간: 180초</div>
+<div id="timer">남은 시간: 60초</div>
 <div id="controls">
     <button id="startBtn">게임 시작</button>
-    <button id="restartBtn" style="display:none;">재시작</button>
 </div>
 <div id="game">
     <div class="player" id="player"></div>
@@ -125,12 +122,11 @@ const dragArea = document.getElementById("drag-area");
 const scoreEl = document.getElementById("score");
 const timerEl = document.getElementById("timer");
 const startBtn = document.getElementById("startBtn");
-const restartBtn = document.getElementById("restartBtn");
 
 let score = 0;
 let playerX = 230;
 let gameRunning = false;
-let timeLeft = 180;
+let timeLeft = 60;
 let timerInterval;
 let fallSpeed = 3;
 let speedUpInterval;
@@ -217,14 +213,13 @@ function startSpeedUp() {
 function startGame() {
     score = 0;
     scoreEl.textContent = "점수: 0";
-    timeLeft = 180;
+    timeLeft = 60;
     timerEl.textContent = `남은 시간: ${timeLeft}초`;
     document.querySelectorAll(".item").forEach(el => el.remove());
     fallSpeed = 3;
 
     gameRunning = true;
     startBtn.style.display = "none";
-    restartBtn.style.display = "inline-block";
 
     startTimer();
     startSpeedUp();
@@ -245,7 +240,6 @@ function endGame(timeOver = false, negativeScore = false) {
         alert(`게임 종료! 최종 점수: ${score}`);
     }
 
-    restartBtn.style.display = "none";
     startBtn.style.display = "inline-block";
 }
 
@@ -275,7 +269,6 @@ function movePlayer(clientX) {
 
 // 버튼 이벤트
 startBtn.addEventListener("click", () => startGame());
-restartBtn.addEventListener("click", () => startGame());
 
 //터치로 인한 움직임 막기
 game.addEventListener("touchstart", e => {
