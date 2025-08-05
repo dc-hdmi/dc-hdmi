@@ -238,7 +238,6 @@
 </style>
 </head>
 <body>
-<div id="current-time"></div>
 <div id="preview">
 	<table id="item-preview">
 	  <tr>
@@ -261,7 +260,8 @@
 	  </tr>
 	</table>
 </div>
-<div id="score">점수: 0</div>
+<div id="current-time"></div>
+<canvas id="scoreCanvas" width="200" height="40" style="position: absolute; top: 10px; left: 10px; z-index: 1000;"></canvas>
 <div id="timer">남은 시간: 60초</div>
 <div id="controls">
     <button id="startBtn">게임 시작</button>
@@ -280,6 +280,9 @@ const dragArea = document.getElementById("drag-area");
 const scoreEl = document.getElementById("score");
 const timerEl = document.getElementById("timer");
 const startBtn = document.getElementById("startBtn");
+
+const scoreCanvas = document.getElementById("scoreCanvas");
+const scoreCtx = scoreCanvas.getContext("2d");
 
 let score = 0;
 let playerX = (game.clientWidth - player.clientWidth) / 2;
@@ -316,6 +319,13 @@ function createItem() {
     game.appendChild(item);
 }
 
+function drawScore(value) {
+    scoreCtx.clearRect(0, 0, scoreCanvas.width, scoreCanvas.height);
+    scoreCtx.font = "bold 22px sans-serif";
+    scoreCtx.fillStyle = "white";
+    scoreCtx.fillText("점수: " + value, 10, 28);
+}
+
 // 게임 루프
 function gameLoop() {
     if (!gameRunning) return;
@@ -342,7 +352,7 @@ function gameLoop() {
             iy + 30 > py
         ) {
             score += parseInt(item.dataset.value);
-            scoreEl.textContent = "점수: " + score;
+            drawScore(score);
             item.remove();
 
             if (score < 0) {
@@ -379,7 +389,7 @@ function startSpeedUp() {
 function startGame() {
 	centerPlayer();
     score = 0;
-    scoreEl.textContent = "점수: 0";
+    drawScore(score);
     timeLeft = 60;
     timerEl.textContent = `남은 시간: ${timeLeft}초`;
     //document.querySelectorAll(".item").forEach(el => el.remove());
