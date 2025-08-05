@@ -12,28 +12,28 @@
         overflow: hidden;
     }
     #game {
-	position: relative;
-	margin: 0 auto;
-	background: #333;
-	width: 90vw;
-	height: 90vh;
-	max-width: 500px;
-	max-height: 600px;
-	border: 2px solid #555;
-	touch-action: none;
-    }
+	    position: relative;
+	    margin: 0 auto;
+	    background: #333;
+	    width: 90vw;
+	    height: 90vh;
+	    max-width: 500px;
+	    max-height: 600px;
+	    border: 2px solid #555;
+	    touch-action: none;
+	}
     .player {
-        position: absolute;
-        bottom: 10px;
-        left: 230px;
-        width: 60px;
-        height: 60px;
-        /* background: cyan; */
-        background-image: url('ship.png');
+	    position: absolute;
+	    bottom: 90px; /* 기존 10px → 드래그 영역 위로 이동 */
+	    left: 230px;
+	    width: 60px;
+	    height: 60px;
+	    background-image: url('display/images/ship.png');
 	    background-size: cover;
 	    background-position: center;
-        border-radius: 5px;
-    }
+	    border-radius: 5px;
+	    z-index: 2; /* 드래그 영역보다 위에 보이게 */
+	}
     .item {
         position: absolute;
         width: 45px;
@@ -85,6 +85,23 @@
     }
     #startBtn { background: green; color: white; }
     #restartBtn { background: orange; color: white; }
+    #drag-area {
+	    position: absolute;
+	    bottom: 0;
+	    left: 0;
+	    width: 100%;
+	    height: 80px;
+	    background: rgba(255, 255, 255, 0.07);
+	    z-index: 1; /* 플레이어보다 아래에 위치 */
+	    display: flex;
+	    justify-content: center;
+	    align-items: center;
+	    font-size: 18px;
+	    color: #ccc;
+	    user-select: none;
+	    touch-action: none;
+	    border-top: 1px solid rgba(255, 255, 255, 0.1);
+	}
 </style>
 </head>
 <body>
@@ -96,11 +113,15 @@
 </div>
 <div id="game">
     <div class="player" id="player"></div>
+    <div id="drag-area">
+	  <span>← 드래그 →</span>
+	</div>
 </div>
 
 <script>
 const game = document.getElementById("game");
 const player = document.getElementById("player");
+const dragArea = document.getElementById("drag-area");
 const scoreEl = document.getElementById("score");
 const timerEl = document.getElementById("timer");
 const startBtn = document.getElementById("startBtn");
@@ -231,11 +252,11 @@ function endGame(timeOver = false, negativeScore = false) {
 // 마우스 드래그 이동
 let isDragging = false;
 
-game.addEventListener("pointerdown", (e) => {
+dragArea.addEventListener("pointerdown", (e) => {
     isDragging = true;
     movePlayer(e.clientX);
 });
-game.addEventListener("pointermove", (e) => {
+dragArea.addEventListener("pointermove", (e) => {
     if (isDragging) {
         movePlayer(e.clientX);
     }
