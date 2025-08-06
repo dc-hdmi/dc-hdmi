@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>술집 탄막 게임</title>
+  <title>탄막 게임</title>
   <style>
     body {
       margin: 0;
@@ -90,7 +90,7 @@ let shootTimer = 0;
 
 let enemy = {
   x: 220, y: 100, w: 64, h: 64,
-  hp: 3000, maxHp: 3000,
+  hp: 50000, maxHp: 50000,
   dx: 2, angle: 0, patternTimer: 0
 };
 
@@ -214,19 +214,73 @@ function collision(a, b) {
   return ax < b.x + b.w && ax + aw > b.x && ay < b.y + b.h && ay + ah > b.y;
 }
 function firePattern() {
-  let count = 20;
-  for (let i = 0; i < count; i++) {
-    let angle = (Math.PI * 2 * i) / count + enemy.angle;
-    enemyBullets.push({
-      x: enemy.x + enemy.w / 2,
-      y: enemy.y + enemy.h / 2,
-      w: 6, h: 6,
-      dx: Math.cos(angle), dy: Math.sin(angle),
-      speed: 2 + score / 1000
-    });
-  }
-  enemy.angle += 0.1;
-}
+	  const patternType = Math.floor(Math.random() * 4); // 0 ~ 3
+	  const centerX = enemy.x + enemy.w / 2;
+	  const centerY = enemy.y + enemy.h / 2;
+
+	  switch (patternType) {
+	    case 0: // 🔵 원형 회전 탄막 (기존)
+	      let count = 20;
+	      for (let i = 0; i < count; i++) {
+	        let angle = (Math.PI * 2 * i) / count + enemy.angle;
+	        enemyBullets.push({
+	          x: centerX,
+	          y: centerY,
+	          w: 6, h: 6,
+	          dx: Math.cos(angle), dy: Math.sin(angle),
+	          speed: 2 + score / 1000
+	        });
+	      }
+	      enemy.angle += 0.1;
+	      break;
+
+	    case 1: // 🔵 나선 탄막
+	      let spiralCount = 10;
+	      for (let i = 0; i < spiralCount; i++) {
+	        let angle = enemy.angle + i * 0.2;
+	        enemyBullets.push({
+	          x: centerX,
+	          y: centerY,
+	          w: 6, h: 6,
+	          dx: Math.cos(angle), dy: Math.sin(angle),
+	          speed: 2.5
+	        });
+	      }
+	      enemy.angle += 0.3;
+	      break;
+
+	    case 2: // 🔵 부채꼴 탄막
+	      let fanCount = 15;
+	      let fanAngleStart = -Math.PI / 4;
+	      let fanAngleEnd = Math.PI / 4;
+	      for (let i = 0; i < fanCount; i++) {
+	        let angle = fanAngleStart + (fanAngleEnd - fanAngleStart) * (i / (fanCount - 1));
+	        enemyBullets.push({
+	          x: centerX,
+	          y: centerY,
+	          w: 6, h: 6,
+	          dx: Math.cos(angle), dy: Math.sin(angle),
+	          speed: 3
+	        });
+	      }
+	      break;
+
+	    case 3: // 🔵 랜덤 산탄
+	      let randomCount = 25;
+	      for (let i = 0; i < randomCount; i++) {
+	        let angle = Math.random() * Math.PI * 2;
+	        let speed = 1 + Math.random() * 2.5;
+	        enemyBullets.push({
+	          x: centerX,
+	          y: centerY,
+	          w: 6, h: 6,
+	          dx: Math.cos(angle), dy: Math.sin(angle),
+	          speed: speed
+	        });
+	      }
+	      break;
+	  }
+	}
 function drawHpBar(x, y, width, height, hp, maxHp) {
   ctx.fillStyle = "gray";
   ctx.fillRect(x, y, width, height);
