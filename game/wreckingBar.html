@@ -265,13 +265,16 @@ function firePattern() {
 	      let spiralCount = 10;
 	      for (let i = 0; i < spiralCount; i++) {
 	        let angle = enemy.angle + i * 0.2;
-	        enemyBullets.push({
-	          x: centerX,
-	          y: centerY,
-	          w: 6, h: 6,
-	          dx: Math.cos(angle), dy: Math.sin(angle),
-	          speed: 1
-	        });
+	        if (score >= 2000) {
+		  // 나선 탄막
+		  enemyBullets.push({
+		    x: centerX,
+		    y: centerY,
+		    w: 6, h: 6,
+		    dx: Math.cos(angle), dy: Math.sin(angle),
+		    speed: 0.5
+		  });
+		}
 	      }
 	      enemy.angle += 0.3;
 	      break;
@@ -282,13 +285,15 @@ function firePattern() {
 	      let fanAngleEnd = Math.PI / 4;
 	      for (let i = 0; i < fanCount; i++) {
 	        let angle = fanAngleStart + (fanAngleEnd - fanAngleStart) * (i / (fanCount - 1));
-	        enemyBullets.push({
-	          x: centerX,
-	          y: centerY,
-	          w: 6, h: 6,
-	          dx: Math.cos(angle), dy: Math.sin(angle),
-	          speed: 1
-	        });
+	        if (score >= 4000) {
+		  enemyBullets.push({
+	           x: centerX,
+	           y: centerY,
+	           w: 6, h: 6,
+	           dx: Math.cos(angle), dy: Math.sin(angle),
+	           speed: 1
+	         });
+		}
 	      }
 	      break;
 
