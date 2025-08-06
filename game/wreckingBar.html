@@ -60,11 +60,18 @@
 	  background: linear-gradient(to right, #ff6a00, #ee0979);
 	}
 	.char-option {
-	    width: 60px;
-	    margin: 10px;
+	    width: 80px;
+	    height: 80px;
+	    object-fit: contain;
 	    cursor: pointer;
+	    margin: 10px;
 	    border: 3px solid transparent;
 	    border-radius: 8px;
+	    transition: transform 0.2s;
+	  }
+	
+	  .char-option:hover {
+	    transform: scale(1.1);
 	  }
 	
 	  .char-option.selected {
@@ -79,12 +86,14 @@
 </head>
 <body>
 <canvas id="gameCanvas"></canvas>
-<div id="character-select" style="position: absolute;top: 30%;left: 50%;transform: translate(-50%, -50%);z-index: 9999;text-align: center;background: rgba(0, 0, 0, 0.8);padding: 10px;border-radius: 10px;">
-  <h2 style="color: white;">플레이어를 선택하세요</h2>
-  <img src="home_shop.png" class="char-option" onclick="selectCharacter(this, 'home_shop.png')">
-  <img src="common_del.png" class="char-option" onclick="selectCharacter(this, 'common_del.png')">
-  <img src="character_detail_RushAttack_btn.png" class="char-option" onclick="selectCharacter(this, 'character_detail_RushAttack_btn.png')">
-  <img src="characterbox_icon_ex.png" class="char-option" onclick="selectCharacter(this, 'characterbox_icon_ex.png')">
+<div id="character-select" style="position: absolute;top: 30%;left: 50%;transform: translate(-50%, -50%);z-index: 9999;text-align: center;background: rgba(0, 0, 0, 0.85);padding: 20px;border-radius: 15px;width: 80%; max-width: 500px;">
+  <h2 style="color: white;font-size: 24px;">플레이어를 선택하세요</h2>
+  <div style="display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;">
+	  <img src="home_shop.png" class="char-option" onclick="selectCharacter(this, 'home_shop.png')">
+	  <img src="common_del.png" class="char-option" onclick="selectCharacter(this, 'common_del.png')">
+	  <img src="character_detail_RushAttack_btn.png" class="char-option" onclick="selectCharacter(this, 'character_detail_RushAttack_btn.png')">
+	  <img src="characterbox_icon_ex.png" class="char-option" onclick="selectCharacter(this, 'characterbox_icon_ex.png')">
+  </div>
   <br>
 </div>
 <button id="startBtn">게임 시작</button>
