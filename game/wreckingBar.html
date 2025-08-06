@@ -413,6 +413,8 @@ function gameLoop() {
 
   ctx.beginPath();
   ctx.arc(bombButton.x, bombButton.y, bombButton.r, 0, Math.PI * 2);
+  ctx.fillStyle = "rgb(0, 128, 255)";
+  ctx.fill();  
   ctx.strokeStyle = "white";
   ctx.stroke();
   ctx.fillText("지갑충전", bombButton.x - 20, bombButton.y + 5);
