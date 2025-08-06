@@ -117,7 +117,11 @@
     	  gameRunning = true;
     	  updateScore();
     	  updateTimer();
-    	  setInterval(updateTimer, 1000);
+    	  
+    	  if (timerInterval) clearInterval(timerInterval);
+    	  timerInterval = setInterval(updateTimer, 1000);
+    	  
+    	  if (obstacleTimeout) clearTimeout(obstacleTimeout);
     	  createObstacle();
 
     	  startBtn.style.display = "none";
@@ -141,6 +145,9 @@
     let score = 0;
     let gameRunning = true;
     let timeLeft = 120;
+    
+    let timerInterval = null;
+    let obstacleTimeout = null;
 
     function jump() {
     	if (!gameRunning || jumpCount >= maxJump || isJumping) return;
@@ -271,7 +278,7 @@
 
       // 다음 장애물 생성 시간 설정
       const nextDelay = 1500 + Math.random() * 1500;
-      setTimeout(createObstacle, nextDelay);
+      obstacleTimeout = setTimeout(createObstacle, nextDelay);
     }
 
     function updateScore() {
@@ -292,6 +299,9 @@
     	  gameOverText.style.display = "block";
     	  startBtn.style.display = "inline-block"; // 시작 버튼 다시 보이기
     	  jumpBtn.style.display = "none";          // 점프 버튼 숨기기
+    	  
+    	  if (timerInterval) clearInterval(timerInterval);
+    	  if (obstacleTimeout) clearTimeout(obstacleTimeout);
     	}
     
     function resetGame() {
