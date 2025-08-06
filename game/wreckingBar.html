@@ -59,6 +59,17 @@
 	  transform: translate(-50%, -50%) scale(1.05);
 	  background: linear-gradient(to right, #ff6a00, #ee0979);
 	}
+	.char-option {
+	    width: 60px;
+	    margin: 10px;
+	    cursor: pointer;
+	    border: 3px solid transparent;
+	    border-radius: 8px;
+	  }
+	
+	  .char-option.selected {
+	    border: 3px solid yellow;
+	  }
     @keyframes fadeIn {
       to {
         opacity: 1;
@@ -68,6 +79,14 @@
 </head>
 <body>
 <canvas id="gameCanvas"></canvas>
+<div id="character-select" style="position: absolute;top: 30%;left: 50%;transform: translate(-50%, -50%);z-index: 9999;text-align: center;background: rgba(0, 0, 0, 0.8);padding: 10px;border-radius: 10px;">
+  <h2 style="color: white;">플레이어를 선택하세요</h2>
+  <img src="home_shop.png" class="char-option" onclick="selectCharacter(this, 'home_shop.png')">
+  <img src="common_del.png" class="char-option" onclick="selectCharacter(this, common_del.png')">
+  <img src="character_detail_RushAttack_btn.png" class="char-option" onclick="selectCharacter(this, 'character_detail_RushAttack_btn.png')">
+  <img src="characterbox_icon_ex.png" class="char-option" onclick="selectCharacter(this, 'characterbox_icon_ex.png')">
+  <br>
+</div>
 <button id="startBtn">게임 시작</button>
 <button id="restartBtn" style="display:none;">다시 시작</button>
 <script>
@@ -79,6 +98,8 @@ const GAME_WIDTH = 480;
 const GAME_HEIGHT = 640;
 let scale = 1;
 
+let selectedPlayerImage = 'home_shop.png';
+
 // 이미지 로드
 const playerImg = new Image();
 playerImg.src = "home_shop.png";
@@ -86,6 +107,15 @@ const enemyImg = new Image();
 enemyImg.src = "common_footer_gasha.png";
 const bulletImg = new Image();
 bulletImg.src = "popuptext_slot_rainbow.png";
+
+function selectCharacter(el, img) {
+	selectedPlayerImage = img;
+	document.querySelectorAll('.char-option').forEach(img => {
+		img.classList.remove('selected');
+	});
+	
+	el.classList.add('selected');
+}
 
 function resizeCanvas() {
   let w = window.innerWidth;
@@ -131,7 +161,12 @@ let bombButton = { x: 400, y: 560, r: 40 };
 let restartButton = { x: 170, y: 400, w: 140, h: 40, visible: false };
 
 startBtn.addEventListener("click", () => {
+ if (!selectedPlayerImage) {
+    alert("캐릭터를 선택하세요!");
+    return; // 게임 시작 중단
+  }
   gameStarted = true;
+  document.getElementById('character-select').style.display = 'none';
   startBtn.style.display = "none";
 });
 restartBtn.addEventListener("click", () => {
@@ -411,6 +446,8 @@ function gameLoop() {
   });
 
   // 그리기
+  let playerImg = new Image();
+  playerImg.src = selectedPlayerImage;
   ctx.drawImage(playerImg, player.x, player.y, player.w, player.h);
   ctx.drawImage(enemyImg, enemy.x, enemy.y, enemy.w, enemy.h);
 
