@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>탄막 게임</title>
+  <style>
+    body {
+      margin: 0;
+      background: black;
+      touch-action: none;
+      overflow: hidden;
+    }
+    canvas {
+      display: block;
+      margin: auto;
+      background: #111;
+    }
+    #startBtn {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      padding: 30px 60px;
+      font-size: 32px;
+      background: linear-gradient(to right, #4facfe, #00f2fe);
+      border: none;
+      border-radius: 12px;
+      color: white;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+      opacity: 0;
+      animation: fadeIn 1.2s ease-out forwards;
+      transition: transform 0.3s ease, background 0.3s ease;
+      z-index: 10;
+    }
+    #startBtn:hover {
+      transform: translate(-50%, -50%) scale(1.05);
+      background: linear-gradient(to right, #43e97b, #38f9d7);
+    }
+    @keyframes fadeIn {
+      to {
+        opacity: 1;
+      }
+    }
+  </style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+<button id="startBtn">게임 시작</button>
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+const GAME_WIDTH = 480;
+const GAME_HEIGHT = 640;
+let scale = 1;
+
+// 이미지 로드
+const playerImg = new Image();
+playerImg.src = "home_shop.png";
+const enemyImg = new Image();
+enemyImg.src = "common_footer_gasha.png";
+const bulletImg = new Image();
+bulletImg.src = "popuptext_slot_rainbow.png";
+
+function resizeCanvas() {
+  let w = window.innerWidth;
+  let h = window.innerHeight;
+  let ratio = Math.min(w / GAME_WIDTH, h / GAME_HEIGHT);
+  scale = ratio;
+  canvas.width = GAME_WIDTH * ratio;
+  canvas.height = GAME_HEIGHT * ratio;
+}
+window.addEventListener("resize", resizeCanvas);
+resizeCanvas();
+
+// 상태 변수
+let keys = {};
+let gameStarted = false;
+let player = { x: 240, y: 580, w: 48, h: 48, speed: 4, hp: 3, maxHp: 3 };
+let bullets = [];
+let enemyBullets = [];
+let score = 0;
+let gameOver = false;
+let gameWin = false;
+let bombs = 3;
+let bombCooldown = 0;
+let invincibleTimer = 0;
+let flashTimer = 0;
+let shootTimer = 0;
+
+let enemy = {
+  x: 220, y: 100, w: 64, h: 64,
+  hp: 3000, maxHp: 3000,
+  dx: 2, angle: 0, patternTimer: 0
+};
+
+let joystick = {
+  active: false,
+  baseX: 80, baseY: 560,
+  knobX: 80, knobY: 560,
+  radius: 40,
+  dx: 0, dy: 0
+};
+
+let bombButton = { x: 400, y: 560, r: 40 };
+let restartButton = { x: 170, y: 400, w: 140, h: 40, visible: false };
+
+const startBtn = document.getElementById("startBtn");
+startBtn.addEventListener("click", () => {
+  gameStarted = true;
+  startBtn.style.display = "none";
+});
+
+document.addEventListener("keydown", e => keys[e.code] = true);
+document.addEventListener("keyup", e => keys[e.code] = false);
+
+canvas.addEventListener("touchstart", e => {
+  const rect = canvas.getBoundingClientRect();
+  const touch = e.touches[0];
+  const x = (touch.clientX - rect.left) / scale;
+  const y = (touch.clientY - rect.top) / scale;
+  if (!gameStarted) return;
+  checkRestart(x, y);
+  let dx = x - bombButton.x;
+  let dy = y - bombButton.y;
+  if (Math.sqrt(dx * dx + dy * dy) < bombButton.r) useBomb();
+  let jdx = x - joystick.baseX;
+  let jdy = y - joystick.baseY;
+  if (Math.sqrt(jdx * jdx + jdy * jdy) < joystick.radius * 2) {
+    joystick.active = true;
+    joystick.knobX = x;
+    joystick.knobY = y;
+  }
+});
+canvas.addEventListener("touchmove", e => {
+  if (!joystick.active) return;
+  const rect = canvas.getBoundingClientRect();
+  const touch = e.touches[0];
+  const x = (touch.clientX - rect.left) / scale;
+  const y = (touch.clientY - rect.top) / scale;
+  let dx = x - joystick.baseX;
+  let dy = y - joystick.baseY;
+  const len = Math.sqrt(dx * dx + dy * dy);
+  if (len > joystick.radius) {
+    dx = (dx / len) * joystick.radius;
+    dy = (dy / len) * joystick.radius;
+  }
+  joystick.knobX = joystick.baseX + dx;
+  joystick.knobY = joystick.baseY + dy;
+  joystick.dx = dx / joystick.radius;
+  joystick.dy = dy / joystick.radius;
+});
+canvas.addEventListener("touchend", () => {
+  joystick.active = false;
+  joystick.knobX = joystick.baseX;
+  joystick.knobY = joystick.baseY;
+  joystick.dx = joystick.dy = 0;
+});
+canvas.addEventListener("mousedown", e => {
+  if (!gameStarted) return;
+  const rect = canvas.getBoundingClientRect();
+  const x = (e.clientX - rect.left) / scale;
+  const y = (e.clientY - rect.top) / scale;
+  checkRestart(x, y);
+});
+
+function checkRestart(x, y) {
+  if (
+    restartButton.visible &&
+    x >= restartButton.x && x <= restartButton.x + restartButton.w &&
+    y >= restartButton.y && y <= restartButton.y + restartButton.h
+  ) {
+    restartGame();
+  }
+}
+
+function restartGame() {
+  player.x = 240;
+  player.y = 580;
+  player.hp = 3;
+  score = 0;
+  bullets = [];
+  enemyBullets = [];
+  gameOver = false;
+  gameWin = false;
+  enemy.hp = enemy.maxHp;
+  enemy.x = 220;
+  enemy.angle = 0;
+  bombs = 3;
+  invincibleTimer = 0;
+  flashTimer = 0;
+  restartButton.visible = false;
+  gameStarted = true;
+}
+
+function shoot() {
+  bullets.push({ x: player.x + player.w / 2 - 2, y: player.y - 10, w: 16, h: 16, speed: 7 });
+}
+function useBomb() {
+  if (bombs > 0 && bombCooldown === 0) {
+    bombs--;
+    enemyBullets = [];
+    invincibleTimer = 100;
+    bombCooldown = 30;
+    flashTimer = 5;
+  }
+}
+function collision(a, b) {
+  const isPlayer = a === player;
+  const ax = isPlayer ? a.x + a.w / 2 - 3 : a.x;
+  const ay = isPlayer ? a.y + a.h / 2 - 3 : a.y;
+  const aw = isPlayer ? 6 : a.w;
+  const ah = isPlayer ? 6 : a.h;
+  return ax < b.x + b.w && ax + aw > b.x && ay < b.y + b.h && ay + ah > b.y;
+}
+function firePattern() {
+  let count = 20;
+  for (let i = 0; i < count; i++) {
+    let angle = (Math.PI * 2 * i) / count + enemy.angle;
+    enemyBullets.push({
+      x: enemy.x + enemy.w / 2,
+      y: enemy.y + enemy.h / 2,
+      w: 6, h: 6,
+      dx: Math.cos(angle), dy: Math.sin(angle),
+      speed: 2 + score / 1000
+    });
+  }
+  enemy.angle += 0.1;
+}
+function drawHpBar(x, y, width, height, hp, maxHp) {
+  ctx.fillStyle = "gray";
+  ctx.fillRect(x, y, width, height);
+  ctx.fillStyle = "red";
+  ctx.fillRect(x, y, (hp / maxHp) * width, height);
+  ctx.strokeStyle = "white";
+  ctx.strokeRect(x, y, width, height);
+}
+
+function gameLoop() {
+  ctx.save();
+  ctx.scale(scale, scale);
+  ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+  if (!gameStarted) {
+    ctx.restore();
+    requestAnimationFrame(gameLoop);
+    return;
+  }
+  if (gameOver || gameWin) {
+    ctx.fillStyle = gameOver ? "red" : "cyan";
+    ctx.font = "40px Arial";
+    ctx.fillText(gameOver ? "GAME OVER" : "YOU WIN!", 120, 300);
+    ctx.font = "24px Arial";
+    ctx.fillStyle = "white";
+    ctx.fillText(`Score: ${score}`, 180, 350);
+    restartButton.visible = true;
+    ctx.fillStyle = "gray";
+    ctx.fillRect(restartButton.x, restartButton.y, restartButton.w, restartButton.h);
+    ctx.strokeStyle = "white";
+    ctx.strokeRect(restartButton.x, restartButton.y, restartButton.w, restartButton.h);
+    ctx.fillStyle = "white";
+    ctx.font = "20px Arial";
+    ctx.fillText("다시 시작", restartButton.x + 20, restartButton.y + 26);
+    ctx.restore();
+    requestAnimationFrame(gameLoop);
+    return;
+  }
+  if (flashTimer > 0) {
+    ctx.fillStyle = `rgba(255,255,255,${flashTimer / 10})`;
+    ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+    flashTimer--;
+  }
+  if (bombCooldown > 0) bombCooldown--;
+  if (invincibleTimer > 0) invincibleTimer--;
+
+  if (joystick.active) {
+    player.x += joystick.dx * player.speed;
+    player.y += joystick.dy * player.speed;
+  } else {
+    if (keys["ArrowLeft"]) player.x -= player.speed;
+    if (keys["ArrowRight"]) player.x += player.speed;
+    if (keys["ArrowUp"]) player.y -= player.speed;
+    if (keys["ArrowDown"]) player.y += player.speed;
+  }
+  player.x = Math.max(0, Math.min(GAME_WIDTH - player.w, player.x));
+  player.y = Math.max(0, Math.min(GAME_HEIGHT - player.h, player.y));
+
+  shootTimer++;
+  if (shootTimer > 10) {
+    shoot();
+    shootTimer = 0;
+  }
+  bullets.forEach((b, i) => {
+    b.y -= b.speed;
+    if (b.y < 0) bullets.splice(i, 1);
+  });
+
+  enemy.x += enemy.dx;
+  if (enemy.x <= 0 || enemy.x >= GAME_WIDTH - enemy.w) enemy.dx *= -1;
+  enemy.patternTimer++;
+  if (enemy.patternTimer > 20) {
+    firePattern();
+    enemy.patternTimer = 0;
+  }
+  enemyBullets.forEach((b, i) => {
+    b.x += b.dx * b.speed;
+    b.y += b.dy * b.speed;
+    if (b.x < -10 || b.x > GAME_WIDTH + 10 || b.y < -10 || b.y > GAME_HEIGHT + 10)
+      enemyBullets.splice(i, 1);
+  });
+
+  bullets.forEach((b, bi) => {
+    if (collision(b, enemy)) {
+      bullets.splice(bi, 1);
+      enemy.hp -= 50;
+      score += 100;
+      if (enemy.hp <= 0) {
+        enemy.hp = 0;
+        gameWin = true;
+      }
+    }
+  });
+  enemyBullets.forEach(b => {
+    if (collision(player, b) && invincibleTimer <= 0) {
+      player.hp--;
+      invincibleTimer = 100;
+      if (player.hp <= 0) gameOver = true;
+    }
+  });
+
+  // 그리기
+  ctx.drawImage(playerImg, player.x, player.y, player.w, player.h);
+  ctx.drawImage(enemyImg, enemy.x, enemy.y, enemy.w, enemy.h);
+
+  bullets.forEach(b => {
+	  ctx.drawImage(bulletImg, b.x, b.y, b.w, b.h);
+	});
+  ctx.fillStyle = "magenta";
+  enemyBullets.forEach(b => {
+    ctx.beginPath();
+    ctx.arc(b.x + b.w / 2, b.y + b.h / 2, 5, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  drawHpBar(100, 20, 280, 15, enemy.hp, enemy.maxHp);
+
+  ctx.fillStyle = "white";
+  ctx.font = "14px Arial";
+  ctx.fillText(`HP: ${player.hp}`, 10, 40);
+  ctx.fillText(`Bombs: ${bombs}`, 400, 40);
+  ctx.fillText(`Score: ${score}`, 10, 60);
+
+  ctx.beginPath();
+  ctx.arc(joystick.baseX, joystick.baseY, joystick.radius, 0, Math.PI * 2);
+  ctx.strokeStyle = "white";
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(joystick.knobX, joystick.knobY, 15, 0, Math.PI * 2);
+  ctx.fillStyle = "white";
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.arc(bombButton.x, bombButton.y, bombButton.r, 0, Math.PI * 2);
+  ctx.strokeStyle = "white";
+  ctx.stroke();
+  ctx.fillText("BOMB", bombButton.x - 20, bombButton.y + 5);
+
+  ctx.restore();
+  requestAnimationFrame(gameLoop);
+}
+gameLoop();
+</script>
+</body>
+</html>
