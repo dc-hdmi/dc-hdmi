@@ -302,13 +302,15 @@ function firePattern() {
 	      for (let i = 0; i < randomCount; i++) {
 	        let angle = Math.random() * Math.PI * 2;
 	        let speed = 1 + Math.random() * 2.5;
-	        enemyBullets.push({
-	          x: centerX,
-	          y: centerY,
-	          w: 6, h: 6,
-	          dx: Math.cos(angle), dy: Math.sin(angle),
-	          speed: speed
-	        });
+		if (score >= 8000) {
+		        enemyBullets.push({
+		          x: centerX,
+		          y: centerY,
+		          w: 6, h: 6,
+		          dx: Math.cos(angle), dy: Math.sin(angle),
+		          speed: speed
+		        });
+		}
 	      }
 	      break;
 	  }
