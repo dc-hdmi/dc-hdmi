@@ -107,7 +107,7 @@ const startBtn = document.getElementById("startBtn");
 const restartBtn = document.getElementById("restartBtn");
 const ctx = canvas.getContext("2d");
 const GAME_WIDTH = 480;
-const GAME_HEIGHT = 640;
+const GAME_HEIGHT = 720;
 let scale = 1;
 
 let selectedPlayerImage = 'home_shop.png';
@@ -163,13 +163,13 @@ let enemy = {
 
 let joystick = {
   active: false,
-  baseX: 80, baseY: 560,
-  knobX: 80, knobY: 560,
+  baseX: 80, baseY: 680,
+  knobX: 80, knobY: 680,
   radius: 40,
   dx: 0, dy: 0
 };
 
-let bombButton = { x: 400, y: 560, r: 40 };
+let bombButton = { x: 400, y: 680, r: 40 };
 let restartButton = { x: 170, y: 400, w: 140, h: 40, visible: false };
 
 startBtn.addEventListener("click", () => {
@@ -412,7 +412,9 @@ function gameLoop() {
     if (keys["ArrowDown"]) player.y += player.speed;
   }
   player.x = Math.max(0, Math.min(GAME_WIDTH - player.w, player.x));
-  player.y = Math.max(0, Math.min(GAME_HEIGHT - player.h, player.y));
+  const GAME_UI_HEIGHT = 80;  // 조이스틱과 버튼 영역 높이
+
+  player.y = Math.max(0, Math.min(GAME_HEIGHT - player.h - GAME_UI_HEIGHT, player.y));
 
   shootTimer++;
   if (shootTimer > 10) {
