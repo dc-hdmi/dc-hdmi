@@ -132,7 +132,11 @@
 </div>
 
 <button id="start-btn" class="btn">게임 시작</button>
-
+<div id="notice" style="position: fixed; top: 10px; left: 50%; transform: translateX(-50%); 
+background: rgba(255,255,255,0.8); color: black; padding: 10px 20px; border-radius: 5px; 
+font-weight: bold; display: none; z-index: 10000; font-size: 7;">
+  매치 속성 없음!
+</div>
 <script>
 const rows = 10;
 const cols = 7;
@@ -283,6 +287,15 @@ function swapBalls(r1, c1, r2, c2) {
 	  }, 50);
 	}
 
+function showNotice(msg, duration = 2000) {
+	  const notice = document.getElementById('notice');
+	  notice.textContent = msg;
+	  notice.style.display = 'block';
+	  setTimeout(() => {
+	    notice.style.display = 'none';
+	  }, duration);
+	}
+
 function canMakeMatch() {
 	  for (let y = 0; y < rows; y++) {
 	    for (let x = 0; x < cols; x++) {
@@ -426,6 +439,7 @@ function triggerBombEffect(row, col) {
 	    if (!canMakeMatch()) {
 	      shuffleBoard();
 	      renderBoard();
+	      showNotice('매치 속성 없음!');
 	    }
 	  }
 	}, 200);
@@ -471,11 +485,17 @@ function processMatches(matchedPositions) {
     renderBoard();
 
     setTimeout(() => {
-      const nextMatches = findMatches();
-      if (nextMatches.length > 0) {
-        processMatches(nextMatches);
-      }
-    }, 200);
+    	  const nextMatches = findMatches();
+    	  if (nextMatches.length > 0) {
+    	    processMatches(nextMatches);
+    	  } else {
+    	    if (!canMakeMatch()) {
+    	      shuffleBoard();
+    	      renderBoard();
+    	      showNotice('매치 속성 없음!');
+    	    }
+    	  }
+    	}, 200);
   }, 700);
 }
 
