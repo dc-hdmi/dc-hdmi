@@ -103,19 +103,19 @@
     pointer-events: none;
   }
   #start-btn {
-	  position: fixed;    
-	  top: 50%;           
-	  left: 50%;          
-	  transform: translate(-50%, -50%);
-	  z-index: 10000;       
-	  padding: 10px 20px;
-	  font-size: 16px;
-	  background: #555;
-	  color: white;
-	  border: none;
-	  border-radius: 5px;
-	  touch-action: manipulation;
-	}
+    position: fixed;    
+    top: 50%;           
+    left: 50%;          
+    transform: translate(-50%, -50%);
+    z-index: 10000;       
+    padding: 10px 20px;
+    font-size: 16px;
+    background: #555;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    touch-action: manipulation;
+  }
 </style>
 </head>
 <body>
@@ -128,6 +128,7 @@
 </div>
 
 <div id="controls">
+
 </div>
 
 <button id="start-btn" class="btn">게임 시작</button>
@@ -142,12 +143,13 @@ let colorImages = {
   blue: 'popuptext_slot_green.png',
   green: 'popuptext_slot_blue.png',
   yellow: 'popuptext_slot_yellow.png',
-  purple: 'popuptext_slot_purple.png'
+  purple: 'popuptext_slot_purple.png',
+  bomb: 'popuptext_slot_bomb.png'
 };
 let gameRunning = false;
 
 let score = 0;
-let timer = 180;
+let timer = 120;
 let timerInterval = null;
 
 const boardEl = document.getElementById('game-board');
@@ -241,7 +243,17 @@ document.addEventListener('pointerup', (e) => {
     (startCol === endCol && Math.abs(startRow - endRow) === 1);
 
   if (isAdjacent) {
-    swapBalls(startRow, startCol, endRow, endCol);
+    if (board[startRow][startCol] === 'bomb' || board[endRow][endCol] === 'bomb') {
+      if (board[startRow][startCol] === 'bomb') {
+        swapBalls(startRow, startCol, endRow, endCol);
+        triggerBombEffect(endRow, endCol);
+      } else {
+        swapBalls(startRow, startCol, endRow, endCol);
+        triggerBombEffect(startRow, startCol);
+      }
+    } else {
+      swapBalls(startRow, startCol, endRow, endCol);
+    }
   }
 
   dragStartCell = null;
@@ -262,7 +274,7 @@ function swapBalls(r1, c1, r2, c2) {
 function checkMatchesAndProcess() {
   const matchedPositions = findMatches();
   if (matchedPositions.length === 0) {
-    return; 
+    return;
   }
   processMatches(matchedPositions);
 }
@@ -316,6 +328,47 @@ function uniquePositions(arr) {
   return unique;
 }
 
+function triggerBombEffect(row, col) {
+  let positionsToRemove = [];
+
+  for (let x = 0; x < cols; x++) {
+    if (board[row][x] !== null) positionsToRemove.push([row, x]);
+  }
+
+  for (let y = 0; y < rows; y++) {
+    if (board[y][col] !== null) positionsToRemove.push([y, col]);
+  }
+
+  positionsToRemove = uniquePositions(positionsToRemove);
+
+  const points = positionsToRemove.length * 5;
+  score += points;
+  scoreboard.textContent = `점수: ${score}`;
+
+  positionsToRemove.forEach(([r, c]) => {
+    const cell = boardEl.querySelector(`.cell[data-row="${r}"][data-col="${c}"]`);
+    if (!cell) return;
+    const ballEl = cell.querySelector('.ball');
+    if (!ballEl) return;
+    ballEl.classList.add('fadeout');
+  });
+
+  setTimeout(() => {
+    positionsToRemove.forEach(([r, c]) => {
+      board[r][c] = null;
+    });
+    fillEmptySlots();
+    renderBoard();
+
+    setTimeout(() => {
+      const nextMatches = findMatches();
+      if (nextMatches.length > 0) {
+        processMatches(nextMatches);
+      }
+    }, 200);
+  }, 700);
+}
+
 function processMatches(matchedPositions) {
   const uniqueMatched = uniquePositions(matchedPositions);
   if (uniqueMatched.length === 0) return;
@@ -352,10 +405,16 @@ function processMatches(matchedPositions) {
 }
 
 function fillEmptySlots() {
+  let bombPlaced = false;
   for (let y = 0; y < rows; y++) {
     for (let x = 0; x < cols; x++) {
       if (board[y][x] === null) {
-        board[y][x] = colors[Math.floor(Math.random() * colors.length)];
+        if (!bombPlaced && Math.random() < 0.03) {
+          board[y][x] = 'bomb';
+          bombPlaced = true;
+        } else {
+          board[y][x] = colors[Math.floor(Math.random() * colors.length)];
+        }
       }
     }
   }
