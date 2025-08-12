@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>속성 맞추기 게임</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<style>
+  body {
+    text-align: center;
+    background: #222;
+    color: #fff;
+    margin: 0;
+    font-family: sans-serif;
+  }
+  #scoreboard {
+    margin: 10px auto;
+    font-size: 20px;
+  }
+  #timer {
+    margin: 10px auto 20px;
+    font-size: 18px;
+  }
+  #game-board {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+    margin: 0 auto;
+    background: #444;
+    width: 90vw;
+    max-width: 300px;
+    aspect-ratio: 7 / 10;
+  }
+  .cell {
+    background: #333;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+    position: relative;
+  }
+  .ball {
+    width: 90%;
+    height: 90%;
+    background-size: cover;
+    touch-action: none;
+    transition: none;
+  }
+  .dragging {
+    outline: 2px solid yellow;
+    position: fixed;
+    z-index: 1000;
+    width: 40px !important;
+    height: 40px !important;
+    pointer-events: none;
+    transition: none !important;
+  }
+  .fadeout {
+    animation: fancyFadeOut 0.7s forwards;
+    transform-origin: center center;
+  }
+  @keyframes fancyFadeOut {
+    0% {
+      opacity: 1;
+      transform: scale(1) rotate(0deg);
+      filter: brightness(100%) saturate(100%);
+      box-shadow: 0 0 10px 5px rgba(255,255,255,0.7);
+    }
+    50% {
+      opacity: 0.7;
+      transform: scale(1.2) rotate(20deg);
+      filter: brightness(150%) saturate(120%);
+      box-shadow: 0 0 20px 10px rgba(255,255,255,1);
+    }
+    100% {
+      opacity: 0;
+      transform: scale(0) rotate(60deg);
+      filter: brightness(0%) saturate(0%);
+      box-shadow: 0 0 0 0 rgba(255,255,255,0);
+    }
+  }
+  #controls {
+    margin: 4px auto 10px;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+  }
+  .btn {
+    padding: 10px 20px;
+    font-size: 16px;
+    background: #555;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    touch-action: manipulation;
+  }
+  #arrowCanvas {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    width: 100%;
+    pointer-events: none;
+  }
+  #start-btn {
+	  position: fixed;    
+	  top: 50%;           
+	  left: 50%;          
+	  transform: translate(-50%, -50%);
+	  z-index: 10000;       
+	  padding: 10px 20px;
+	  font-size: 16px;
+	  background: #555;
+	  color: white;
+	  border: none;
+	  border-radius: 5px;
+	  touch-action: manipulation;
+	}
+</style>
+</head>
+<body>
+
+<h1>속성 맞추기 게임</h1>
+<div id="scoreboard">점수: 0</div>
+<div id="timer">남은 시간: 180초</div>
+<div id="game-board">
+  <canvas id="arrowCanvas" width="360" height="640"></canvas>
+</div>
+
+<div id="controls">
+</div>
+
+<button id="start-btn" class="btn">게임 시작</button>
+
+<script>
+const rows = 10;
+const cols = 7;
+let board = [];
+let colors = ['red', 'blue', 'green', 'yellow', 'purple'];
+let colorImages = {
+  red: 'popuptext_slot_red.png',
+  blue: 'popuptext_slot_green.png',
+  green: 'popuptext_slot_blue.png',
+  yellow: 'popuptext_slot_yellow.png',
+  purple: 'popuptext_slot_purple.png'
+};
+let gameRunning = false;
+
+let score = 0;
+let timer = 180;
+let timerInterval = null;
+
+const boardEl = document.getElementById('game-board');
+const startBtn = document.getElementById('start-btn');
+const scoreboard = document.getElementById('scoreboard');
+const timerEl = document.getElementById('timer');
+
+function initBoard() {
+  board = [];
+  for (let y = 0; y < rows; y++) {
+    const row = new Array(cols).fill(null).map(() => {
+      return colors[Math.floor(Math.random() * colors.length)];
+    });
+    board.push(row);
+  }
+}
+
+function renderBoard() {
+  const oldCanvas = document.getElementById("arrowCanvas");
+  boardEl.innerHTML = '';
+  for (let y = 0; y < rows; y++) {
+    for (let x = 0; x < cols; x++) {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      cell.dataset.row = y;
+      cell.dataset.col = x;
+      if (board[y][x]) {
+        const ballEl = document.createElement('div');
+        ballEl.className = 'ball';
+        ballEl.style.backgroundImage = `url(${colorImages[board[y][x]]})`;
+        cell.appendChild(ballEl);
+      }
+      boardEl.appendChild(cell);
+    }
+  }
+  boardEl.appendChild(oldCanvas);
+}
+
+let dragStartCell = null;
+let draggingBallEl = null;
+
+boardEl.addEventListener('pointerdown', (e) => {
+  if (!gameRunning) return;
+  const cell = e.target.closest('.cell');
+  if (!cell) return;
+  const ballEl = cell.querySelector('.ball');
+  if (!ballEl) return;
+  dragStartCell = cell;
+  draggingBallEl = ballEl;
+
+  draggingBallEl.classList.add('dragging');
+  moveDraggedBall(e.pageX, e.pageY);
+  e.preventDefault();
+});
+
+function moveDraggedBall(pageX, pageY) {
+  if (!draggingBallEl) return;
+  const offsetX = draggingBallEl.offsetWidth / 2;
+  const offsetY = draggingBallEl.offsetHeight / 2;
+  draggingBallEl.style.left = (pageX - offsetX) + 'px';
+  draggingBallEl.style.top = (pageY - offsetY) + 'px';
+}
+
+boardEl.addEventListener('pointermove', (e) => {
+  if (!draggingBallEl) return;
+  e.preventDefault();
+  moveDraggedBall(e.pageX, e.pageY);
+});
+
+document.addEventListener('pointerup', (e) => {
+  if (!draggingBallEl || !dragStartCell) return;
+
+  draggingBallEl.classList.remove('dragging');
+
+  const target = document.elementFromPoint(e.clientX, e.clientY);
+  const cell = target?.closest('.cell');
+
+  if (!cell) {
+    dragStartCell = null;
+    draggingBallEl = null;
+    return;
+  }
+
+  const startRow = parseInt(dragStartCell.dataset.row);
+  const startCol = parseInt(dragStartCell.dataset.col);
+  const endRow = parseInt(cell.dataset.row);
+  const endCol = parseInt(cell.dataset.col);
+
+  const isAdjacent =
+    (startRow === endRow && Math.abs(startCol - endCol) === 1) ||
+    (startCol === endCol && Math.abs(startRow - endRow) === 1);
+
+  if (isAdjacent) {
+    swapBalls(startRow, startCol, endRow, endCol);
+  }
+
+  dragStartCell = null;
+  draggingBallEl = null;
+});
+
+function swapBalls(r1, c1, r2, c2) {
+  const temp = board[r1][c1];
+  board[r1][c1] = board[r2][c2];
+  board[r2][c2] = temp;
+  renderBoard();
+
+  setTimeout(() => {
+    checkMatchesAndProcess();
+  }, 50);
+}
+
+function checkMatchesAndProcess() {
+  const matchedPositions = findMatches();
+  if (matchedPositions.length === 0) {
+    return; 
+  }
+  processMatches(matchedPositions);
+}
+
+function findMatches() {
+  let matched = [];
+  for (let y = 0; y < rows; y++) {
+    let count = 1;
+    for (let x = 1; x <= cols; x++) {
+      if (x < cols && board[y][x] === board[y][x - 1] && board[y][x] !== null) {
+        count++;
+      } else {
+        if (count >= 4) {
+          for (let k = x - count; k < x; k++) {
+            matched.push([y, k]);
+          }
+        }
+        count = 1;
+      }
+    }
+  }
+
+  for (let x = 0; x < cols; x++) {
+    let count = 1;
+    for (let y = 1; y <= rows; y++) {
+      if (y < rows && board[y][x] === board[y - 1][x] && board[y][x] !== null) {
+        count++;
+      } else {
+        if (count >= 4) {
+          for (let k = y - count; k < y; k++) {
+            matched.push([k, x]);
+          }
+        }
+        count = 1;
+      }
+    }
+  }
+  return matched;
+}
+
+function uniquePositions(arr) {
+  const unique = [];
+  const seen = new Set();
+  for (const [r, c] of arr) {
+    const key = r + ',' + c;
+    if (!seen.has(key)) {
+      seen.add(key);
+      unique.push([r, c]);
+    }
+  }
+  return unique;
+}
+
+function processMatches(matchedPositions) {
+  const uniqueMatched = uniquePositions(matchedPositions);
+  if (uniqueMatched.length === 0) return;
+
+  const count = uniqueMatched.length;
+  const extra = Math.max(0, count - 4);
+  const points = 10 + extra * 5;
+  score += points;
+  scoreboard.textContent = `점수: ${score}`;
+
+  uniqueMatched.forEach(([r, c]) => {
+    const cell = boardEl.querySelector(`.cell[data-row="${r}"][data-col="${c}"]`);
+    if (!cell) return;
+    const ballEl = cell.querySelector('.ball');
+    if (!ballEl) return;
+
+    ballEl.classList.add('fadeout');
+  });
+
+  setTimeout(() => {
+    uniqueMatched.forEach(([r, c]) => {
+      board[r][c] = null;
+    });
+    fillEmptySlots();
+    renderBoard();
+
+    setTimeout(() => {
+      const nextMatches = findMatches();
+      if (nextMatches.length > 0) {
+        processMatches(nextMatches);
+      }
+    }, 200);
+  }, 700);
+}
+
+function fillEmptySlots() {
+  for (let y = 0; y < rows; y++) {
+    for (let x = 0; x < cols; x++) {
+      if (board[y][x] === null) {
+        board[y][x] = colors[Math.floor(Math.random() * colors.length)];
+      }
+    }
+  }
+}
+
+function updateTimer() {
+  if (!gameRunning) return;
+  timer--;
+  if (timer <= 0) {
+    timer = 0;
+    gameRunning = false;
+    alert('시간 종료! 게임이 끝났습니다.');
+    startBtn.style.display = 'inline-block';
+  }
+  timerEl.textContent = `남은 시간: ${timer}초`;
+}
+
+startBtn.addEventListener('click', () => {
+  score = 0;
+  timer = 180;
+  scoreboard.textContent = '점수: 0';
+  timerEl.textContent = `남은 시간: ${timer}초`;
+  initBoard();
+  gameRunning = true;
+  startBtn.style.display = 'none';
+  renderBoard();
+
+  if (timerInterval) clearInterval(timerInterval);
+  timerInterval = setInterval(updateTimer, 1000);
+});
+
+initBoard();
+
+</script>
+</body>
+</html>
