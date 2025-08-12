@@ -261,15 +261,62 @@ document.addEventListener('pointerup', (e) => {
 });
 
 function swapBalls(r1, c1, r2, c2) {
-  const temp = board[r1][c1];
-  board[r1][c1] = board[r2][c2];
-  board[r2][c2] = temp;
-  renderBoard();
+	  const temp = board[r1][c1];
+	  board[r1][c1] = board[r2][c2];
+	  board[r2][c2] = temp;
+	  renderBoard();
 
-  setTimeout(() => {
-    checkMatchesAndProcess();
-  }, 50);
-}
+	  setTimeout(() => {
+	    if (board[r1][c1] === 'bomb' || board[r2][c2] === 'bomb') {
+	      return;
+	    }
+
+	    const matchedPositions = findMatches();
+	    if (matchedPositions.length === 0) {
+	      const tempBack = board[r1][c1];
+	      board[r1][c1] = board[r2][c2];
+	      board[r2][c2] = tempBack;
+	      renderBoard();
+	    } else {
+	      processMatches(matchedPositions);
+	    }
+	  }, 50);
+	}
+
+function canMakeMatch() {
+	  for (let y = 0; y < rows; y++) {
+	    for (let x = 0; x < cols; x++) {
+	      if (x < cols - 1) {
+	        if (board[y][x] === 'bomb' || board[y][x + 1] === 'bomb') continue;
+
+	        swap(board, y, x, y, x + 1);
+	        if (findMatches().length > 0) {
+	          swap(board, y, x, y, x + 1);
+	          return true;
+	        }
+	        swap(board, y, x, y, x + 1);
+	      }
+
+	      if (y < rows - 1) {
+	        if (board[y][x] === 'bomb' || board[y + 1][x] === 'bomb') continue;
+
+	        swap(board, y, x, y + 1, x);
+	        if (findMatches().length > 0) {
+	          swap(board, y, x, y + 1, x);
+	          return true;
+	        }
+	        swap(board, y, x, y + 1, x);
+	      }
+	    }
+	  }
+	  return false;
+	}
+
+	function swap(arr, r1, c1, r2, c2) {
+	  const temp = arr[r1][c1];
+	  arr[r1][c1] = arr[r2][c2];
+	  arr[r2][c2] = temp;
+	}
 
 function checkMatchesAndProcess() {
   const matchedPositions = findMatches();
@@ -280,40 +327,51 @@ function checkMatchesAndProcess() {
 }
 
 function findMatches() {
-  let matched = [];
-  for (let y = 0; y < rows; y++) {
-    let count = 1;
-    for (let x = 1; x <= cols; x++) {
-      if (x < cols && board[y][x] === board[y][x - 1] && board[y][x] !== null) {
-        count++;
-      } else {
-        if (count >= 4) {
-          for (let k = x - count; k < x; k++) {
-            matched.push([y, k]);
-          }
-        }
-        count = 1;
-      }
-    }
-  }
+	  let matched = [];
+	  for (let y = 0; y < rows; y++) {
+	    let count = 1;
+	    for (let x = 1; x <= cols; x++) {
+	      if (
+	        x < cols &&
+	        board[y][x] === board[y][x - 1] &&
+	        board[y][x] !== null &&
+	        board[y][x] !== 'bomb'
+	      ) {
+	        count++;
+	      } else {
+	        if (count >= 4) {
+	          for (let k = x - count; k < x; k++) {
+	            matched.push([y, k]);
+	          }
+	        }
+	        count = 1;
+	      }
+	    }
+	  }
 
-  for (let x = 0; x < cols; x++) {
-    let count = 1;
-    for (let y = 1; y <= rows; y++) {
-      if (y < rows && board[y][x] === board[y - 1][x] && board[y][x] !== null) {
-        count++;
-      } else {
-        if (count >= 4) {
-          for (let k = y - count; k < y; k++) {
-            matched.push([k, x]);
-          }
-        }
-        count = 1;
-      }
-    }
-  }
-  return matched;
-}
+	  for (let x = 0; x < cols; x++) {
+	    let count = 1;
+	    for (let y = 1; y <= rows; y++) {
+	      if (
+	        y < rows &&
+	        board[y][x] === board[y - 1][x] &&
+	        board[y][x] !== null &&
+	        board[y][x] !== 'bomb'
+	      ) {
+	        count++;
+	      } else {
+	        if (count >= 4) {
+	          for (let k = y - count; k < y; k++) {
+	            matched.push([k, x]);
+	          }
+	        }
+	        count = 1;
+	      }
+	    }
+	  }
+	  return matched;
+	}
+
 
 function uniquePositions(arr) {
   const unique = [];
@@ -354,20 +412,37 @@ function triggerBombEffect(row, col) {
   });
 
   setTimeout(() => {
-    positionsToRemove.forEach(([r, c]) => {
-      board[r][c] = null;
-    });
-    fillEmptySlots();
-    renderBoard();
+	  positionsToRemove.forEach(([r, c]) => {
+	    board[r][c] = null;
+	  });
 
-    setTimeout(() => {
-      const nextMatches = findMatches();
-      if (nextMatches.length > 0) {
-        processMatches(nextMatches);
-      }
-    }, 200);
-  }, 700);
+	  fillEmptySlots();
+	  renderBoard();
+
+	  const nextMatches = findMatches();
+	  if (nextMatches.length > 0) {
+	    processMatches(nextMatches);
+	  } else {
+	    if (!canMakeMatch()) {
+	      shuffleBoard();
+	      renderBoard();
+	    }
+	  }
+	}, 200);
 }
+
+function shuffleBoard() {
+	  let flat = board.flat();
+	  for (let i = flat.length - 1; i > 0; i--) {
+	    const j = Math.floor(Math.random() * (i + 1));
+	    [flat[i], flat[j]] = [flat[j], flat[i]];
+	  }
+	  for (let y = 0; y < rows; y++) {
+	    for (let x = 0; x < cols; x++) {
+	      board[y][x] = flat[y * cols + x];
+	    }
+	  }
+	}
 
 function processMatches(matchedPositions) {
   const uniqueMatched = uniquePositions(matchedPositions);
@@ -403,6 +478,16 @@ function processMatches(matchedPositions) {
     }, 200);
   }, 700);
 }
+
+function hasBombOnBoard() {
+	  for (let y = 0; y < rows; y++) {
+	    for (let x = 0; x < cols; x++) {
+	      if (board[y][x] === 'bomb') return true;
+	    }
+	  }
+	  return false;
+	}
+
 
 function fillEmptySlots() {
   let bombPlaced = false;
