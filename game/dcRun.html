@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>트갤런 제작 중</title>
+<style>
+  html, body {
+    margin: 0; padding: 0;
+    height: 100%; overflow: hidden;
+    background: #111;
+    user-select: none;
+    -webkit-user-select: none;
+    -ms-user-select: none;
+  }
+  #gameWrap {
+    position: relative;
+    width: 100vw; height: 100vh;
+    overflow: hidden;
+    touch-action: manipulation;
+  }
+  #gameCanvas {
+    display: block;
+    width: 100%; height: 100%;
+    background: #fff;
+    margin-top: 110px;
+  }
+  #jumpButtonWrapper {
+    position: absolute;
+	  left: 50%;
+	  bottom: 20px;
+	  transform: translateX(-50%);
+	  display: flex;          
+	  gap: 12px;              
+  }
+  #jumpBtn {
+    width: calc(159px * 0.8);   
+    height: calc(70px * 0.8);   
+    padding: 0;                
+    border: none;
+    border-radius: 14px;       
+    background-color: transparent;  
+    background-image: url('rungame_txt_tap.png'); 
+    background-size: cover;    
+    background-position: center;
+    background-repeat: no-repeat;
+    color: transparent;        
+    font-size: 0;              
+    cursor: pointer;
+  }
+  #jumpBtn:active { transform: scale(0.98); }
+  
+  #attackBtn {
+	  font-size: 18px;
+	  padding: 12px 28px;
+	  border-radius: 14px;
+	  border: none;
+	  background: #00aaff;   
+	  color: #fff;
+	  font-weight: 700;
+	  letter-spacing: .5px;
+	  box-shadow: 0 8px 18px rgba(0,0,0,.35);
+	  cursor: pointer;
+	}
+	
+	#attackBtn:active { transform: scale(0.98); }
+	
+	#scoreDisplay {
+		position: absolute;
+	    left: 0px;               
+	    top: 235px;                
+	    width: 619px;             
+	    height: 36px;             
+	    background-image: url('rungame_score_shadow.png');
+	    background-size: 70% auto; 
+	    background-repeat: no-repeat;
+	    background-position: left;
+	    z-index: 10;
+	}
+	#bestScoreDisplay {
+		position: absolute;
+	    left: 0px;               
+	    top: 265px;                
+	    width: 619px;             
+	    height: 36px;            
+	    background-image: url('rungame_score_shadow.png');
+	    background-size: 70% auto; 
+	    background-repeat: no-repeat;
+	    background-position: left;
+	    z-index: 10;
+	}
+	#scoreText {
+		position: absolute;
+	    left: 0px;               
+	    top: 238px;               
+	    width: 104px;             
+	    height: 33px;             
+	    background-image: url('rungame_txt_scr.png');
+	    background-size: 70% auto; 
+	    background-repeat: no-repeat;
+	    background-position: left;
+	    z-index: 11;
+	}
+	#bestScoreText {
+		position: absolute;
+	    left: 0px;               
+	    top: 262px;                
+	    width: 140px;             
+	    height: 40px;             
+	    background-image: url('rungame_txt_scr_best.png');
+	    background-size: 70% auto; 
+	    background-repeat: no-repeat;
+	    background-position: left;
+	    z-index: 11;
+	}
+</style>
+</head>
+<body>
+  <div id="gameWrap">
+    <canvas id="gameCanvas"></canvas>
+    <div id="scoreDisplay"></div>
+    <div id="scoreText"></div>
+    <div id="bestScoreDisplay"></div>
+    <div id="bestScoreText"></div>
+
+    <div id="jumpButtonWrapper">
+      <button id="jumpBtn">JUMP</button>
+      <button id="attackBtn" style="display: none;">ATTACK</button>
+    </div>
+  </div>
+
+<script>
+(() => {
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d', { alpha: false });
+  
+  ctx.fillStyle = '#fff'; 
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  const bgImg = new Image();
+  const triggerImg = new Image();
+  const playerImg = new Image();
+  const jumpImg = new Image();
+  const shadowImg = new Image();
+  const countSprite = new Image();
+  const attackImg = new Image();
+  const attackImg2 = new Image();
+  const attackImg3 = new Image();
+  const doubleJumpImg = new Image();
+  const flipJumpImg1 = new Image();
+  const flipJumpImg2 = new Image();
+  const flipJumpImg3 = new Image();
+  
+  const gaugeImg = new Image();
+  const allBackGroundImg = new Image();
+  
+  const object2 = new Image();
+  const object4 = new Image();
+  const object5 = new Image();
+  const object18 = new Image();
+
+  let bgScale = 1.0;           
+  const scrollSpeedX = 4;     
+  const scrollSpeedY = 0.7;   
+
+  const fixedBgY = 300;
+
+  let startGame = false;     
+  
+  let bgPositions = [
+    { x: 0, y: fixedBgY },         
+    { x: bgImg.height * bgScale, y: -180.1 }   
+  ];
+  
+  const countFrames = [
+	  { sx: 0, sy: 0, w: 65, h: 120 },  
+	  { sx: 65, sy: 0, w: 90, h: 120 }, 
+	  { sx: 160, sy: 0, w: 100, h: 120 },  
+	  { sx: 0, sy: 128, w: 256, h: 120 } 
+	];
+  
+  const attackFrames = [
+	  { sx: 0, sy: 770, w: 300, h: 80, x: 20, y: 580 },
+	  { sx: 512, sy: 0, w: 410, h: 300, x: 18, y: 500 },
+	  { sx: 0, sy: 0, w: 500, h: 380, x: 18, y: 480 },
+	  { sx: 490, sy: 380, w: 500, h: 380, x: 18, y: 480 },
+	  { sx: 0, sy: 380, w: 490, h: 380, x: 18, y: 480 }
+	];
+	let countIndex = 0;
+	let countingDown = false;
+	
+  bgImg.src = 'rungame_map.png';
+  triggerImg.src = 'rungame_hole_1.png';
+  playerImg.src = 'motion_1013359_luffy_0001.png';
+  jumpImg.src = 'motion_1013359_luffy_0003.png';
+  shadowImg.src = 'rungame_chara_shadow.png'; 
+  countSprite.src = 'rungame_count_number.png';
+  attackImg.src = 'motion_1013359_luffy_0002.png';
+  attackImg2.src = 'motion_1013359_luffy_0002.png';
+  attackImg3.src = 'motion_1013359_luffy_0002.png';
+  doubleJumpImg.src = 'motion_1013359_luffy_0003.png';
+  flipJumpImg1.src = 'motion_1013359_luffy_0005.png';
+  flipJumpImg2.src = 'motion_1013359_luffy_0005.png';
+  flipJumpImg3.src = 'motion_1013359_luffy_0005.png';
+  
+  gaugeImg.src = "rungame_gauge.png";
+  allBackGroundImg.src = "quest_map_010_1.png";
+  
+  object2.src = 'rungame_hole_1.png';
+  object4.src = 'rungame_item_score.png';
+  object5.src = 'rungame_item_meat.png';
+  object18.src = 'hecan.png';
+
+  let assetsLoaded = 0;
+  [bgImg, object2, playerImg].forEach(img => {
+    img.onload = () => {
+      assetsLoaded++;
+      if (assetsLoaded === 3) init();
+    };
+    img.onerror = () => {
+      console.error('이미지 로드 실패:', img.src);
+    };
+  });
+
+  function resize() {
+	  const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+	  const w = Math.floor(window.innerWidth);
+	  const h = Math.floor(window.innerHeight);
+	  canvas.style.width = w + 'px';
+	  canvas.style.height = h + 'px';
+	  canvas.width = Math.floor(w * dpr);
+	  canvas.height = Math.floor(h * dpr);
+	  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+	
+	  bgScale = Math.max(w / bgImg.width, h / bgImg.height);
+	
+	  bgPositions = [
+	    { x: 0, y: 0 },               
+	    { x: bgImg.height * bgScale, y: -180.1* bgScale }      
+	  ];
+	  
+	    const playerScale = Math.min(window.innerWidth, window.innerHeight) / 7;  
+		player.width = playerScale;
+		player.height = playerScale;
+	
+	  groundLevel = canvas.clientHeight - player.height;
+	    if (player.y > groundLevel) player.y = groundLevel;
+
+	    player.y = 500; 
+	}
+  window.addEventListener('resize', resize, { passive: true });
+
+    const player = {
+    x: 10, 
+    y: 100,
+    width: 200,
+    height: 200,
+    velocityY: 0,
+    gravity: 0.6, //중력 값(플레이어가 점프 후 착지하는 속도처리 : 추후 패턴 돌파 단계에 따라 속도 빠르게 증가시킬 예정)
+    jumpPower: -12,
+    onGround: true,
+    jumpCount: 0,
+    maxJumpCount: 2,
+    frame: 0,
+    frameCount: 3,
+    frameWidth: 64,
+    frameHeight: 64,
+    frameTimer: 0,
+    frameInterval: 150, 
+    isAttacking: false,
+    attackFrame: 0,
+    attackFrameCount: 5,
+    attackFrameWidth: 512, 
+    attackFrameHeight: 380,
+    attackFrameTimer: 0,
+    attackFrameInterval: 100 
+  };
+  let groundLevel = 0;
+
+  const triggers = [];
+  
+  const obtime = 5000;
+  
+  /* 각 62단계 패턴 관리*/
+  const patternList =[1,1,1,4,1,4,1,2,1,4,1,2,1,4,1,18,1,4,1];
+  const patternList2 =[1,1,1,2,1,4,1,38,1,4,1,2,4,4,4,2,1,4,1];
+  
+  const patternCurrent = [patternList, patternList2];
+  
+  /* 각 패턴 단계별로 등장할 모든 오브켁트 관리*/
+  const obstaclePattern = [
+	  0,
+	  { x: 407, y: 395, width: 627, height: 353, objectType: object2 }, //1단 장애물
+	  0,
+	  { x: 590, y: 455, width: 65, height: 63, objectType: object4 },	//1층 베리 주머니
+	  { x: 590, y: 455, width: 65, height: 63, objectType: object5 },	//1층 고기
+	  0,
+	  0,
+	  0,
+	  0,
+	  0,
+	  0,
+	  0,
+	  0,
+	  0,
+	  0,
+	  0,
+	  0,
+	  { x: 565, y: 435, width: 126, height: 94, objectType: object18 }, //샘플 몹
+	  {  },
+	  {  },
+	  {  },
+	  {  },
+	  {  },
+	  {  },
+	  {  },
+	  {  },
+	  {  },
+	  {  },
+	  {  },
+	  {  },
+	  {  },
+	  {  },
+	  {  },
+	  {  },
+	  {  },
+	  {  },
+	  { x: 407, y: 395, width: 627, height: 353, objectType: object2 },
+	  { x: 407, y: 395, width: 627, height: 353, objectType: object2 },
+	  {  },
+	  {  },
+	  {  },
+	  {  },
+	  {  },
+	  {  }
+	];
+  
+  const MAX_TRIGGERS = 12;
+  const TRIGGER_SPAWN_MS = 2500;
+  const TRIGGER_DISPLAY = 56;
+  const TRIGGER_RADIUS = TRIGGER_DISPLAY * 0.5;
+
+  function createRandomTrigger() {
+    const x = Math.random() * bgImg.width;
+    const y = Math.random() * bgImg.height;
+    triggers.push({ x, y });
+    if (triggers.length > MAX_TRIGGERS) triggers.shift();
+  }
+
+  function jump() {
+	if (startGame) {
+		if (player.jumpCount < player.maxJumpCount) { 
+	      player.velocityY = player.jumpPower;
+	      player.onGround = false;
+	      player.jumpCount++;
+	    }
+	}
+  }
+  document.getElementById('jumpBtn').addEventListener('click', jump);
+  
+  document.getElementById('attackBtn').addEventListener('click', () => {
+	  if (!player.isAttacking) { 
+	    player.isAttacking = true;
+	    player.attackFrame = 0;
+	    player.attackFrameTimer = 0; 
+	  }
+	});
+  
+  document.addEventListener('keydown', (e) => {
+    if (e.code === 'Space') {
+      e.preventDefault();
+      jump();
+    }
+  }, { passive: false });
+
+  
+  function startGameCountdown() {
+	  if (!startGame) {
+		  if (countingDown) return;
+		  countingDown = true;
+		  countIndex = 0;
+	
+		  const countdownInterval = setInterval(() => {
+		    countIndex++;
+		    if (countIndex >= countFrames.length) {
+		      clearInterval(countdownInterval);
+		      countingDown = false;
+		      startGame = true; 
+		    }
+		  }, 1000);
+	  }
+	}
+  
+  function startGameAction() {
+    if (!startGame) {
+      startGame = true;
+
+      bgPositions = [
+        { x: 0, y: 0 },                           
+        { x: bgImg.height * bgScale, y: -180.1* bgScale }          
+      ];
+    }
+  }
+  
+  function drawCountdown() {
+	  if (!countingDown) return;
+	  const frame = countFrames[countIndex];
+	  const centerX = canvas.clientWidth / 2;
+	  const centerY = canvas.clientHeight / 2;
+	  const scale = 0.6;
+
+	  ctx.drawImage(
+			  countSprite,
+			  frame.sx, frame.sy, frame.w, frame.h,
+			  centerX - frame.w * scale / 2,
+			  centerY - frame.h * scale / 2,
+			  frame.w * scale,
+			  frame.h * scale
+	  );
+	}
+  
+  document.getElementById('jumpBtn').addEventListener('click', startGameCountdown);
+
+  function getTileRange(imgW, imgH) {
+    const tilesX = Math.max(3, Math.ceil(canvas.clientWidth / imgW) + 2);
+    const tilesY = Math.max(3, Math.ceil(canvas.clientHeight / imgH) + 2);
+    const halfX = Math.floor(tilesX / 2);
+    const halfY = Math.floor(tilesY / 2);
+    return { minI: -halfX, maxI: halfX, minJ: -halfY, maxJ: halfY };
+  }
+
+  let patternIndex = 0;
+  const startTime = performance.now();
+  let objectFlag = true;
+  let caltime = 0;
+  let objectCnt = 0;
+  let currentPattern = 0;
+  
+  function updateObstacles() {
+	  if (startGame) {
+		  
+		  objectFlag = false;
+		  const now = performance.now() - startTime;
+		  let type = 0;
+		  
+		  let testPatternChg = patternCurrent[currentPattern];
+		
+		    if ((now - caltime) >= 285) {
+		      if(objectCnt == testPatternChg.length){
+		    	  if(currentPattern == 1){
+		    		  currentPattern = 0;
+		    		  objectCnt = 0;
+		    	  }else{
+			    	  currentPattern++;
+			    	  objectCnt = 0;
+		    	  }
+		      }
+		      
+		      type = testPatternChg[objectCnt];
+		      
+		      if (obstaclePattern[type-1] != 0){
+		    	  
+			      triggers.push({
+			        x: obstaclePattern[type-1].x, 
+			        y: obstaclePattern[type-1].y,
+			        width: obstaclePattern[type-1].width,
+			        height: obstaclePattern[type-1].height,
+			        objectImgType : obstaclePattern[type-1].objectType
+			      });
+			      obstaclePattern[type-1].spawned = true; 
+			      
+		      }
+			  caltime = now;
+		      objectCnt++;
+		    }
+		  
+			drawTriggers(type);
+	
+		  
+		  for (let t of triggers) {
+		    t.x -= scrollSpeedX;   
+		    t.y += scrollSpeedY;   
+		  }
+	  }
+	}
+  
+  function switchValues(arr, index1, index2) {
+	  const tmp = arr[index1];
+	  arr[index1] = arr[index2];
+	  arr[index2] = tmp;
+	}
+  
+  function drawTriggers(type) {
+	  if(type == 2){
+	  	switchValues(triggers, triggers.length-2, (triggers.length-1));
+	  	console.log(triggers);
+	  }
+	  
+	  for (var i = 0; i<triggers.length; i++) {
+	  	let t = triggers[i];
+		ctx.drawImage(t.objectImgType, t.x, t.y, t.width, t.height);
+	  }
+	}
+
+  function drawPlayer() {
+	  let sx = 0;
+	  let sy = 0;
+	  let img = playerImg;
+	  
+	  let spriteScale = 1.4;
+	  
+	  let frameW = 220;
+	  let frameH = 200;
+	  
+	  
+	  if (!player.onGround) { 
+		  if (player.jumpCount === 1) {
+		      img = jumpImg;
+		      sx = 310;
+		      sy = 0;
+		      spriteScale = 1.5;
+		      
+		      frameW = 110;
+		      frameH = 200;
+			  const spriteWidth = player.frameWidth * spriteScale;
+			  const spriteHeight = player.frameHeight * spriteScale;
+			  
+			  const shadowWidth = spriteWidth * 0.7;
+			  const shadowHeight = shadowWidth / 4;
+			  const shadowX = player.x + (spriteWidth - shadowWidth)/2;
+			  const shadowY = groundLevel + player.height - shadowHeight/2;
+	
+			  ctx.drawImage(shadowImg, shadowX, shadowY+12, shadowWidth, shadowHeight);
+		
+			  
+			  ctx.drawImage(img, sx, sy, frameW, frameH, 40, player.y, 60, spriteHeight);
+		  }else{
+			  
+			  if (player.velocityY >= 5) {
+				  img = flipJumpImg1;
+				  sx = 0; 
+				  sy = 0;
+				  frameW = 130;
+				  frameH = 180;
+				  spriteScale = 1.3;
+				  const spriteWidth = player.frameWidth * spriteScale;
+				  const spriteHeight = player.frameHeight * spriteScale;
+				  ctx.drawImage(img, sx, sy, frameW, frameH, 40, player.y, 50, spriteHeight);
+				  
+				  img = flipJumpImg1;
+				  sx = 300; 
+				  sy = 0;
+				  frameW = 130;
+				  frameH = 180;
+				  spriteScale = 1.3;
+				  ctx.drawImage(img, sx, sy, frameW, frameH, 70, player.y, 50, spriteHeight);
+				  
+				  const shadowWidth = spriteWidth * 0.7; 
+				  const shadowHeight = shadowWidth / 4;
+				  const shadowX = player.x + (spriteWidth - shadowWidth)/2;
+				  const shadowY = groundLevel + player.height - shadowHeight/2;
+		
+				  ctx.drawImage(shadowImg, shadowX, shadowY+12, shadowWidth, shadowHeight);
+			  }else if (player.velocityY > 1 && player.velocityY < 5) {
+				  img = doubleJumpImg;
+				  sx = 256; 
+				  sy = 224;
+				  spriteScale = 0.8;
+				  frameW = 130;
+				  frameH = 120;
+				  const spriteWidth = player.frameWidth * spriteScale;
+				  const spriteHeight = player.frameHeight * spriteScale;
+				  ctx.drawImage(img, sx, sy, frameW, frameH, 40, player.y, 50, spriteHeight);
+				  
+				  const shadowWidth = spriteWidth * 0.7;
+				  const shadowHeight = shadowWidth / 4;
+				  const shadowX = player.x + (spriteWidth - shadowWidth)/2;
+				  const shadowY = groundLevel + player.height - shadowHeight/2;
+		
+				  ctx.drawImage(shadowImg, shadowX+20, shadowY+12, shadowWidth, shadowHeight);
+			  }else if (player.y <= 300) {
+				  img = flipJumpImg1;
+				  sx = 130; 
+				  sy = 0;
+				  frameW = 160;
+				  frameH = 150;
+				  spriteScale = 0.9;
+				  const spriteWidth = player.frameWidth * spriteScale;
+				  const spriteHeight = player.frameHeight * spriteScale;
+				  ctx.drawImage(img, sx, sy, frameW, frameH, 40, player.y, 50, spriteHeight);
+				  
+				  const shadowWidth = spriteWidth * 0.7;
+				  const shadowHeight = shadowWidth / 4;
+				  const shadowX = player.x + (spriteWidth - shadowWidth)/2;
+				  const shadowY = groundLevel + player.height - shadowHeight/2;
+		
+				  ctx.drawImage(shadowImg, shadowX+20, shadowY+12, shadowWidth, shadowHeight);
+			  }else if (player.y < 325 && player.y > 300) {
+				  img = doubleJumpImg;
+				  sx = 256; 
+				  sy = 224;
+				  spriteScale = 0.8;
+				  frameW = 130;
+				  frameH = 120;
+				  const spriteWidth = player.frameWidth * spriteScale;
+				  ctx.save();
+
+				  const angle = -45 * Math.PI / 180;
+				  const spriteHeight = player.frameHeight * spriteScale;
+
+				  const centerX = 40 + (50 / 2);
+				  const centerY = player.y + (spriteHeight / 2);
+
+				  ctx.translate(centerX, centerY);
+				  ctx.rotate(angle);
+
+				  ctx.drawImage(
+				    img,
+				    sx, sy, frameW, frameH,
+				    -50 / 2, -spriteHeight / 2,
+				    50, spriteHeight
+				  );
+				  
+				  ctx.restore();
+				  
+				  const shadowWidth = spriteWidth * 0.7;
+				  const shadowHeight = shadowWidth / 4;
+				  const shadowX = player.x + (spriteWidth - shadowWidth)/2;
+				  const shadowY = groundLevel + player.height - shadowHeight/2;
+		
+				  ctx.drawImage(shadowImg, shadowX+20, shadowY+12, shadowWidth, shadowHeight);
+			  }else{
+				  img = doubleJumpImg;
+				  sx = 256; 
+				  sy = 224;
+				  spriteScale = 0.8;
+				  frameW = 130;
+				  frameH = 120;
+				  const spriteWidth = player.frameWidth * spriteScale;
+				  const spriteHeight = player.frameHeight * spriteScale;
+				  ctx.drawImage(img, sx, sy, frameW, frameH, 40, player.y, 50, spriteHeight);
+				  
+				  const shadowWidth = spriteWidth * 0.7;
+				  const shadowHeight = shadowWidth / 4;
+				  const shadowX = player.x + (spriteWidth - shadowWidth)/2;
+				  const shadowY = groundLevel + player.height - shadowHeight/2;
+		
+				  ctx.drawImage(shadowImg, shadowX+20, shadowY+12, shadowWidth, shadowHeight);
+			  }
+		  }
+	  } else {
+		  
+		  if (player.isAttacking) {
+			  player.attackFrameTimer += 16.67;
+			  let currentInterval = player.attackFrameInterval;
+
+			  if (player.attackFrame === 0) {
+			      currentInterval = player.attackFrameInterval * 3;
+			  }
+			  if (player.attackFrame === 1) {
+			      currentInterval = player.attackFrameInterval * 3.5;
+			  }
+
+			  if (player.attackFrameTimer >= currentInterval) {
+			      player.attackFrameTimer = 0;
+			      player.attackFrame++;
+			      if (player.attackFrame >= player.attackFrameCount) {
+			          player.attackFrame = 0;
+			          player.isAttacking = false;
+			      }
+			  }
+
+	            const frame = attackFrames[player.attackFrame];
+	            const attackScale = 0.35;
+	            const drawW = frame.w * attackScale;
+	            const drawH = frame.h * attackScale;
+
+	            const sx = frame.sx;
+	            const sy = frame.sy;
+	            
+		       	if(player.attackFrame > 1){
+		         spriteScale = 1.5;
+	      
+			      frameW = 110;
+			      frameH = 200;   
+				  const spriteWidth = player.frameWidth * spriteScale;
+				  const spriteHeight = player.frameHeight * spriteScale;
+		  		  const shadowWidth = spriteWidth * 0.7;
+		  		  const shadowHeight = shadowWidth / 4;  
+		  		  const shadowX = player.x + (spriteWidth - shadowWidth)/2;
+		  		  const shadowY = groundLevel + player.height - shadowHeight/2;
+	
+		  		  ctx.drawImage(shadowImg, shadowX, shadowY+12, shadowWidth, shadowHeight);
+		       		
+		       	}
+		         
+		       	ctx.drawImage(attackImg, sx, sy, frame.w, frame.h, frame.x, frame.y, drawW, drawH);
+		         
+		       	if(player.attackFrame == 3 || player.attackFrame == 4){
+		  	      
+		  	        frameW = 390;              
+		  	        frameH = 100;               
+		  	        const drawW2 = frameW * attackScale;
+		            const drawH2 = frameH * attackScale;
+		  		    const spriteWidth = frameW * spriteScale;
+		  		    const spriteHeight = frameW * spriteScale;
+		  		    ctx.drawImage(attackImg2, 490, 780, frameW, frameH, 60, 575, drawW2, drawH2);
+		       	}
+		       	
+		       	if(player.attackFrame == 4){
+		       		frameW = 390;               
+		  	        frameH = 100;               
+		  	        const drawW2 = frameW * attackScale;
+		            const drawH2 = frameH * attackScale;
+		  		    const spriteWidth = frameW * spriteScale;
+		  		    const spriteHeight = frameW * spriteScale;
+		  		    ctx.drawImage(attackImg3, 950, 780, frameW, frameH, 0, 575, drawW2, drawH2);
+		       	}
+	      }else{
+	    	  
+			  if (player.frame === 0) {
+			    sx = 245;     
+			    sy = 305;     
+			  } else if (player.frame === 1) {
+				sx = 245;    
+				sy = 503;    
+			  } else if (player.frame === 2) {
+				sx = 0;    
+				sy = 601;    
+			  }
+			  const spriteWidth = player.frameWidth * spriteScale;
+			  const spriteHeight = player.frameHeight * spriteScale;
+		
+			  ctx.drawImage(img, sx, sy, frameW, frameH, player.x, player.y, spriteWidth, spriteHeight);
+			 
+	      }
+		  
+	  }
+  }
+
+  function checkCollision() {
+    const playerCenterX = player.x + player.width / 2;
+    const playerCenterY = player.y + player.height / 2;
+    const playerRadius = Math.min(player.width, player.height) * 0.5;
+    const r = getTileRange(bgImg.width, bgImg.height);
+    for (const t of triggers) {
+      for (let i = r.minI; i <= r.maxI; i++) {
+        for (let j = r.minJ; j <= r.maxJ; j++) {
+          const cx = t.x + bgPositions[0].x + i * bgImg.width;
+          const cy = t.y + bgPositions[0].y + j * bgImg.height;
+          const dx = playerCenterX - cx;
+          const dy = playerCenterY - cy;
+          const dist2 = dx*dx + dy*dy;
+          const sumR = playerRadius + TRIGGER_RADIUS;
+          if (dist2 < sumR * sumR) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  }
+
+  function drawBackground() {
+	  const drawW = bgImg.width * bgScale;
+	  const drawH = bgImg.height * bgScale;
+
+	  ctx.drawImage(allBackGroundImg, 0, -200, 700, 915.5);
+	  ctx.drawImage(gaugeImg, 0, 0, 409, 133.5);
+	  
+	  if (!startGame) {
+	    ctx.drawImage(bgImg, 0, 0, bgImg.width, bgImg.height,
+	                  0, 0, drawW, drawH);
+	    return;
+	  }
+
+	  for (let i = 0; i < bgPositions.length; i++) {
+	    const pos = bgPositions[i];
+	    ctx.drawImage(bgImg, 0, 0, bgImg.width, bgImg.height,
+	                  pos.x, pos.y, drawW, drawH);
+	  }
+	  
+	}
+
+	function update(delta) {
+	  const drawW = bgImg.width * bgScale;
+	  const drawH = bgImg.height * bgScale;
+
+	  if (startGame) {
+	    for(let i=0; i < bgPositions.length; i++) {
+	      bgPositions[i].x -= scrollSpeedX;
+	      bgPositions[i].y += scrollSpeedY;
+	    }
+
+	 
+	    if (bgPositions[0].x <= -drawW) {
+	      bgPositions[0].x = bgPositions[1].x + drawW;
+	      bgPositions[0].y = -180.1* bgScale;
+	    }
+
+	    if (bgPositions[1].x <= -drawW) {
+	      bgPositions[1].x = bgPositions[0].x + drawW;
+	      bgPositions[1].y = -180.1* bgScale;
+	    }
+	  }
+
+	  player.y += player.velocityY;
+	  player.velocityY += player.gravity;
+
+	  if (player.y >= groundLevel) {
+	    player.y = groundLevel;
+	    player.velocityY = 0;
+	    player.onGround = true;
+	    player.jumpCount = 0;
+	  }
+
+	  player.frameTimer += delta;
+	  if (player.frameTimer >= player.frameInterval) {
+	    player.frameTimer = 0;
+	    player.frame = (player.frame + 1) % player.frameCount;
+	  }
+	  
+	}
+
+  let lastTime = performance.now();
+  let raf = 0;
+  function loop(now = performance.now()) {
+    const delta = now - lastTime;
+    lastTime = now;
+
+    ctx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight);
+    drawBackground();
+    updateObstacles();
+    drawPlayer();
+    drawCountdown();
+    update(delta);
+    checkCollision();
+    raf = requestAnimationFrame(loop);
+  }
+
+  let spawnTimer = null;
+  function init() {
+    resize();
+    player.y = 540; 
+    
+    player.onGround = true;
+
+    groundLevel = 540;
+
+    if (player.y > groundLevel) player.y = groundLevel;
+
+    clearInterval(spawnTimer);
+
+    cancelAnimationFrame(raf);
+    lastTime = performance.now();
+    loop();
+  }
+})();
+</script>
+</body>
+</html>
