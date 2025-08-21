@@ -67,7 +67,7 @@
 	#scoreDisplay {
 		position: absolute;
 	    left: 0px;               
-	    top: 235px;                
+	    top: 65px;                
 	    width: 619px;             
 	    height: 36px;             
 	    background-image: url('images/rungame_score_shadow.png');
@@ -79,7 +79,7 @@
 	#bestScoreDisplay {
 		position: absolute;
 	    left: 0px;               
-	    top: 265px;                
+	    top: 95px;                
 	    width: 619px;             
 	    height: 36px;            
 	    background-image: url('images/rungame_score_shadow.png');
@@ -91,7 +91,7 @@
 	#scoreText {
 		position: absolute;
 	    left: 0px;               
-	    top: 238px;               
+	    top: 68px;               
 	    width: 104px;             
 	    height: 33px;             
 	    background-image: url('images/rungame_txt_scr.png');
@@ -103,7 +103,7 @@
 	#bestScoreText {
 		position: absolute;
 	    left: 0px;               
-	    top: 262px;                
+	    top: 92px;                
 	    width: 140px;             
 	    height: 40px;             
 	    background-image: url('images/rungame_txt_scr_best.png');
@@ -255,7 +255,7 @@
     width: 200,
     height: 200,
     velocityY: 0,
-    gravity: 0.4, //중력 값(플레이어가 점프 후 착지하는 속도처리 : 추후 패턴 돌파 단계에 따라 속도 빠르게 증가시킬 예정)
+    gravity: 0.6, //중력 값(플레이어가 점프 후 착지하는 속도처리 : 추후 패턴 돌파 단계에 따라 속도 빠르게 증가시킬 예정)
     jumpPower: -12,
     onGround: true,
     jumpCount: 0,
@@ -492,7 +492,6 @@
   function drawTriggers(type) {
 	  if(type == 2){
 	  	switchValues(triggers, triggers.length-2, (triggers.length-1));
-	  	console.log(triggers);
 	  }
 	  
 	  for (var i = 0; i<triggers.length; i++) {
@@ -763,9 +762,21 @@
   function drawBackground() {
 	  const drawW = bgImg.width * bgScale;
 	  const drawH = bgImg.height * bgScale;
+	  
+	  let sc = (Math.max(canvas.width / allBackGroundImg.width, canvas.height / allBackGroundImg.height)/2.3);
+	  let x = (canvas.width / 2) - (allBackGroundImg.width / 2) * sc;
+	  let y = (canvas.height / 2) - (allBackGroundImg.height / 2) * sc;
 
-	  ctx.drawImage(allBackGroundImg, 0, -200, 700, 915.5);
-	  ctx.drawImage(gaugeImg, 0, 0, 409, 133.5);
+	  ctx.drawImage(allBackGroundImg, 0, -1*((allBackGroundImg.height*sc)*0.25), allBackGroundImg.width*sc, allBackGroundImg.height*sc);
+	  
+	  let sc2 = (Math.max(canvas.width / gaugeImg.width, canvas.height / gaugeImg.height)/12.5);
+	  let x2 = (canvas.width / 2) - (gaugeImg.width / 2) * sc2;
+	  let y2 = (canvas.height / 2) - (gaugeImg.height / 2) * sc2;
+	  
+	  let aspectRatio = gaugeImg.width / gaugeImg.height;
+	  let newHeight = window.innerWidth / aspectRatio;
+	  
+	  ctx.drawImage(gaugeImg, 0, -50, window.innerWidth, newHeight);
 	  
 	  if (!startGame) {
 	    ctx.drawImage(bgImg, 0, 0, bgImg.width, bgImg.height,
