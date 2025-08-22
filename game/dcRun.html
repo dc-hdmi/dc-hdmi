@@ -27,7 +27,7 @@
   #jumpButtonWrapper {
     position: absolute;
 	  left: 50%;
-	  bottom: 12%;
+	  top: 480px;
 	  transform: translateX(-50%);
 	  display: flex;          
 	  gap: 12px;              
@@ -112,9 +112,19 @@
 	    background-position: left;
 	    z-index: 11;
 	}
+	#bottomLayout{
+		width: 100%; 
+		height: 100px;
+		background-color: #000;
+	    position: absolute;
+	    left: 50%;
+	    top: 550px;
+	    transform: translateX(-50%);
+	}
 </style>
 </head>
 <body>
+  <div style="width: 100%; height: 80px; border-color: #000;"></div>
   <div id="gameWrap">
     <canvas id="gameCanvas"></canvas>
     <div id="scoreDisplay"></div>
@@ -126,6 +136,7 @@
       <button id="jumpBtn">JUMP</button>
       <button id="attackBtn" style="display: none;">ATTACK</button>
     </div>
+    <div id="bottomLayout"></div>
   </div>
 
 <script>
@@ -151,7 +162,9 @@
   const flipJumpImg3 = new Image();
   
   const gaugeImg = new Image();
+  const gaugeYellowImg = new Image();
   const allBackGroundImg = new Image();
+  const bottomImg = new Image();
   
   const object2 = new Image();
   const object4 = new Image();
@@ -203,7 +216,9 @@
   flipJumpImg3.src = 'images/motion_1013359_luffy_0005.png';
   
   gaugeImg.src = "images/rungame_gauge.png";
+  gaugeYellowImg.src = "images/rungame_gauge_yellow.png";
   allBackGroundImg.src = "images/quest_map_010_1.png";
+  bottomImg.src = "images/rungame_tap_shadow.png";
   
   object2.src = 'images/rungame_hole_1.png';
   object4.src = 'images/rungame_item_score.png';
@@ -224,7 +239,7 @@
   function resize() {
 	  const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
 	  const w = Math.floor(window.innerWidth);
-	  const h = Math.floor(window.innerHeight);
+	  const h = 650;
 	  canvas.style.width = w + 'px';
 	  canvas.style.height = h + 'px';
 	  canvas.width = Math.floor(w * dpr);
@@ -255,7 +270,7 @@
     width: 200,
     height: 200,
     velocityY: 0,
-    gravity: 0.3, //중력 값(플레이어가 점프 후 착지하는 속도처리 : 추후 패턴 돌파 단계에 따라 속도 빠르게 증가시킬 예정)
+    gravity: 0.5, //중력 값(플레이어가 점프 후 착지하는 속도처리 : 추후 패턴 돌파 단계에 따라 속도 빠르게 증가시킬 예정)
     jumpPower: -12,
     onGround: true,
     jumpCount: 0,
@@ -282,19 +297,17 @@
   
   /* 각 62단계 패턴 관리*/
   const patternList =[1,1,1,4,1,4,1,2,1,4,1,2,1,4,1,18,1,4,1];
-  const patternList2 =[1,1,1,2,1,4,1,38,1,4,1,2,4,4,4,2,1,4,1];
+  const patternList2 =[1,1,1,2,1,4,1,4,1,4,1,2,4,4,4,2,1,4,1];
   
   const patternCurrent = [patternList, patternList2];
   
   /* 각 패턴 단계별로 등장할 모든 오브켁트 관리*/
   const obstaclePattern = [
 	  0,
-	  { x: 407, y: 395, width: 627, height: 353, objectType: object2 }, //1단 장애물
+	  { x: 407, y: 255, width: 627, height: 353, objectType: object2 }, //1단 장애물
 	  0,
-	  { x: 590, y: 455, width: 65, height: 63, objectType: object4 },	//1층 베리 주머니
-	  { x: 590, y: 455, width: 65, height: 63, objectType: object5 },	//1층 고기
-	  0,
-	  0,
+	  { x: 539.5, y: 285.9, width: 65, height: 63, objectType: object4 },	//1층 베리 주머니
+	  { x: 590, y: 293.75, width: 65, height: 63, objectType: object5 },	//1층 고기
 	  0,
 	  0,
 	  0,
@@ -305,7 +318,9 @@
 	  0,
 	  0,
 	  0,
-	  { x: 565, y: 435, width: 126, height: 94, objectType: object18 }, //샘플 몹
+	  0,
+	  0,
+	  { x: 509, y: 255.82, width: 126, height: 94, objectType: object18 }, //샘플 몹
 	  {  },
 	  {  },
 	  {  },
@@ -324,7 +339,7 @@
 	  {  },
 	  {  },
 	  {  },
-	  { x: 407, y: 395, width: 627, height: 353, objectType: object2 },
+	  {  },
 	  { x: 407, y: 395, width: 627, height: 353, objectType: object2 },
 	  {  },
 	  {  },
@@ -390,7 +405,7 @@
 	  }
 	}
   
-  function startGameAction() {
+  /* function startGameAction() {
     if (!startGame) {
       startGame = true;
 
@@ -399,7 +414,7 @@
         { x: bgImg.height * bgScale, y: -180.1* bgScale }          
       ];
     }
-  }
+  } */
   
   function drawCountdown() {
 	  if (!countingDown) return;
@@ -435,6 +450,8 @@
   let objectCnt = 0;
   let currentPattern = 0;
   
+  let deleteVal = 0.16;
+  
   function updateObstacles() {
 	  if (startGame) {
 		  
@@ -443,6 +460,25 @@
 		  let type = 0;
 		  
 		  let testPatternChg = patternCurrent[currentPattern];
+		  
+		  let sc2 = (Math.max(canvas.width / gaugeImg.width, canvas.height / gaugeImg.height)/12.5);
+		  let x2 = (canvas.width / 2) - (gaugeImg.width / 2) * sc2;
+		  let y2 = (canvas.height / 2) - (gaugeImg.height / 2) * sc2;
+		  
+		  let aspectRatio = gaugeImg.width / gaugeImg.height;
+		  let newHeight = window.innerWidth / aspectRatio;
+		  
+		  ctx.drawImage(gaugeImg, 0, -50, window.innerWidth, newHeight);
+	      
+	      let sc3 = (Math.max(canvas.width / gaugeYellowImg.width, canvas.height / gaugeYellowImg.height)/12.5);
+		  let x3 = (canvas.width / 2) - (gaugeYellowImg.width / 2) * sc3;
+		  let y3 = (canvas.height / 2) - (gaugeYellowImg.height / 2) * sc3;
+		  
+		  let aspectRatio2 = gaugeYellowImg.width / gaugeYellowImg.height;
+		  let newHeight2 = window.innerWidth / aspectRatio2;
+		  if(deleteVal < 1){
+		  	ctx.drawImage(gaugeYellowImg, 10, ((newHeight-50)-(newHeight*0.3))+5, window.innerWidth-(window.innerWidth*deleteVal), newHeight2);
+		  }
 		
 		    if ((now - caltime) >= 285) {
 		      if(objectCnt == testPatternChg.length){
@@ -471,6 +507,27 @@
 		      }
 			  caltime = now;
 		      objectCnt++;
+		      
+		      deleteVal = deleteVal+0.005;
+		      
+		      let sc2 = (Math.max(canvas.width / gaugeImg.width, canvas.height / gaugeImg.height)/12.5);
+			  let x2 = (canvas.width / 2) - (gaugeImg.width / 2) * sc2;
+			  let y2 = (canvas.height / 2) - (gaugeImg.height / 2) * sc2;
+			  
+			  let aspectRatio = gaugeImg.width / gaugeImg.height;
+			  let newHeight = window.innerWidth / aspectRatio;
+			  
+			  ctx.drawImage(gaugeImg, 0, -50, window.innerWidth, newHeight);
+		      
+		      let sc3 = (Math.max(canvas.width / gaugeYellowImg.width, canvas.height / gaugeYellowImg.height)/12.5);
+			  let x3 = (canvas.width / 2) - (gaugeYellowImg.width / 2) * sc3;
+			  let y3 = (canvas.height / 2) - (gaugeYellowImg.height / 2) * sc3;
+			  
+			  let aspectRatio2 = gaugeYellowImg.width / gaugeYellowImg.height;
+			  let newHeight2 = window.innerWidth / aspectRatio2;
+			  if(deleteVal < 1){
+				  ctx.drawImage(gaugeYellowImg, 10, ((newHeight-50)-(newHeight*0.3))+5, window.innerWidth-(window.innerWidth*deleteVal), newHeight2);
+			  }
 		    }
 		  
 			drawTriggers(type);
@@ -778,9 +835,20 @@
 	  
 	  ctx.drawImage(gaugeImg, 0, -50, window.innerWidth, newHeight);
 	  
+	  
 	  if (!startGame) {
 	    ctx.drawImage(bgImg, 0, 0, bgImg.width, bgImg.height,
 	                  0, 0, drawW, drawH);
+		ctx.drawImage(bottomImg, 0, 0, window.innerWidth, 552);
+		
+		let sc3 = (Math.max(canvas.width / gaugeYellowImg.width, canvas.height / gaugeYellowImg.height)/12.5);
+		let x3 = (canvas.width / 2) - (gaugeYellowImg.width / 2) * sc3;
+		let y3 = (canvas.height / 2) - (gaugeYellowImg.height / 2) * sc3;
+		  
+		let aspectRatio2 = gaugeYellowImg.width / gaugeYellowImg.height;
+		let newHeight2 = window.innerWidth / aspectRatio2;
+		ctx.drawImage(gaugeYellowImg, 10, ((newHeight-50)-(newHeight*0.3))+5, window.innerWidth-(window.innerWidth*0.16), newHeight2);
+	    
 	    return;
 	  }
 
@@ -789,7 +857,8 @@
 	    ctx.drawImage(bgImg, 0, 0, bgImg.width, bgImg.height,
 	                  pos.x, pos.y, drawW, drawH);
 	  }
-	  
+	  ctx.drawImage(bottomImg, 0, 0, window.innerWidth, 552);
+
 	}
 
 	function update(delta) {
@@ -851,18 +920,11 @@
   let spawnTimer = null;
   function init() {
     resize();
-    
-    if(window.innerHeight == 667){
     	
-	    player.y = (window.innerHeight * 0.57)-10; 
-	    	
-	    groundLevel = (window.innerHeight * 0.57)-10;
-    }else{
-	    player.y = window.innerHeight * 0.57; 
+	player.y = 350; 
 	    
-	    groundLevel = window.innerHeight * 0.57;
-    	
-    }
+	groundLevel = 350;
+	
     player.onGround = true;
 
     if (player.y > groundLevel) player.y = groundLevel;
