@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>트갤 사천성 게임</title>
+<style>
+    * { 
+    	box-sizing: border-box; 
+    	margin:0; 
+    	padding:0; 
+    }
+    body { 
+    	display:flex; 
+    	justify-content:center; 
+    	align-items:center; 
+    	height:100vh; 
+    	background:#f0f0f0; 
+    	font-family:sans-serif; 
+    	overflow:hidden; 
+    }
+    #gameContainer { 
+    	width:100%; 
+    	max-width:500px; 
+    	height:100%; 
+    	position:relative; 
+    	display:flex; 
+    	flex-direction:column; 
+    	align-items:center; 
+    }
+    #roundDisplay { 
+    	position:absolute; 
+    	top:40%; 
+    	font-size:3em; 
+    	font-weight:bold; 
+    	display: none; /* 기본 숨김 */
+    	transition: opacity 0.5s; 
+    	z-index:10; 
+    }
+    #grid { display:grid; grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(6, 1fr); grid-gap:5px; width:90%; margin-top:10px; }
+    .card { 
+    	width:100%; 
+    	padding-top:140%; 
+    	position:relative; 
+    	perspective:600px; 
+    	cursor:pointer; 
+    }
+    .card-inner { position:absolute; width:100%; height:100%; top:0; left:0; transition: transform 0.5s; transform-style: preserve-3d; pointer-events: all; /* 클릭 보장 */}
+    .card.flipped .card-inner { transform: rotateY(180deg); }
+    .card-front, .card-back {
+        position:absolute; width:100%; height:100%; backface-visibility:hidden;
+        border-radius:8px; display:flex; justify-content:center; align-items:center; font-size:1.2em; color:#fff;
+    }
+    .card-front { 
+    	background:#ff5555; 
+    	background-size: 80% 80%; 
+	    background-repeat: no-repeat;
+	    background-position: center;
+    } 
+    .card-back { 
+    	background:#aaa; 
+    	transform: rotateY(180deg); 
+    	background-image: url('images/stamp_chopper.png');
+    	background-size: 50% 40%;      
+    	background-repeat: no-repeat;  
+    	background-position: center;    
+    } 
+    #overlay {
+        display:none; 
+        position:absolute; 
+        top:0; 
+        left:0; 
+        width:100%; 
+        height:100%;
+        background:rgba(0,0,0,0.5); 
+        justify-content:center; 
+        align-items:center; 
+        flex-direction:column; 
+        z-index:20;
+    }
+    #scoreDisplay { 
+    	font-size:2em; 
+    	color:#fff; 
+    	margin-bottom:20px; 
+    }
+    #restartBtn { 
+    	padding:10px 20px; 
+    	font-size:1.2em; 
+    	border:none; 
+    	border-radius:5px; 
+    	background:#ff5555; 
+    	color:#fff; 
+    	cursor:pointer; 
+    }
+</style>
+</head>
+<body>
+<div id="gameContainer">
+    <div id="roundDisplay"></div>
+    <div id="grid"></div>
+    <div id="overlay">
+        <div id="scoreDisplay"></div>
+        <button id="restartBtn">재시작</button>
+    </div>
+</div>
+
+<script>
+const TOTAL_ROUNDS = 10;
+const MAX_SCORE_BASE = 1000;
+const PENALTY_PER_FLIP = 10;
+
+const cardImages = [
+    'images/dl_ld02.png',
+    'images/dl_ld03.png',
+    'images/dl_ld07.png',
+    'images/dl_ld09.png',
+    'images/dl_ld10.png',
+    'images/dl_ld16.png',
+    'images/dl_ld19.png',
+    'images/dl_ld30.png',
+    'images/dl_ld31.png',
+    'images/dl_ld35.png',
+    'images/dl_ld36.png',
+    'images/dl_ld37.png',
+    'images/dl_ld38.png',
+    'images/rungame_item_meat.png',
+    'images/rungame_item_score.png',
+    'images/item_t_gasha_limited_medal.png',
+    'images/character_detail_RushAttack_btn.png',
+    'images/common_drop_trainbow.png',
+    'images/ship.png',
+    'images/gasha_rate_document_01.png'
+];
+
+let currentRound = 1;
+let flips = 0;
+let score = 0;
+let isCheckingMatch = false;
+let firstCard = null;
+let matchedCards = [];
+const grid = document.getElementById('grid');
+const roundDisplay = document.getElementById('roundDisplay');
+const overlay = document.getElementById('overlay');
+const scoreDisplay = document.getElementById('scoreDisplay');
+const restartBtn = document.getElementById('restartBtn');
+
+restartBtn.addEventListener('click', () => {
+    overlay.style.display = 'none';
+    currentRound = 1;
+    score = 0;
+    startRound();
+});
+
+function startRound() {
+    roundDisplay.textContent = `라운드 ${currentRound}`;
+    roundDisplay.style.display = 'block'; 
+    grid.innerHTML = '';
+    firstCard = null;
+    matchedCards = [];
+    flips = 0;
+    isCheckingMatch = false;
+
+    setTimeout(() => {
+    	roundDisplay.style.display = 'none'; 
+        setTimeout(() => {
+            createCards();
+            showAllCards();
+        },500);
+    },1000);
+}
+
+function createCards() {
+    const totalPairs = 12;
+    const selectedIndices = shuffle([...Array(cardImages.length).keys()]).slice(0, totalPairs);
+    let cardsArray = [];
+
+    selectedIndices.forEach(i => {
+        cardsArray.push({type:i, img:cardImages[i]});
+        cardsArray.push({type:i, img:cardImages[i]});
+    });
+
+    cardsArray = shuffle(cardsArray);
+
+    cardsArray.forEach(cardData => {
+        const card = document.createElement('div');
+        card.classList.add('card');
+        const inner = document.createElement('div');
+        inner.classList.add('card-inner');
+        const front = document.createElement('div');
+        front.classList.add('card-front');
+        front.style.backgroundImage = `url(${cardData.img})`;
+        front.style.backgroundSize='cover';
+        const back = document.createElement('div');
+        back.classList.add('card-back');
+        inner.appendChild(front);
+        inner.appendChild(back);
+        card.appendChild(inner);
+        grid.appendChild(card);
+
+        card.addEventListener('click', () => {
+            if(isCheckingMatch || matchedCards.includes(card)) return;
+            flips++;
+            if(!card.classList.contains('flipped')) {
+                card.classList.add('flipped');
+            } else {
+                card.classList.remove('flipped');
+            }
+
+            if(!firstCard){
+                firstCard = card;
+            } else {
+                checkMatch(firstCard, card);
+                firstCard = null;
+            }
+        });
+    });
+}
+
+function showAllCards() {
+    const cards = Array.from(document.querySelectorAll('.card'));
+    
+    isCheckingMatch = true; 
+    cards.forEach(c => c.classList.remove('flipped')); 
+
+    setTimeout(() => {
+        cards.forEach(c => c.classList.add('flipped'));
+        isCheckingMatch = false; 
+    }, 1000);
+}
+
+function flipCard(card) {
+    card.classList.toggle('flipped');
+}
+
+function checkMatch(c1,c2){
+    isCheckingMatch = true;
+    const t1 = c1.querySelector('.card-front').style.backgroundImage;
+    const t2 = c2.querySelector('.card-front').style.backgroundImage;
+    if(t1 === t2){
+        matchedCards.push(c1,c2);
+        c1.style.boxShadow = '0 0 20px 5px yellow';
+        c2.style.boxShadow = '0 0 20px 5px yellow';
+        setTimeout(()=>{
+            c1.style.boxShadow = '';
+            c2.style.boxShadow = '';
+            checkRoundEnd();
+            isCheckingMatch = false;
+        },500);
+    } else {
+        setTimeout(()=>{
+            flipCard(c1);
+            flipCard(c2);
+            isCheckingMatch = false;
+        },500);
+    }
+}
+
+function checkRoundEnd(){
+    if(matchedCards.length === grid.children.length){
+        score += Math.max(0, MAX_SCORE_BASE - flips*PENALTY_PER_FLIP);
+        if(currentRound < TOTAL_ROUNDS){
+            currentRound++;
+            startRound();
+        } else {
+            showGameOver();
+        }
+    }
+}
+
+function showGameOver(){
+    scoreDisplay.textContent = `총 점수: ${score}`;
+    overlay.style.display = 'flex';
+}
+
+function shuffle(array){
+    for(let i=array.length-1;i>0;i--){
+        const j=Math.floor(Math.random()*(i+1));
+        [array[i],array[j]]=[array[j],array[i]];
+    }
+    return array;
+}
+
+startRound();
+</script>
+</body>
+</html>
