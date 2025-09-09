@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>정상전쟁 라스트워</title>
+<style>
+  body { margin:0; overflow:hidden; background:black; }
+  canvas { display:block; margin:0 auto; background:black; touch-action: none; }
+  #restartBtn {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    padding: 15px 30px;
+    font-size: 20px;
+    display: none;
+    cursor: pointer;
+    background: #fff;
+    border: 2px solid #000;
+    border-radius: 10px;
+    z-index: 100;
+  }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<button id="restartBtn">재시작</button>
+<script>
+
+let imgMarinePort = new Image();
+imgMarinePort.src = "images/1358030.jpeg";
+const MARINE_HEIGHT = 100;
+
+const brickWidth = 30;
+const brickHeight = 15; 
+const brickColor1 = "#888";
+const brickColor2 = "#aaa";
+
+function drawBrickBackground() {
+	  for (let y = MARINE_HEIGHT; y < canvas.height; y += brickHeight) { 
+	    for (let x = 0; x < canvas.width; x += brickWidth) {
+	      const color = ((Math.floor(y / brickHeight) + Math.floor(x / brickWidth)) % 2 === 0) ? brickColor1 : brickColor2;
+	      ctx.fillStyle = color;
+	      ctx.fillRect(x, y, brickWidth, brickHeight);
+	      ctx.strokeStyle = "#666";
+	      ctx.strokeRect(x, y, brickWidth, brickHeight);
+	    }
+	  }
+	}
+
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+function resizeCanvas(){
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+resizeCanvas();
+window.addEventListener("resize", resizeCanvas);
+
+let score = 0;
+let player = { 
+	x:0, y:0, w:0, h:0, speed:5, bullets:[], power:1, itemGauge:0, hp:1000, maxHp:1000, maxPower:4 
+};
+function resetPlayerSize(){
+  player.w = canvas.width * 0.25;
+  player.h = canvas.height * 0.1;
+  player.x = canvas.width/2 - player.w/2;
+  player.y = canvas.height * 0.65 + MARINE_HEIGHT; 
+}
+resetPlayerSize();
+
+let keys = {};
+document.addEventListener("keydown", e=>keys[e.key]=true);
+document.addEventListener("keyup", e=>keys[e.key]=false);
+
+canvas.addEventListener("touchmove", e=>{
+  if(e.touches.length>0){
+    let touchX = e.touches[0].clientX;
+    player.x = touchX - player.w/2;
+    if(player.x<0) player.x=0;
+    if(player.x+player.w>canvas.width) player.x=canvas.width-player.w;
+  }
+  e.preventDefault();
+}, {passive:false});
+
+let imgPlayer = new Image();
+imgPlayer.src = "images/dl_ld03.png";
+
+let imgBullet1 = new Image(); imgBullet1.src = "images/sss.png";
+let imgBullet2 = new Image(); imgBullet2.src = "images/sss.png";
+let imgBullet3 = new Image(); imgBullet3.src = "images/sss.png";
+
+const bulletLevels = [
+  { image: imgBullet1, damage: 1, speed: 5 },
+  { image: imgBullet2, damage: 2, speed: 6 },
+  { image: imgBullet3, damage: 3, speed: 7 }
+];
+
+setInterval(()=>{
+  if(player.hp<=0) return;
+  for(let i=0;i<player.power;i++){
+    const level = bulletLevels[Math.min(player.power-1, bulletLevels.length-1)];
+    player.bullets.push({
+      x: player.x + player.w/2 - 5 + i*10 - (player.power-1)*5,
+      y: player.y,
+      w:10, h:20,
+      damage: level.damage,
+      speed: level.speed,
+      image: level.image
+    });
+  }
+}, 80);
+
+let enemies = [];
+const ENEMY_PER_LINE = 7;
+const LINE_START_Y = MARINE_HEIGHT;
+const LINE_END_Y = canvas.height * 0.6 + MARINE_HEIGHT;
+const LINE_TOP_WIDTH = canvas.width*0.3;
+const LINE_BOTTOM_WIDTH = canvas.width*0.9;
+
+let normalImg = new Image(); normalImg.src = "images/marin.png";
+
+let bossImg1 = new Image(); bossImg1.src = "images/dl_ld35.png";
+let bossImg2 = new Image(); bossImg2.src = "images/dl_ld36.png";
+let bossImg3 = new Image(); bossImg3.src = "images/dl_ld37.png";
+let bossImg4 = new Image(); bossImg4.src = "images/dl_ld38.png";
+
+let enemyTypes = [
+  {name:"normal", w:40,h:40,hp:1,speed:0.25,score:10,image:normalImg}
+];
+let bossTypes = [
+  {name:"boss1", w:100,h:100,hp:100,speed:0.25,score:100,image:bossImg1},
+  {name:"boss2", w:100,h:100,hp:100,speed:0.25,score:200,image:bossImg2},
+  {name:"boss3", w:100,h:100,hp:100,speed:0.25,score:100,image:bossImg3},
+  {name:"boss4", w:100,h:100,hp:100,speed:0.25,score:200,image:bossImg4}
+];
+
+let bossOnScreen = false;
+let lastBossHp = 100;   
+const BOSS_INTERVAL = 15000; 
+
+let enemySpeedMultiplier = 1;
+setInterval(()=>{ enemySpeedMultiplier += 0.1; }, 10000);
+
+function getLineWidth(y, topWidth, bottomWidth, startY, endY){
+  const t = (y - startY)/(endY - startY);
+  return topWidth + t*(bottomWidth - topWidth);
+}
+
+function spawnEnemyLine(){
+  if(player.hp<=0) return;
+  let bossIndex = Math.floor(Math.random() * ENEMY_PER_LINE);
+
+  for(let i=0;i<ENEMY_PER_LINE;i++){
+    let type;
+    if(i===bossIndex && bossOnScreenReady){
+      type = bossTypes[Math.floor(Math.random()*bossTypes.length)];
+      type.hp = lastBossHp;
+      bossOnScreen = true;
+      bossOnScreenReady = false;
+      lastBossHp = Math.floor(lastBossHp*1.2); 
+    }else{
+      type = enemyTypes[Math.floor(Math.random()*enemyTypes.length)];
+    }
+
+    let segment = 1/ENEMY_PER_LINE;
+    let xPercent = i*segment + Math.random()*segment*0.8;
+
+    enemies.push({
+      baseY: LINE_START_Y,
+      xPercent: xPercent,
+      w: type.w,
+      h: type.h,
+      hp: type.isBoss ? type.hp : type.hp,
+      speed: type.speed,
+      score: type.score,
+      image: type.image,
+      isBoss: type.w>=80
+    });
+  }
+}
+setInterval(spawnEnemyLine, 200);
+
+let bossOnScreenReady = false;
+setInterval(()=>{
+  if(player.hp<=0) return;
+  bossOnScreenReady = true;
+}, BOSS_INTERVAL);
+
+const itemsConfig = [
+  { name:"powerUp", w:40,h:40,baseHp:50, image: (()=>{ let img=new Image(); img.src="images/common_icon_251_skill.png"; return img; })(), effect: ()=>{ bulletLevels.forEach(level => level.damage++); } },
+  { name:"multiShot", w:40,h:40,baseHp:30, image: (()=>{ let img=new Image(); img.src="images/common_duration_enemy_icon.png"; return img; })(), effect: ()=>{ if(player.power < player.maxPower) player.power++; } },
+  { name:"slowEnemies", w:40,h:40,baseHp:300, image: (()=>{ let img=new Image(); img.src="images/popuptext_slot_palsy.png"; return img; })(), effect: ()=>{ enemies.forEach(e => e.speed *= 0.5); setTimeout(()=>{ enemies.forEach(e=>{ e.speed /= 0.5; }); }, 5000); } },
+  { name:"heal", w:40,h:40,baseHp:300, image:(()=>{ let img=new Image(); img.src="images/rungame_item_meat.png"; return img; })(), effect: ()=>{ player.hp = Math.min(player.maxHp, player.hp + 200); } }
+];
+
+let items = [];
+let gameStartTime = Date.now();
+
+function spawnItem(){
+  if(player.hp<=0) return;
+  let elapsed = (Date.now() - gameStartTime) / 1000;
+  const HP_SCALE = 1 + elapsed/30; 
+  let xPercent = Math.random();
+  let config = itemsConfig[Math.floor(Math.random() * itemsConfig.length)];
+
+  if(player.power >= 4 && config.name==="multiShot"){
+    const filtered = itemsConfig.filter(it=>it.name!=="multiShot");
+    if(filtered.length===0) return;
+    config = filtered[Math.floor(Math.random()*filtered.length)];
+  }
+
+  items.push({
+    baseY: LINE_START_Y,
+    xPercent: xPercent,
+    w: config.w,
+    h: config.h,
+    hp: Math.floor(config.baseHp * HP_SCALE),
+    type: config
+  });
+}
+setInterval(spawnItem, 5000);
+
+function checkCollision(a,b){
+  return a.x < b.x+b.w && a.x+a.w > b.x &&
+         a.y < b.y+b.h && a.y+a.h > b.y;
+}
+
+const restartBtn = document.getElementById("restartBtn");
+restartBtn.addEventListener("click", ()=>{
+  score = 0;
+  player.hp = player.maxHp;
+  player.bullets = [];
+  player.power = 1;
+  player.itemGauge = 0;
+  enemies = [];
+  items = [];
+  bossOnScreen = false;
+  lastBossHp = 100;
+  bossOnScreenReady = false;
+  gameStartTime = Date.now();
+  restartBtn.style.display = "none";
+  loop();
+});
+
+function loop(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  if(imgMarinePort.complete){
+    ctx.drawImage(imgMarinePort, 0, 0, canvas.width, MARINE_HEIGHT);
+  }
+
+  drawBrickBackground();
+
+  const startX = canvas.width/2 - LINE_TOP_WIDTH/2;
+  const endX = canvas.width/2 - LINE_BOTTOM_WIDTH/2;
+
+  ctx.strokeStyle = "white";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(startX, LINE_START_Y);
+  ctx.lineTo(endX, LINE_END_Y);
+  ctx.lineTo(endX+LINE_BOTTOM_WIDTH, LINE_END_Y);
+  ctx.lineTo(startX+LINE_TOP_WIDTH, LINE_START_Y);
+  ctx.closePath();
+  ctx.fillStyle = "gray"; 
+  ctx.fill();             
+  ctx.stroke();
+
+  const itemLeftTopX = startX;
+  const itemRightTopX = startX + LINE_TOP_WIDTH*0.3;
+  const itemLeftBottomX = endX;
+  const itemRightBottomX = endX + LINE_BOTTOM_WIDTH*0.3;
+  ctx.beginPath();
+  ctx.moveTo(itemLeftTopX, LINE_START_Y);
+  ctx.lineTo(itemLeftBottomX, LINE_END_Y);
+  ctx.lineTo(itemRightBottomX, LINE_END_Y);
+  ctx.lineTo(itemRightTopX, LINE_START_Y);
+  ctx.closePath();
+  ctx.stroke();
+
+  if(keys["ArrowLeft"] && player.x>0) player.x-=player.speed;
+  if(keys["ArrowRight"] && player.x+player.w<canvas.width) player.x+=player.speed;
+
+  if(imgPlayer.complete){
+    ctx.drawImage(imgPlayer, player.x, player.y, player.w, player.h);
+  }else{
+    ctx.fillStyle="lime";
+    ctx.fillRect(player.x, player.y, player.w, player.h);
+  }
+
+  player.bullets.forEach((b,i)=>{
+    b.y -= b.speed;
+    if(b.image && b.image.complete){
+      ctx.drawImage(b.image,b.x,b.y,b.w,b.h);
+    }else{
+      ctx.fillStyle="yellow";
+      ctx.fillRect(b.x,b.y,b.w,b.h);
+    }
+    if(b.y<0) player.bullets.splice(i,1);
+  });
+
+  enemies.sort((a,b)=>{ 
+    const ay = a.baseY - (a.isBoss ? a.h*0.7 : a.h*1.5)/2;
+    const by = b.baseY - (b.isBoss ? b.h*0.7 : b.h*1.5)/2;
+    return ay - by;
+  });
+
+  enemies.forEach((e,ei)=>{
+      e.baseY += e.speed * enemySpeedMultiplier;
+      const lineWidth = getLineWidth(e.baseY, LINE_TOP_WIDTH*0.7, LINE_BOTTOM_WIDTH*0.7, LINE_START_Y, LINE_END_Y);
+      e.x = (canvas.width - lineWidth)/2 + LINE_TOP_WIDTH*0.3 + e.xPercent*lineWidth;
+
+      let scale = e.isBoss ? 1 + 0.3*((e.baseY - LINE_START_Y)/(LINE_END_Y - LINE_START_Y))
+                            : 0.85 + 0.3*((e.baseY - LINE_START_Y)/(LINE_END_Y - LINE_START_Y));
+
+      const drawW = e.w * scale;
+      const drawH = e.h * scale;
+      e.x = (canvas.width - lineWidth)/2 + LINE_TOP_WIDTH*0.3 + e.xPercent*lineWidth - drawW/2;
+      e.y = e.baseY - drawH;
+
+      if(e.y + drawH >= LINE_END_Y){
+    	  if(e.isBoss) {
+    	        bossOnScreen = false;
+    	        player.hp = Math.max(0, player.hp - 50);
+    	    } else {
+    	        player.hp = Math.max(0, player.hp - 1);
+    	    }
+    	    enemies.splice(ei,1);
+    	    return;
+      }
+
+      if(e.image && e.image.complete){
+        ctx.drawImage(e.image,e.x,e.y,drawW,drawH);
+      }else{
+        ctx.fillStyle = e.isBoss ? "purple":"red";
+        ctx.fillRect(e.x,e.y,drawW,drawH);
+      }
+
+      player.bullets.forEach((b,bi)=>{
+        if(checkCollision(b,{x:e.x,y:e.y,w:drawW,h:drawH})){
+          e.hp -= b.damage;
+          player.bullets.splice(bi,1);
+          if(e.hp<=0){
+            score += e.score;
+            if(e.isBoss) bossOnScreen=false;
+            enemies.splice(ei,1);
+          }
+        }
+      });
+  });
+
+  items.forEach((it,ii)=>{
+    it.baseY += 0.5;
+    const t = (it.baseY - LINE_START_Y)/(LINE_END_Y - LINE_START_Y);
+    const leftTopX = startX;
+    const leftBottomX = endX;
+    it.x = leftTopX + t * (leftBottomX - leftTopX);
+    const scale = 0.7 + 1.7 * t;
+    const drawW = it.w * scale;
+    const drawH = it.h * scale;
+    it.y = it.baseY - drawH;
+
+    if(it.y + drawH >= LINE_END_Y){
+      items.splice(ii,1);
+      return;
+    }
+
+    if(it.type.image.complete){
+      ctx.drawImage(it.type.image, it.x, it.y, drawW, drawH);
+    }else{
+      ctx.fillStyle = "yellow";
+      ctx.fillRect(it.x,it.y,drawW,drawH);
+    }
+
+    ctx.fillStyle="white";
+    ctx.font="14px Arial";
+    ctx.fillText(it.hp, it.x, it.y + drawH + 14);
+
+    player.bullets.forEach((b,bi)=>{
+      if(checkCollision(b,{x:it.x,y:it.y,w:drawW,h:drawH})){
+        it.hp -= b.damage;
+        player.bullets.splice(bi,1);
+        if(it.hp <=0){
+          it.type.effect();
+          items.splice(ii,1);
+        }
+      }
+    });
+  });
+
+  const hpBarWidth = canvas.width*0.2;
+  const hpBarHeight = 20;
+  const hpBarX = player.x + player.w/2 - hpBarWidth/2;
+  const hpBarY = player.y + player.h + 5;
+  ctx.fillStyle="gray";
+  ctx.fillRect(hpBarX, hpBarY, hpBarWidth, hpBarHeight);
+  ctx.fillStyle="lime";
+  ctx.fillRect(hpBarX, hpBarY, hpBarWidth * (player.hp / player.maxHp), hpBarHeight);
+  ctx.strokeStyle="white";
+  ctx.strokeRect(hpBarX, hpBarY, hpBarWidth, hpBarHeight);
+
+  ctx.fillStyle="white";
+  ctx.font="16px Arial";
+  ctx.fillText("Score: "+score,10,20);
+
+  if(player.hp<=0){
+    restartBtn.style.display = "block";
+    ctx.fillStyle="white";
+    ctx.font="40px Arial";
+    ctx.textAlign="center";
+    ctx.fillText("게임 종료", canvas.width/2, canvas.height/2 - 50);
+  } else {
+    requestAnimationFrame(loop);
+  }
+}
+
+loop();
+</script>
+</body>
+</html>
