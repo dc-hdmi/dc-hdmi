@@ -27,7 +27,7 @@
 <canvas id="game"></canvas>
 <button id="restartBtn">재시작</button>
 <script>
-
+// --- 기존 코드 시작 ---
 let imgMarinePort = new Image();
 imgMarinePort.src = "images/1358030.jpeg";
 const MARINE_HEIGHT = 100;
@@ -38,16 +38,16 @@ const brickColor1 = "#888";
 const brickColor2 = "#aaa";
 
 function drawBrickBackground() {
-	  for (let y = MARINE_HEIGHT; y < canvas.height; y += brickHeight) { 
-	    for (let x = 0; x < canvas.width; x += brickWidth) {
-	      const color = ((Math.floor(y / brickHeight) + Math.floor(x / brickWidth)) % 2 === 0) ? brickColor1 : brickColor2;
-	      ctx.fillStyle = color;
-	      ctx.fillRect(x, y, brickWidth, brickHeight);
-	      ctx.strokeStyle = "#666";
-	      ctx.strokeRect(x, y, brickWidth, brickHeight);
-	    }
-	  }
-	}
+    for (let y = MARINE_HEIGHT; y < canvas.height; y += brickHeight) { 
+        for (let x = 0; x < canvas.width; x += brickWidth) {
+            const color = ((Math.floor(y / brickHeight) + Math.floor(x / brickWidth)) % 2 === 0) ? brickColor1 : brickColor2;
+            ctx.fillStyle = color;
+            ctx.fillRect(x, y, brickWidth, brickHeight);
+            ctx.strokeStyle = "#666";
+            ctx.strokeRect(x, y, brickWidth, brickHeight);
+        }
+    }
+}
 
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
@@ -61,13 +61,14 @@ window.addEventListener("resize", resizeCanvas);
 
 let score = 0;
 let player = { 
-	x:0, y:0, w:0, h:0, speed:5, bullets:[], power:1, itemGauge:0, hp:1000, maxHp:1000, maxPower:4 
+    x:0, y:0, w:0, h:0, speed:5, bullets:[], power:1, itemGauge:0, hp:1000, maxHp:1000, maxPower:4,
+    isPoisoned:false, poisonInterval:null, poisonEffectActive:false
 };
 function resetPlayerSize(){
-  player.w = canvas.width * 0.25;
-  player.h = canvas.height * 0.1;
-  player.x = canvas.width/2 - player.w/2;
-  player.y = canvas.height * 0.65 + MARINE_HEIGHT; 
+    player.w = canvas.width * 0.25;
+    player.h = canvas.height * 0.1;
+    player.x = canvas.width/2 - player.w/2;
+    player.y = canvas.height * 0.65 + MARINE_HEIGHT; 
 }
 resetPlayerSize();
 
@@ -98,8 +99,7 @@ const bulletLevels = [
   { image: imgBullet3, damage: 3, speed: 7 }
 ];
 
-setInterval(()=>{
-  if(player.hp<=0) return;
+setInterval(()=>{ if(player.hp<=0) return;
   for(let i=0;i<player.power;i++){
     const level = bulletLevels[Math.min(player.power-1, bulletLevels.length-1)];
     player.bullets.push({
@@ -127,14 +127,22 @@ let bossImg2 = new Image(); bossImg2.src = "images/dl_ld36.png";
 let bossImg3 = new Image(); bossImg3.src = "images/dl_ld37.png";
 let bossImg4 = new Image(); bossImg4.src = "images/dl_ld38.png";
 
+let debuffImg1 = new Image(); debuffImg1.src = "images/popuptext_slot_megabomb.png";
+let debuffImg2 = new Image(); debuffImg2.src = "images/popuptext_slot_poison.png";
+
 let enemyTypes = [
   {name:"normal", w:40,h:40,hp:1,speed:0.25,score:10,image:normalImg}
 ];
 let bossTypes = [
   {name:"boss1", w:100,h:100,hp:100,speed:0.25,score:100,image:bossImg1},
   {name:"boss2", w:100,h:100,hp:100,speed:0.25,score:200,image:bossImg2},
-  {name:"boss3", w:100,h:100,hp:100,speed:0.25,score:100,image:bossImg3},
+  {name:"boss3", w:100,h:100,hp:100,speed:0.25,score:200,image:bossImg3},
   {name:"boss4", w:100,h:100,hp:100,speed:0.25,score:200,image:bossImg4}
+];
+
+let debuffs = [
+    {name:"debuff1", w:80,h:80,hp:100,speed:0.70,score:0,image:debuffImg1},
+    {name:"debuff2", w:80,h:80,hp:100,speed:0.70,score:0,image:debuffImg2}
 ];
 
 let bossOnScreen = false;
@@ -144,56 +152,80 @@ const BOSS_INTERVAL = 15000;
 let enemySpeedMultiplier = 1;
 setInterval(()=>{ enemySpeedMultiplier += 0.1; }, 10000);
 
+let debuffOnScreen = false;
+let debuffReady = false;
+const DEBUFF_INTERVAL = 15000;
+
+setInterval(()=>{ if(player.hp <= 0) return; debuffReady = true; }, DEBUFF_INTERVAL);
+
 function getLineWidth(y, topWidth, bottomWidth, startY, endY){
   const t = (y - startY)/(endY - startY);
   return topWidth + t*(bottomWidth - topWidth);
 }
 
-function spawnEnemyLine(){
-  if(player.hp<=0) return;
-  let bossIndex = Math.floor(Math.random() * ENEMY_PER_LINE);
+function spawnEnemyLine() {
+    if(player.hp<=0) return;
 
-  for(let i=0;i<ENEMY_PER_LINE;i++){
-    let type;
-    if(i===bossIndex && bossOnScreenReady){
-      type = bossTypes[Math.floor(Math.random()*bossTypes.length)];
-      type.hp = lastBossHp;
-      bossOnScreen = true;
-      bossOnScreenReady = false;
-      lastBossHp = Math.floor(lastBossHp*1.3); 
-    }else{
-      type = enemyTypes[Math.floor(Math.random()*enemyTypes.length)];
+    let bossIndex = Math.floor(Math.random() * ENEMY_PER_LINE);
+    let debuffPlaced = false;
+
+    for(let i=0;i<ENEMY_PER_LINE;i++){
+        let type;
+        let xPercent;
+
+        if(i===bossIndex && bossOnScreenReady){
+            type = bossTypes[Math.floor(Math.random()*bossTypes.length)];
+            type.hp = lastBossHp;
+            bossOnScreen = true;
+            bossOnScreenReady = false;
+            lastBossHp = Math.floor(lastBossHp*1.2);
+            xPercent = Math.random();
+        }
+        else if(!debuffPlaced && debuffReady){
+            type = debuffs[Math.floor(Math.random()*debuffs.length)];
+            debuffPlaced = true;
+            debuffReady = false;
+            xPercent = Math.random();
+        }
+        else {
+            type = enemyTypes[Math.floor(Math.random()*enemyTypes.length)];
+            let segment = 1/ENEMY_PER_LINE;
+            xPercent = i*segment + Math.random()*segment*0.8;
+        }
+
+        enemies.push({
+            baseY: LINE_START_Y,
+            xPercent: xPercent,
+            w: type.w,
+            h: type.h,
+            hp: type.hp,
+            speed: type.speed,
+            score: type.score,
+            image: type.image,
+            isBoss: type.w>=80,
+            typeName: type.name
+        });
     }
-
-    let segment = 1/ENEMY_PER_LINE;
-    let xPercent = i*segment + Math.random()*segment*0.8;
-
-    enemies.push({
-      baseY: LINE_START_Y,
-      xPercent: xPercent,
-      w: type.w,
-      h: type.h,
-      hp: type.isBoss ? type.hp : type.hp,
-      speed: type.speed,
-      score: type.score,
-      image: type.image,
-      isBoss: type.w>=80
-    });
-  }
 }
+
 setInterval(spawnEnemyLine, 200);
 
 let bossOnScreenReady = false;
-setInterval(()=>{
-  if(player.hp<=0) return;
-  bossOnScreenReady = true;
-}, BOSS_INTERVAL);
+setInterval(()=>{ if(player.hp<=0) return; bossOnScreenReady = true; }, BOSS_INTERVAL);
 
 const itemsConfig = [
   { name:"powerUp", w:40,h:40,baseHp:50, image: (()=>{ let img=new Image(); img.src="images/common_icon_251_skill.png"; return img; })(), effect: ()=>{ bulletLevels.forEach(level => level.damage++); } },
   { name:"multiShot", w:40,h:40,baseHp:30, image: (()=>{ let img=new Image(); img.src="images/common_duration_enemy_icon.png"; return img; })(), effect: ()=>{ if(player.power < player.maxPower) player.power++; } },
   { name:"slowEnemies", w:40,h:40,baseHp:300, image: (()=>{ let img=new Image(); img.src="images/popuptext_slot_palsy.png"; return img; })(), effect: ()=>{ enemies.forEach(e => e.speed *= 0.5); setTimeout(()=>{ enemies.forEach(e=>{ e.speed /= 0.5; }); }, 5000); } },
-  { name:"heal", w:40,h:40,baseHp:300, image:(()=>{ let img=new Image(); img.src="images/rungame_item_meat.png"; return img; })(), effect: ()=>{ player.hp = Math.min(player.maxHp, player.hp + 200); } }
+  { name:"heal", w:40,h:40,baseHp:300, image:(()=>{ let img=new Image(); img.src="images/rungame_item_meat.png"; return img; })(), effect: ()=>{ player.hp = Math.min(player.maxHp, player.hp + 200); } },
+  { name:"antidote", w:40,h:40,baseHp:10, image:(()=>{ let img=new Image(); img.src="images/potentialskill_icon_s_004.png"; return img; })(), effect: ()=>{ 
+      if(player.isPoisoned){
+          clearInterval(player.poisonInterval);
+          player.isPoisoned=false;
+          player.poisonEffectActive=false;
+      }
+      player.hp = Math.min(player.maxHp, player.hp + 0); 
+  } }
 ];
 
 let items = [];
@@ -240,6 +272,9 @@ restartBtn.addEventListener("click", ()=>{
   bossOnScreen = false;
   lastBossHp = 100;
   bossOnScreenReady = false;
+  player.isPoisoned=false;
+  player.poisonEffectActive=false;
+  clearInterval(player.poisonInterval);
   gameStartTime = Date.now();
   restartBtn.style.display = "none";
   loop();
@@ -321,16 +356,41 @@ function loop(){
       e.x = (canvas.width - lineWidth)/2 + LINE_TOP_WIDTH*0.3 + e.xPercent*lineWidth - drawW/2;
       e.y = e.baseY - drawH;
 
+      // === 하단 도달 처리 ===
       if(e.y + drawH >= LINE_END_Y){
-    	  if(e.isBoss) {
-    	        bossOnScreen = false;
-    	        player.hp = Math.max(0, player.hp - 50);
-    	    } else {
-    	        player.hp = Math.max(0, player.hp - 1);
-    	    }
-    	    enemies.splice(ei,1);
-    	    return;
+          if(e.typeName === "debuff1"){ // 폭탄
+              player.hp = Math.max(0, player.hp * 0.5); // 체력 50% 감소
+          }
+          // 독은 하단 도달 시 아무 효과 없음
+          enemies.splice(ei,1);
+          if(e.isBoss) bossOnScreen = false;
+          return;
       }
+
+      // === 총알 충돌 처리 ===
+      player.bullets.forEach((b,bi)=>{
+        if(checkCollision(b,{x:e.x,y:e.y,w:drawW,h:drawH})){
+          e.hp -= b.damage;
+          player.bullets.splice(bi,1);
+
+          if(e.hp<=0){
+            score += e.score;
+
+            if(e.typeName === "debuff1"){ // 폭탄
+              player.hp = Math.max(0, player.hp * 0.9); // 체력 10% 감소
+            } else if(e.typeName === "debuff2" && !player.isPoisoned){ // 독
+              player.isPoisoned = true;
+              player.poisonEffectActive = true;
+              player.poisonInterval = setInterval(()=>{
+                if(player.hp>0) player.hp -= 1;
+              },200);
+            }
+
+            if(e.isBoss) bossOnScreen=false;
+            enemies.splice(ei,1);
+          }
+        }
+      });
 
       if(e.image && e.image.complete){
         ctx.drawImage(e.image,e.x,e.y,drawW,drawH);
@@ -338,18 +398,6 @@ function loop(){
         ctx.fillStyle = e.isBoss ? "purple":"red";
         ctx.fillRect(e.x,e.y,drawW,drawH);
       }
-
-      player.bullets.forEach((b,bi)=>{
-        if(checkCollision(b,{x:e.x,y:e.y,w:drawW,h:drawH})){
-          e.hp -= b.damage;
-          player.bullets.splice(bi,1);
-          if(e.hp<=0){
-            score += e.score;
-            if(e.isBoss) bossOnScreen=false;
-            enemies.splice(ei,1);
-          }
-        }
-      });
   });
 
   items.forEach((it,ii)=>{
@@ -397,7 +445,12 @@ function loop(){
   const hpBarY = player.y + player.h + 5;
   ctx.fillStyle="gray";
   ctx.fillRect(hpBarX, hpBarY, hpBarWidth, hpBarHeight);
-  ctx.fillStyle="lime";
+
+  if(player.poisonEffectActive && Math.floor(Date.now()/200)%2===0){
+      ctx.fillStyle="red"; // 깜빡임 효과
+  } else {
+      ctx.fillStyle="lime";
+  }
   ctx.fillRect(hpBarX, hpBarY, hpBarWidth * (player.hp / player.maxHp), hpBarHeight);
   ctx.strokeStyle="white";
   ctx.strokeRect(hpBarX, hpBarY, hpBarWidth, hpBarHeight);
