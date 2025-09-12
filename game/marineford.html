@@ -27,7 +27,7 @@
 <canvas id="game"></canvas>
 <button id="restartBtn">재시작</button>
 <script>
-// --- 기존 코드 시작 ---
+
 let imgMarinePort = new Image();
 imgMarinePort.src = "images/1358030.jpeg";
 const MARINE_HEIGHT = 100;
@@ -356,18 +356,21 @@ function loop(){
       e.x = (canvas.width - lineWidth)/2 + LINE_TOP_WIDTH*0.3 + e.xPercent*lineWidth - drawW/2;
       e.y = e.baseY - drawH;
 
-      // === 하단 도달 처리 ===
       if(e.y + drawH >= LINE_END_Y){
-          if(e.typeName === "debuff1"){ // 폭탄
-              player.hp = Math.max(0, player.hp * 0.5); // 체력 50% 감소
+          if(e.typeName === "debuff1"){
+              player.hp = Math.max(0, player.hp * 0.5);
           }
-          // 독은 하단 도달 시 아무 효과 없음
+          if(e.isBoss) {
+              bossOnScreen = false;
+              player.hp = Math.max(0, player.hp - 50); 
+          } else {
+              player.hp = Math.max(0, player.hp - 1);
+          }
+     
           enemies.splice(ei,1);
-          if(e.isBoss) bossOnScreen = false;
           return;
       }
 
-      // === 총알 충돌 처리 ===
       player.bullets.forEach((b,bi)=>{
         if(checkCollision(b,{x:e.x,y:e.y,w:drawW,h:drawH})){
           e.hp -= b.damage;
@@ -376,9 +379,9 @@ function loop(){
           if(e.hp<=0){
             score += e.score;
 
-            if(e.typeName === "debuff1"){ // 폭탄
-              player.hp = Math.max(0, player.hp * 0.9); // 체력 10% 감소
-            } else if(e.typeName === "debuff2" && !player.isPoisoned){ // 독
+            if(e.typeName === "debuff1"){ 
+              player.hp = Math.max(0, player.hp * 0.9); 
+            } else if(e.typeName === "debuff2" && !player.isPoisoned){ 
               player.isPoisoned = true;
               player.poisonEffectActive = true;
               player.poisonInterval = setInterval(()=>{
@@ -447,7 +450,7 @@ function loop(){
   ctx.fillRect(hpBarX, hpBarY, hpBarWidth, hpBarHeight);
 
   if(player.poisonEffectActive && Math.floor(Date.now()/200)%2===0){
-      ctx.fillStyle="red"; // 깜빡임 효과
+      ctx.fillStyle="red"; 
   } else {
       ctx.fillStyle="lime";
   }
