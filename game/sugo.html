@@ -128,18 +128,82 @@
   width: 100%;
   height: auto;
 }
+
+.year-button {
+  position: fixed;
+  bottom: 7%;   
+  right: 20px;  
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: #2d6cdf;
+  color: white;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+
+.year-list {
+  position: fixed;
+  bottom: calc(7% + 70px);
+  right: 20px;
+  background: gray;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  display: none;
+  flex-direction: column;
+  padding: 10px;
+  z-index: 999;
+}
+
+.year-list button {
+  background: none;
+  border: none;
+  padding: 8px 12px;
+  text-align: right;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.year-list button:hover {
+  background: #f0f0f0;
+}
+
+.year-list.show {
+  display: flex;
+}
 </style>
 </head>
 <body>
 <div class="full-screen-img">
 	<img src="images/sugo/sugo.jpg" alt="샘플 이미지">
 </div>
+
+<button class="year-button">📅</button>
+<div class="year-list">
+  <button data-year="2016" >2016</button>
+  <button data-year="2017" >2017</button>
+  <button data-year="2018" >2018</button>
+  <button data-year="2019" >2019</button>
+  <button data-year="2020" >2020</button>
+  <button data-year="2021" >2021</button>
+  <button data-year="2022" >2022</button>
+  <button data-year="2023" >2023</button>
+  <button data-year="2024" >2024</button>
+  <button data-year="2025" >2025</button>
+</div>
+	
 <div class="timeline">
   <div class="timeline-event left">
     <div class="event-line"></div>
     <div class="dc">
 	    <div class="event-content2">
-	    	<div class="event-title">2016년 5월31일</div>
+	    	<div class="event-title year-2016">2016년 5월31일</div>
 	    </div>
 	    <div class="event-content">
 	      <div class="event-images">
@@ -400,7 +464,7 @@
     <div class="event-line"></div>
     <div class="dc">
 	    <div class="event-content2">
-	    	<div class="event-title">2017년 1월 16일</div>
+	    	<div class="event-title year-2017">2017년 1월 16일</div>
 	    </div>
 	    <div class="event-content">
 	      <div class="event-images">
@@ -820,7 +884,7 @@
     <div class="event-line"></div>
     <div class="dc">
 	    <div class="event-content2">
-	    	<div class="event-title">2018년 1월 12일</div>
+	    	<div class="event-title year-2018">2018년 1월 12일</div>
 	    </div>
 	    <div class="event-content">
 	      <div class="event-images">
@@ -1341,7 +1405,7 @@
     <div class="event-line"></div>
     <div class="dc">
 	    <div class="event-content2">
-	    	<div class="event-title">2019년 1월 1일</div>
+	    	<div class="event-title year-2019">2019년 1월 1일</div>
 	    </div>
 	    <div class="event-content">
 	      <div class="event-images">
@@ -2003,7 +2067,7 @@
     <div class="event-line"></div>
     <div class="dc">
 	    <div class="event-content2">
-	    	<div class="event-title">2020년 1월 2일</div>
+	    	<div class="event-title year-2020">2020년 1월 2일</div>
 	    </div>
 	    <div class="event-content">
 	      <div class="event-images">
@@ -3075,7 +3139,7 @@
     <div class="event-line"></div>
     <div class="dc">
 	    <div class="event-content2">
-	    	<div class="event-title">2021년 1월 29일</div>
+	    	<div class="event-title year-2021">2021년 1월 29일</div>
 	    </div>
 	    <div class="event-content">
 	      <div class="event-images">
@@ -3508,7 +3572,7 @@
     <div class="event-line"></div>
     <div class="dc">
 	    <div class="event-content2">
-	    	<div class="event-title">2022년 1월 17일</div>
+	    	<div class="event-title year-2022">2022년 1월 17일</div>
 	    </div>
 	    <div class="event-content">
 	      <div class="event-images">
@@ -3838,7 +3902,7 @@
     <div class="event-line"></div>
     <div class="dc">
 	    <div class="event-content2">
-	    	<div class="event-title">2023년 1월 30일</div>
+	    	<div class="event-title year-2023">2023년 1월 30일</div>
 	    </div>
 	    <div class="event-content">
 	      <div class="event-images">
@@ -4183,7 +4247,7 @@
     <div class="event-line"></div>
     <div class="dc">
 	    <div class="event-content2">
-	    	<div class="event-title">2024년 1월 15일</div>
+	    	<div class="event-title year-2024">2024년 1월 15일</div>
 	    </div>
 	    <div class="event-content">
 	      <div class="event-images">
@@ -4758,7 +4822,7 @@
     <div class="event-line"></div>
     <div class="dc">
 	    <div class="event-content2">
-	    	<div class="event-title">2025년 1월 14일</div>
+	    	<div class="event-title year-2025">2025년 1월 14일</div>
 	    </div>
 	    <div class="event-content">
 	      <div class="event-images">
@@ -5098,6 +5162,32 @@
     </div>
   </div>
 </div>
+<script>
+  const yearButton = document.querySelector('.year-button');
+  const yearList = document.querySelector('.year-list');
+  const yearOptions = document.querySelectorAll('.year-list button');
 
+  yearButton.addEventListener('click', () => {
+    yearList.classList.toggle('show');
+  });
+
+  yearOptions.forEach(option => {
+  option.addEventListener('click', () => {
+    const year = option.dataset.year;
+    
+    const target = document.querySelector(`.year-${year}`);
+    
+    if (target) {
+      const offsetTop = target.getBoundingClientRect().top + window.scrollY;
+      const customOffset = offsetTop - 100; // 상단 여백 주고 싶을 때
+      window.scrollTo({
+        top: customOffset,
+        behavior: 'smooth'
+      });
+    }
+    yearList.classList.remove('show');
+  });
+});
+</script>
 </body>
 </html>
