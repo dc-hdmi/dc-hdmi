@@ -18,15 +18,21 @@
   }
   #overlay { 
   	position:absolute; 
-  	top:95px; 
+  	top:0px; 
+  }
+  #canvas-wrapper canvas {
+	display:block;
+	margin:0;
   }
 </style>
 </head>
 <body>
 <h2>트갤 복권</h2>
 <p id="current-time"></p>
+<div id="canvas-wrapper" style="position:relative; width:300px; margin:auto;">
 <canvas id="bg" width="300" height="150"></canvas>
 <canvas id="overlay" width="300" height="150"></canvas>
+</div>
 <p id="notice"></p>
 
 <script>
@@ -59,7 +65,6 @@ const loseImgList = [
 
 let isDrawing = false;
 
-// ✅ 당첨 확률 0.01%
 let isWin = Math.random() < 0.01;
 
 // 이미지 로드
