@@ -65,7 +65,7 @@ const loseImgList = [
 
 let isDrawing = false;
 
-let isWin = Math.random() < 0.01;
+let isWin = Math.random() < 0.15;
 
 let img = new Image();
 img.src = isWin ? winImgSrc : loseImgList[Math.floor(Math.random() * loseImgList.length)];
