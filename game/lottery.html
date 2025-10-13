@@ -67,19 +67,15 @@ let isDrawing = false;
 
 let isWin = Math.random() < 0.01;
 
-// 이미지 로드
 let img = new Image();
 img.src = isWin ? winImgSrc : loseImgList[Math.floor(Math.random() * loseImgList.length)];
 img.onload = () => {
   bgCtx.drawImage(img, 0, 0, bgCanvas.width, bgCanvas.height);
-
-  // 은박 레이어 초기화
   overlayCtx.fillStyle = "silver";
   overlayCtx.fillRect(0, 0, overlayCanvas.width, overlayCanvas.height);
   
 };
 
-// 좌표 구하기
 function getPos(e) {
   let rect = overlayCanvas.getBoundingClientRect();
   return {
@@ -88,7 +84,6 @@ function getPos(e) {
   };
 }
 
-// 긁기
 function start(e) { isDrawing = true; }
 function end(e) { isDrawing = false; }
 function draw(e) {
