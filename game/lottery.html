@@ -103,6 +103,7 @@ function start(e) {
 function end(e) { isDrawing = false; }
 function draw(e) {
   if (!isDrawing) return;
+  e.preventDefault();
   const pos = getPos(e);
 
   overlayCtx.globalCompositeOperation = "destination-out";
@@ -137,7 +138,7 @@ overlayCanvas.addEventListener("mouseup", end);
 overlayCanvas.addEventListener("mousemove", draw);
 overlayCanvas.addEventListener("touchstart", start);
 overlayCanvas.addEventListener("touchend", end);
-overlayCanvas.addEventListener("touchmove", draw);
+overlayCanvas.addEventListener("touchmove", draw, { passive: false });
 </script>
 </body>
 </html>
