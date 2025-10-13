@@ -96,7 +96,7 @@ function start(e) {
   if (now < allowedTimeKST || now < allowedTimePST) {
     const notice = document.getElementById('notice');
     notice.textContent = "⏳복권 이벤트는 10월 13일 15시 00분에 개최 됩니다.!";
-    return; // 긁기 불가
+    return;
   }
   isDrawing = true;
 }
