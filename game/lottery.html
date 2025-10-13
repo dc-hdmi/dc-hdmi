@@ -55,9 +55,9 @@ const overlayCtx = overlayCanvas.getContext('2d');
 
 const winImgSrc = "images/sugo/20160531.png";
 
-const allowedTimeKST = new Date("2025-10-13T15:00:00+09:00");
+const allowedTimeKST = new Date("2025-10-20T15:00:00+09:00");
 
-const allowedTimePST = new Date("2025-10-12T22:00:00-08:00");
+const allowedTimePST = new Date("2025-10-19T22:00:00-08:00");
 
 const loseImgList = [
 	  "images/sugo/20250512.png",
@@ -95,7 +95,8 @@ function start(e) {
   const now = new Date();
   if (now < allowedTimeKST || now < allowedTimePST) {
     const notice = document.getElementById('notice');
-    notice.textContent = "⏳복권 이벤트는 10월 13일 15시 00분에 개최 됩니다.!";
+    //notice.textContent = "⏳복권 이벤트는 10월 13일 15시 00분에 개최 됩니다.!";
+	notice.textContent = "⏳지금은 복권 이벤트 기간이 아닙니다.";
     return;
   }
   isDrawing = true;
