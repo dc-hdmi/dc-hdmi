@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>트갤 복권</title>
+<style>
+  body { 
+  	text-align:center; 
+  	margin:40px; 
+  	background:#eee; 
+  	position:relative; 
+  }
+  canvas { 
+  	display:block; 
+  	margin:auto; 
+  	border:2px solid #333; 
+  }
+  #overlay { 
+  	position:absolute; 
+  	top:95px; 
+  }
+</style>
+</head>
+<body>
+<h2>트갤 복권</h2>
+<p id="current-time"></p>
+<canvas id="bg" width="300" height="150"></canvas>
+<canvas id="overlay" width="300" height="150"></canvas>
+<p id="notice"></p>
+
+<script>
+function updateTime() {
+	  const now = new Date();
+	  const timeString = now.toLocaleString();
+	  document.getElementById('current-time').textContent = timeString;
+	}
+	
+updateTime();
+
+setInterval(updateTime, 1000);
+
+const bgCanvas = document.getElementById('bg');
+const bgCtx = bgCanvas.getContext('2d');
+
+const overlayCanvas = document.getElementById('overlay');
+const overlayCtx = overlayCanvas.getContext('2d');
+
+
+const winImgSrc = "images/sugo/20250920.png";
+
+const loseImgList = [
+	  "images/sugo/20250512.png",
+	  "images/sugo/20250530.png",
+	  "images/sugo/20250616.png",
+	  "images/sugo/20250927.png",
+	  "images/sugo/20251011.png"
+	];
+
+let isDrawing = false;
+
+// ✅ 당첨 확률 0.01%
+let isWin = Math.random() < 0.01;
+
+// 이미지 로드
+let img = new Image();
+img.src = isWin ? winImgSrc : loseImgList[Math.floor(Math.random() * loseImgList.length)];
+img.onload = () => {
+  bgCtx.drawImage(img, 0, 0, bgCanvas.width, bgCanvas.height);
+
+  // 은박 레이어 초기화
+  overlayCtx.fillStyle = "silver";
+  overlayCtx.fillRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+  
+};
+
+// 좌표 구하기
+function getPos(e) {
+  let rect = overlayCanvas.getBoundingClientRect();
+  return {
+    x: (e.touches ? e.touches[0].clientX : e.clientX) - rect.left,
+    y: (e.touches ? e.touches[0].clientY : e.clientY) - rect.top
+  };
+}
+
+// 긁기
+function start(e) { isDrawing = true; }
+function end(e) { isDrawing = false; }
+function draw(e) {
+  if (!isDrawing) return;
+  const pos = getPos(e);
+
+  overlayCtx.globalCompositeOperation = "destination-out";
+  overlayCtx.beginPath();
+  overlayCtx.arc(pos.x, pos.y, 25, 0, Math.PI*2);
+  overlayCtx.fill();
+  overlayCtx.globalCompositeOperation = "source-over";
+  
+  checkScratchPercent();
+}
+
+function checkScratchPercent() {
+	  const imgData = overlayCtx.getImageData(0, 0, overlayCanvas.width, overlayCanvas.height);
+	  const pixels = imgData.data;
+	  let transparentPixels = 0;
+
+	  for (let i = 3; i < pixels.length; i += 4) {
+	    if (pixels[i] === 0) transparentPixels++;
+	  }
+
+	  const totalPixels = overlayCanvas.width * overlayCanvas.height;
+	  const percent = (transparentPixels / totalPixels) * 100;
+
+	  if (percent >= 90) {
+	    const notice = document.getElementById('notice');
+	    notice.textContent = isWin ? "🎉 당첨! 🎉" : "😢 꽝입니다.";
+	  }
+	}
+
+overlayCanvas.addEventListener("mousedown", start);
+overlayCanvas.addEventListener("mouseup", end);
+overlayCanvas.addEventListener("mousemove", draw);
+overlayCanvas.addEventListener("touchstart", start);
+overlayCanvas.addEventListener("touchend", end);
+overlayCanvas.addEventListener("touchmove", draw);
+</script>
+</body>
+</html>
