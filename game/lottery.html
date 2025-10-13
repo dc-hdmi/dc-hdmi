@@ -55,6 +55,8 @@ const overlayCtx = overlayCanvas.getContext('2d');
 
 const winImgSrc = "images/sugo/20250909.png";
 
+const allowedTime = new Date("2025-10-13T14:40:00");
+
 const loseImgList = [
 	  "images/sugo/20250512.png",
 	  "images/sugo/20250530.png",
@@ -65,12 +67,13 @@ const loseImgList = [
 
 let isDrawing = false;
 
-let isWin = Math.random() < 0.0015;
+let isWin = Math.random() < 0.01;
 
 let img = new Image();
 img.src = isWin ? winImgSrc : loseImgList[Math.floor(Math.random() * loseImgList.length)];
 img.onload = () => {
   bgCtx.drawImage(img, 0, 0, bgCanvas.width, bgCanvas.height);
+
   overlayCtx.fillStyle = "silver";
   overlayCtx.fillRect(0, 0, overlayCanvas.width, overlayCanvas.height);
   
@@ -84,7 +87,16 @@ function getPos(e) {
   };
 }
 
-function start(e) { isDrawing = true; }
+//function start(e) { isDrawing = true; }
+function start(e) {
+  const now = new Date();
+  if (now < allowedTime) {
+    const notice = document.getElementById('notice');
+    notice.textContent = "⏳복권 이벤트는 10월13일 14시 40분에 개최 됩니다.!";
+    return; // 긁기 불가
+  }
+  isDrawing = true;
+}
 function end(e) { isDrawing = false; }
 function draw(e) {
   if (!isDrawing) return;
