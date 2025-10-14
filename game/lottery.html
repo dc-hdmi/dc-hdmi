@@ -142,6 +142,7 @@ overlayCanvas.addEventListener("mousemove", draw);
 overlayCanvas.addEventListener("touchstart", start);
 overlayCanvas.addEventListener("touchend", end);
 overlayCanvas.addEventListener("touchmove", draw, { passive: false });
+document.addEventListener("touchmove", function(e) {e.preventDefault();}, { passive: false });
 </script>
 </body>
 </html>
