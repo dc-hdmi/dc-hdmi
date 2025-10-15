@@ -177,6 +177,30 @@
 .year-list.show {
   display: flex;
 }
+
+.year-tabs {
+  display: flex;
+  overflow-x: auto;
+  white-space: nowrap;
+  background: #1e2e1e;
+  padding: 10px;
+  gap: 10px;
+ }
+
+.year-tabs button {
+  flex: 0 0 auto;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 20px;
+  background: #2d6cdf;
+  color: white;
+  cursor: pointer;
+  font-weight: bold;
+ }
+
+.year-tabs button.active {
+  background: #3498db;
+}
 </style>
 </head>
 <body>
@@ -184,6 +208,20 @@
 	<img src="images/sugo/sugo.jpg" alt="샘플 이미지">
 </div>
 
+<div class="year-tabs">
+  <button data-year="2016">2016</button>
+  <button data-year="2017">2017</button>
+  <button data-year="2018">2018</button>
+  <button data-year="2019">2019</button>
+  <button data-year="2020">2020</button>
+  <button data-year="2021">2021</button>
+  <button data-year="2022">2022</button>
+  <button data-year="2023">2023</button>
+  <button data-year="2024">2024</button>
+  <button data-year="2025">2025</button>
+</div>
+	
+<!--
 <button class="year-button">☰</button>
 <div class="year-list">
   <button data-year="2016" >2016</button>
@@ -197,8 +235,10 @@
   <button data-year="2024" >2024</button>
   <button data-year="2025" >2025</button>
 </div>
-	
-<div class="timeline">
+-->	
+
+<div class="timeline-container">
+<div class="timeline" data-year="2016">
   <div class="timeline-event left">
     <div class="event-line"></div>
     <div class="dc">
@@ -459,7 +499,9 @@
 	    </div>
     </div>
   </div>
-
+  </div>
+  
+  <div class="timeline" data-year="2017" style="display:none;">
   <div class="timeline-event right">
     <div class="event-line"></div>
     <div class="dc">
@@ -879,7 +921,9 @@
 	    </div>
     </div>
   </div>
+  </div>
   
+  <div class="timeline" data-year="2018" style="display:none;">
   <div class="timeline-event left">
     <div class="event-line"></div>
     <div class="dc">
@@ -1400,7 +1444,9 @@
 	    </div>
     </div>
   </div>
-
+  </div>
+  
+  <div class="timeline" data-year="2019" style="display:none;">
   <div class="timeline-event right">
     <div class="event-line"></div>
     <div class="dc">
@@ -2062,7 +2108,9 @@
 	    </div>
     </div>
   </div>
+  </div>
   
+  <div class="timeline" data-year="2020" style="display:none;">
   <div class="timeline-event left">
     <div class="event-line"></div>
     <div class="dc">
@@ -3148,7 +3196,9 @@
 	    	</div>
 	    </div>
   </div>
+  </div>
   
+  <div class="timeline" data-year="2021" style="display:none;">
   <div class="timeline-event right">
     <div class="event-line"></div>
     <div class="dc">
@@ -3581,7 +3631,9 @@
 	    </div>
     </div>
   </div>
+  </div>
   
+  <div class="timeline" data-year="2022" style="display:none;">
   <div class="timeline-event left">
     <div class="event-line"></div>
     <div class="dc">
@@ -3925,7 +3977,9 @@
 	    </div>
     </div>
   </div>
-
+  </div>
+  
+  <div class="timeline" data-year="2023" style="display:none;">
   <div class="timeline-event right">
     <div class="event-line"></div>
     <div class="dc">
@@ -4354,7 +4408,9 @@
 	    </div>
     </div>
   </div>
+  </div>
   
+  <div class="timeline" data-year="2024" style="display:none;">
   <div class="timeline-event left">
     <div class="event-line"></div>
     <div class="dc">
@@ -4929,7 +4985,9 @@
 	    </div>
     </div>
   </div>
+  </div>
   
+  <div class="timeline" data-year="2025" style="display:none;">
   <div class="timeline-event right">
     <div class="event-line"></div>
     <div class="dc">
@@ -5338,11 +5396,28 @@
     </div>
   </div>
 </div>
+</div>
 <script>
   const yearButton = document.querySelector('.year-button');
   const yearList = document.querySelector('.year-list');
   const yearOptions = document.querySelectorAll('.year-list button');
 
+  const tabs = document.querySelectorAll('.year-tabs button');
+  const timelines = document.querySelectorAll('.timeline');
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const year = tab.dataset.year;
+
+      timelines.forEach(tl => {
+        tl.style.display = (tl.dataset.year === year) ? 'block' : 'none';
+      });
+
+      tabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+    });
+  });
+	
   yearButton.addEventListener('click', () => {
     yearList.classList.toggle('show');
   });
