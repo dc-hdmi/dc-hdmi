@@ -117,8 +117,8 @@ function start(e) {
   const now = new Date();
   if (now < allowedTimeKST || now < allowedTimePST) {
     const notice = document.getElementById('notice');
-    //notice.textContent = "⏳복권 이벤트는 10월 21일 09시 00분에 개최 됩니다.!";
-	notice.textContent = "⏳지금은 복권 이벤트 기간이 아닙니다.";
+    notice.textContent = "⏳복권 이벤트는 10월 21일 09시 00분에 개최 됩니다.!";
+	//notice.textContent = "⏳지금은 복권 이벤트 기간이 아닙니다.";
     return;
   }
   isDrawing = true;
