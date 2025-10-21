@@ -102,7 +102,7 @@
 <div class="arrow" id="arrow"></div>
 <div class="effect" id="effect"></div>
 <img class="bg-image" id="bgImage" src="" />
-<img class="full-gif" id="fullGif" src="display/images/sugo/sugo2.gif" />
+<img class="full-gif" id="fullGif" src="images/sugo/sugo2.gif" />
 
 <script>
   const arrow = document.getElementById("arrow");
@@ -113,6 +113,7 @@
   let pulling = false;
   let reachedEnd = false;
   let holdTimer = null;
+  let isPlaying = false; // GIF 재생 중 여부 체크
   const MAX_PULL = 150;
 
   const dragBgImages = [
@@ -161,6 +162,7 @@
   startDefaultBgLoop();
 
   document.addEventListener("touchstart", e => {
+    if (isPlaying) return; // GIF 재생 중이면 드래그 막기
     startY = e.touches[0].clientY;
     pulling = true;
     reachedEnd = false;
@@ -173,6 +175,7 @@
   });
 
   document.addEventListener("touchmove", e => {
+    if (isPlaying) return; // GIF 재생 중이면 드래그 막기
     if (!pulling) return;
 
     const currentY = e.touches[0].clientY;
@@ -203,6 +206,7 @@
   });
 
   document.addEventListener("touchend", () => {
+    if (isPlaying) return; // GIF 재생 중이면 드래그 막기
     if (!pulling) return;
     pulling = false;
     clearTimeout(holdTimer);
@@ -228,6 +232,7 @@
   }
 
   function playFullGif() {
+    isPlaying = true; // GIF 재생 시작
     const gif1 = "images/sugo/sugo1.gif";
     const gif2 = "images/sugo/sugo2.gif";
 
@@ -240,6 +245,7 @@
       setTimeout(() => {
         fullGif.style.display = "none";
         startDefaultBgLoop();
+        isPlaying = false; // GIF 재생 끝
       }, 5500);
     }, 1600);
   }
