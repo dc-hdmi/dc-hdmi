@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>트갤 뽑기 루틴 테스트</title>
+<style>
+  body {
+    margin: 0;
+    height: 100vh;
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    touch-action: none;
+    position: relative;
+  }
+  
+  .arrow {
+    display: none !important;
+  }
+
+  .arrow.hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .arrow.full {
+    background: url('https://cdn-icons-png.flaticon.com/512/992/992685.png') no-repeat center / contain;
+    filter: brightness(1.5) invert(1);
+  }
+
+  .effect {
+    position: absolute;
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0;
+  }
+
+  .bg-image {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100vw; 
+    height: auto;
+    z-index: 0;
+    display: block;
+  }
+
+  .full-gif {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    width: 100vw; 
+    height: auto;
+    transform: translate(-50%, -50%);
+    z-index: 999;
+    display: none;
+  }
+
+  @keyframes gather {
+	  0% {
+	    transform: scale(1.5);
+	    opacity: 0;
+	    box-shadow: 0 0 40px 20px rgba(128,0,32,0.3),
+	                0 0 80px 40px rgba(128,0,32,0.2);
+	  }
+	  100% {
+	    transform: scale(0.3);
+	    opacity: 1;
+	    box-shadow: 0 0 20px 10px rgba(128,0,32,0.6),
+	                0 0 60px 30px rgba(128,0,32,0.4);
+	  }
+	}
+	
+	@keyframes shine {
+	  0% {
+	    transform: scale(0.3);
+	    opacity: 1;
+	    box-shadow: 0 0 30px 15px rgba(128,0,32,0.8),
+	                0 0 60px 30px rgba(128,0,32,0.7),
+	                0 0 90px 45px rgba(128,0,32,0.5);
+	  }
+	  100% {
+	    transform: scale(1.2);
+	    opacity: 1;
+	    box-shadow: 0 0 50px 25px rgba(128,0,32,0.9),
+	                0 0 100px 50px rgba(128,0,32,0.8),
+	                0 0 150px 75px rgba(128,0,32,0.6);
+	  }
+	}
+
+</style>
+</head>
+<body>
+
+<div class="arrow" id="arrow"></div>
+<div class="effect" id="effect"></div>
+<img class="bg-image" id="bgImage" src="" />
+<img class="full-gif" id="fullGif" src="display/images/sugo/sugo2.gif" />
+
+<script>
+  const arrow = document.getElementById("arrow");
+  const effect = document.getElementById("effect");
+  const fullGif = document.getElementById("fullGif");
+  const bgImage = document.getElementById("bgImage");
+  let startY = 0;
+  let pulling = false;
+  let reachedEnd = false;
+  let holdTimer = null;
+  const MAX_PULL = 150;
+
+  const dragBgImages = [
+    "images/sugo/bg1.jpg",
+    "images/sugo/bg2.jpg",
+    "images/sugo/bg3.jpg",
+    "images/sugo/bg4.jpg",
+    "images/sugo/bg5.jpg",
+    "images/sugo/bg6.jpg",
+    "images/sugo/bg7.jpg",
+    "images/sugo/bg8.jpg",
+    "images/sugo/bg9.jpg",
+    "images/sugo/bg10.jpg"
+  ];
+
+  const defaultBgImages = [
+    "images/sugo/def1.jpg",
+    "images/sugo/def2.jpg",
+    "images/sugo/def3.jpg",
+    "images/sugo/def4.jpg",
+    "images/sugo/def5.jpg",
+    "images/sugo/def6.jpg",
+    "images/sugo/def7.jpg",
+    "images/sugo/def8.jpg",
+    "images/sugo/def9.jpg",
+    "images/sugo/def10.jpg",
+    "images/sugo/def11.jpg",
+    "images/sugo/def12.jpg"
+  ];
+
+  let defaultIndex = 0;
+  let defaultInterval = null;
+
+  function startDefaultBgLoop() {
+    defaultInterval = setInterval(() => {
+      bgImage.src = defaultBgImages[defaultIndex];
+      defaultIndex = (defaultIndex + 1) % defaultBgImages.length;
+    }, 250);
+  }
+
+  function stopDefaultBgLoop() {
+    clearInterval(defaultInterval);
+    defaultInterval = null;
+  }
+
+  startDefaultBgLoop();
+
+  document.addEventListener("touchstart", e => {
+    startY = e.touches[0].clientY;
+    pulling = true;
+    reachedEnd = false;
+
+    stopDefaultBgLoop();
+
+    effect.style.opacity = 0;
+    effect.style.animation = "none";
+    clearTimeout(holdTimer);
+  });
+
+  document.addEventListener("touchmove", e => {
+    if (!pulling) return;
+
+    const currentY = e.touches[0].clientY;
+    const deltaY = Math.max(0, currentY - startY);
+    const move = Math.min(deltaY, MAX_PULL);
+
+    arrow.style.transform = `translateY(${move}px) scale(${1 + move / 300})`;
+    arrow.style.filter = `brightness(${1 + move / 300}) invert(1)`;
+
+    const progress = move / MAX_PULL;
+    const index = Math.min(dragBgImages.length - 1, Math.floor(progress * dragBgImages.length));
+    bgImage.src = dragBgImages[index];
+    bgImage.style.display = "block"; 
+
+    if (move >= MAX_PULL) {
+      if (!reachedEnd) {
+        reachedEnd = true;
+        holdTimer = setTimeout(() => {
+          triggerEffect();
+        }, 500);
+      }
+    } else {
+      reachedEnd = false;
+      clearTimeout(holdTimer);
+      effect.style.opacity = 0;
+      effect.style.animation = "none";
+    }
+  });
+
+  document.addEventListener("touchend", () => {
+    if (!pulling) return;
+    pulling = false;
+    clearTimeout(holdTimer);
+
+    if (reachedEnd) {
+      effect.style.opacity = 0;
+      effect.style.animation = "none";
+      playFullGif();
+      bgImage.style.display = "none"; 
+    } else {
+      startDefaultBgLoop();
+    }
+  });
+
+  function triggerEffect() {
+	  const centerX = window.innerWidth / 2;
+	  const centerY = 500; 
+
+    effect.style.left = `${centerX - 75}px`;
+    effect.style.top = `${centerY - 75}px`;
+    effect.style.opacity = 1;
+    effect.style.animation = "gather 0.8s ease-out, shine 1.5s ease-in-out 0.8s forwards";
+  }
+
+  function playFullGif() {
+    const gif1 = "images/sugo/sugo1.gif";
+    const gif2 = "images/sugo/sugo2.gif";
+
+    fullGif.src = gif1;
+    fullGif.style.display = "block";
+
+    setTimeout(() => {
+      fullGif.src = gif2;
+
+      setTimeout(() => {
+        fullGif.style.display = "none";
+        startDefaultBgLoop();
+      }, 5500);
+    }, 1700);
+  }
+</script>
+
+</body>
+</html>
