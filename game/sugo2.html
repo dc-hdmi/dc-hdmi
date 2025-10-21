@@ -113,7 +113,7 @@
   let pulling = false;
   let reachedEnd = false;
   let holdTimer = null;
-  let isPlaying = false; // GIF 재생 중 여부 체크
+  let isPlaying = false;
   const MAX_PULL = 150;
 
   const dragBgImages = [
@@ -162,7 +162,7 @@
   startDefaultBgLoop();
 
   document.addEventListener("touchstart", e => {
-    if (isPlaying) return; // GIF 재생 중이면 드래그 막기
+    if (isPlaying) return;
     startY = e.touches[0].clientY;
     pulling = true;
     reachedEnd = false;
@@ -175,7 +175,7 @@
   });
 
   document.addEventListener("touchmove", e => {
-    if (isPlaying) return; // GIF 재생 중이면 드래그 막기
+    if (isPlaying) return;
     if (!pulling) return;
 
     const currentY = e.touches[0].clientY;
@@ -206,7 +206,7 @@
   });
 
   document.addEventListener("touchend", () => {
-    if (isPlaying) return; // GIF 재생 중이면 드래그 막기
+    if (isPlaying) return;
     if (!pulling) return;
     pulling = false;
     clearTimeout(holdTimer);
@@ -232,7 +232,7 @@
   }
 
   function playFullGif() {
-    isPlaying = true; // GIF 재생 시작
+    isPlaying = true;
     const gif1 = "images/sugo/sugo1.gif";
     const gif2 = "images/sugo/sugo2.gif";
 
@@ -245,7 +245,7 @@
       setTimeout(() => {
         fullGif.style.display = "none";
         startDefaultBgLoop();
-        isPlaying = false; // GIF 재생 끝
+        isPlaying = false;
       }, 5500);
     }, 1600);
   }
