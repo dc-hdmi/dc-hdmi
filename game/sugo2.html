@@ -155,7 +155,7 @@
 	}
 	preloadImages(dragBgImages);
 	preloadImages(defaultBgImages);
-	
+  
   function startDefaultBgLoop() {
     defaultInterval = setInterval(() => {
       bgImage.src = defaultBgImages[defaultIndex];
@@ -196,7 +196,14 @@
 
     const progress = move / MAX_PULL;
     const index = Math.min(dragBgImages.length - 1, Math.floor(progress * dragBgImages.length));
-    bgImage.src = dragBgImages[index];
+    if (!bgImage.style.opacity || bgImage.style.opacity == 0) {
+        bgImage.style.transition = "opacity 0.15s";
+        bgImage.style.opacity = 0;
+        bgImage.src = dragBgImages[index];
+        setTimeout(() => { bgImage.style.opacity = 1; }, 10);
+    } else {
+        bgImage.src = dragBgImages[index];
+    }
     bgImage.style.display = "block"; 
 
     if (move >= MAX_PULL) {
@@ -204,7 +211,7 @@
         reachedEnd = true;
         holdTimer = setTimeout(() => {
           triggerEffect();
-        }, 500);
+        }, 300);
       }
     } else {
       reachedEnd = false;
@@ -215,20 +222,23 @@
   });
 
   document.addEventListener("touchend", () => {
-    if (isPlaying) return;
-    if (!pulling) return;
-    pulling = false;
-    clearTimeout(holdTimer);
+	    if (isPlaying) return;
+	    if (!pulling) return;
+	    pulling = false;
+	    clearTimeout(holdTimer);
 
-    if (reachedEnd) {
-      effect.style.opacity = 0;
-      effect.style.animation = "none";
-      playFullGif();
-      bgImage.style.display = "none"; 
-    } else {
-      startDefaultBgLoop();
-    }
-  });
+	    if (reachedEnd) {
+	      effect.style.opacity = 0;
+	      effect.style.animation = "none";
+	      playFullGif();
+	      bgImage.style.display = "none"; 
+	    } else {
+	      bgImage.style.transition = "none"; 
+	      bgImage.style.opacity = 1;        
+	      bgImage.src = defaultBgImages[defaultIndex];
+	      startDefaultBgLoop();
+	    }
+	});
 
   function triggerEffect() {
 	  const centerX = window.innerWidth / 2;
