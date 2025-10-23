@@ -147,6 +147,15 @@
   let defaultIndex = 0;
   let defaultInterval = null;
 
+  function preloadImages(arr) {
+	  arr.forEach(src => {
+	    const img = new Image();
+	    img.src = src;
+	  });
+	}
+	preloadImages(dragBgImages);
+	preloadImages(defaultBgImages);
+	
   function startDefaultBgLoop() {
     defaultInterval = setInterval(() => {
       bgImage.src = defaultBgImages[defaultIndex];
