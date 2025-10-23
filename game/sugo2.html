@@ -231,6 +231,37 @@
     effect.style.animation = "gather 0.8s ease-out, shine 1.5s ease-in-out 0.8s forwards";
   }
 
+  const gifSet = [
+    { src: "images/sugo/typeA.gif", weight: 0.3, duration: 500 },
+    { src: "images/sugo/typeB.gif", weight: 0.3, duration: 500 },
+    { src: "images/sugo/typeC.gif", weight: 0.3, duration: 500 },
+    { src: "images/sugo/typeD.gif", weight: 0.1, duration: 1250 }
+  ];
+
+  function pickRandomGif() {
+    const total = gifSet.reduce((sum, g) => sum + g.weight, 0);
+    let r = Math.random() * total;
+    for (const g of gifSet) {
+      if (r < g.weight) return g;
+      r -= g.weight;
+    }
+    return gifSet[0];
+  }
+
+  async function playGifSequence(count = 10) {
+    for (let i = 0; i < count; i++) {
+      const gif = pickRandomGif();
+      fullGif.src = gif.src;
+      await new Promise(resolve => {
+        fullGif.style.display = "block";
+        setTimeout(() => {
+          fullGif.style.display = "none";
+          resolve();
+        }, gif.duration);
+      });
+    }
+  }
+
   function playFullGif() {
     isPlaying = true;
     const gif1 = "images/sugo/sugo1.gif";
@@ -242,8 +273,9 @@
     setTimeout(() => {
       fullGif.src = gif2;
 
-      setTimeout(() => {
+      setTimeout(async () => {
         fullGif.style.display = "none";
+        await playGifSequence(10);
         startDefaultBgLoop();
         isPlaying = false;
       }, 5500);
