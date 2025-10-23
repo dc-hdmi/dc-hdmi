@@ -257,6 +257,11 @@
     { src: "images/sugo/typeD.gif", weight: 0.1, duration: 1250 }
   ];
 
+  gifSet.forEach(g => {
+	const img = new Image();
+    img.src = g.src;
+  });
+
   function pickRandomGif() {
     const total = gifSet.reduce((sum, g) => sum + g.weight, 0);
     let r = Math.random() * total;
