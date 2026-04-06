@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>트갤 도감 체크</title>
+    <style>
+        body {
+            font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+            background-color: #1a1a1a;
+            color: white;
+            margin: 0;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .header {
+            position: sticky;
+            top: 5px;
+            background-color: #2c3e50;
+            padding: 12px 15px;
+            border-radius: 20px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.6);
+            margin-bottom: 20px;
+            z-index: 1000;
+            border: 2px solid #f1c40f;
+            text-align: center;
+            width: 95%;
+            max-width: 400px; 
+            box-sizing: border-box;
+        }
+
+        .status-text {
+            font-size: 1rem;
+            font-weight: bold;
+            margin: 0 0 10px 0;
+            word-break: keep-all;
+        }
+
+        #count {
+            color: #f1c40f;
+            font-size: 1.2rem;
+        }
+
+        .range-box {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 8px;
+            border-radius: 12px;
+        }
+
+        .range-box input {
+            width: 50px;
+            padding: 8px 5px;
+            border-radius: 6px;
+            border: none;
+            text-align: center;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .range-box button {
+            padding: 8px 10px;
+            background-color: #f1c40f;
+            color: #1a1a1a;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 0.9rem;
+            flex-shrink: 0;
+        }
+
+        .range-box button:active {
+            background-color: #d4ac0d;
+            transform: scale(0.95);
+        }
+
+        .char-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .char-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .char-card {
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            background-color: #333;
+            border-radius: 6px;
+            cursor: pointer;
+            overflow: hidden;
+            transition: all 0.2s ease;
+            position: relative;
+            border: 1.5px solid transparent;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .char-card::before {
+            content: "?";
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: white;
+            position: absolute;
+            z-index: 1;
+        }
+
+        .char-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            opacity: 0;
+            position: relative;
+            z-index: 2;
+        }
+
+        .char-card.owned {
+            background-color: transparent;
+            border: 1.5px solid #f1c40f;
+            box-shadow: 0 0 5px rgba(241, 196, 15, 0.5);
+        }
+
+        .char-card.owned::before { display: none; }
+        .char-card.owned img { opacity: 1; }
+
+        .char-no {
+            margin-top: 3px;
+            font-size: 0.65rem;
+            color: #bbb;
+            font-weight: bold;
+        }
+
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <p class="status-text">
+            ⚓ 나의 해적단: <span id="count">0</span> / 5068
+        </p>
+        <div class="range-box">
+            <input type="number" id="start" placeholder="시작" min="1" max="5068">
+            <span>~</span>
+            <input type="number" id="end" placeholder="끝" min="1" max="5068">
+            <button onclick="applyRange()">선택</button>
+        </div>
+    </div>
+
+    <div class="char-grid" id="grid"></div>
+
+    <script>
+        const grid = document.getElementById('grid');
+        const countDisplay = document.getElementById('count');
+        const startInput = document.getElementById('start');
+        const endInput = document.getElementById('end');
+        const totalChars = 5068;
+        let ownedCount = 0;
+        const cardElements = [];
+
+        function init() {
+            const fragment = document.createDocumentFragment();
+
+            for (let i = 1; i <= totalChars; i++) {
+                const itemDiv = document.createElement('div');
+                itemDiv.classList.add('char-item');
+
+                const card = document.createElement('div');
+                card.classList.add('char-card');
+                card.setAttribute('data-id', i);
+                cardElements[i] = card;
+
+                const img = document.createElement('img');
+                const charId = i.toString().padStart(4, '0');
+                const thousandFolder = Math.floor(i / 1000);
+                const hundredValue = Math.floor((i % 1000) / 100) * 100;
+                const hundredFolder = hundredValue.toString().padStart(3, '0');
+
+                img.src = `https://hayaden.github.io/optcDB_Ko/api/images/thumbnail/glo/${thousandFolder}/${hundredFolder}/${charId}.png`;
+                img.loading = "lazy";
+                
+                img.onerror = function() {
+                    this.style.display = "none";
+                };
+
+                card.appendChild(img);
+
+                const noText = document.createElement('div');
+                noText.classList.add('char-no');
+                noText.textContent = `No.${i}`;
+
+                card.addEventListener('click', function() {
+                    this.classList.toggle('owned');
+                    updateCount(this.classList.contains('owned') ? 1 : -1);
+                });
+
+                itemDiv.appendChild(card);
+                itemDiv.appendChild(noText);
+                fragment.appendChild(itemDiv);
+            }
+            grid.appendChild(fragment);
+        }
+
+        function updateCount(val) {
+            ownedCount += val;
+            countDisplay.textContent = ownedCount;
+        }
+
+        function applyRange() {
+            const startNo = parseInt(startInput.value);
+            const endNo = parseInt(endInput.value);
+
+            if (isNaN(startNo) || isNaN(endNo) || startNo < 1 || endNo > totalChars || startNo > endNo) {
+                alert("번호를 올바르게 입력해주세요!");
+                return;
+            }
+
+            for (let i = startNo; i <= endNo; i++) {
+                const targetCard = cardElements[i];
+                if (targetCard && !targetCard.classList.contains('owned')) {
+                    targetCard.classList.add('owned');
+                    updateCount(1);
+                }
+            }
+
+            startInput.value = "";
+            endInput.value = "";
+            startInput.blur();
+            endInput.blur();
+        }
+
+        init();
+    </script>
+</body>
+</html>
