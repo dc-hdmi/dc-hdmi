@@ -5886,12 +5886,18 @@
   });
 });
 
-document.addEventListener('DOMContentLoaded', () => {
-    const defaultTab = document.querySelector('.year-tabs button[data-year="2026"]');
-    if (defaultTab) {
-      defaultTab.click(); 
-    }
-  });
+window.addEventListener('DOMContentLoaded', () => {
+  const defaultTab = document.querySelector('.year-tabs button[data-year="2026"]');
+
+  if (defaultTab) {
+    defaultTab.click();
+    
+    defaultTab.classList.add('active');
+    
+    defaultTab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+  } else {
+  }
+});
 </script>
 </body>
 </html>
