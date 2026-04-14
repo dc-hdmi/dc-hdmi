@@ -5885,6 +5885,13 @@
     yearList.classList.remove('show');
   });
 });
+
+document.addEventListener('DOMContentLoaded', () => {
+    const defaultTab = document.querySelector('.year-tabs button[data-year="2026"]');
+    if (defaultTab) {
+      defaultTab.click(); 
+    }
+  });
 </script>
 </body>
 </html>
