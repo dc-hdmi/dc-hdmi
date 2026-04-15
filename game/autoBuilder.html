@@ -158,24 +158,35 @@
 
         /**
          * 텍스트 내에서 기믹 이름 뒤에 오는 숫자를 찾아 해제 가능한 턴수를 반환
-         * 예: "화상 상태를 7턴 회복" -> 7 추출
+         * 디테일 알고리즘 수정:
+         * 1. 봉쇄와 필살기 봉쇄 구분 (필살기 봉쇄 문자열을 임시 제거 후 검색)
+         * 2. 숫자 전까지 모든 문자([^\d]*)를 허용하여 "화상 상태를 5턴" 같은 패턴 대응
          */
         function getReductionTurns(text, gimmickName) {
-            if (!text || !text.includes(gimmickName)) return 0;
+            if (!text) return 0;
             
-            // 기믹 명칭 뒤에 공백이나 특정 조사 등이 오고 숫자가 오는 패턴 매칭
-            // [^\d]* 는 숫자 전까지의 모든 문자를 건너뜀
+            let targetText = text;
+
+            // [수정] "봉쇄" 기믹일 경우 "필살기 봉쇄"라는 단어를 임시 치환하여 혼동 방지
+            if (gimmickName === "봉쇄") {
+                targetText = text.replace(/필살기\s?봉쇄/g, "SPECIAL_SEAL_TEMP");
+            }
+
+            if (!targetText.includes(gimmickName)) return 0;
+            
+            // [수정] 기믹명 뒤에 어떤 글자(조사 등)가 오더라도 가장 먼저 나오는 숫자를 추출
             const regex = new RegExp(`${gimmickName}[^\\d]*(\\d+)`, 'g');
             let maxTurns = 0;
             let match;
             
-            while ((match = regex.exec(text)) !== null) {
+            while ((match = regex.exec(targetText)) !== null) {
                 const turnValue = parseInt(match[1]);
                 if (turnValue > maxTurns) maxTurns = turnValue;
             }
 
-            // 숫자가 명시되지 않았으나 기믹 이름은 있는 경우 (최소 1턴 혹은 유효하다고 판단)
-            return maxTurns === 0 ? 1 : maxTurns;
+            // 숫자가 없는데 기믹 명칭만 포함된 경우 데이터 무결성을 위해 1턴으로 간주하거나 0 반환
+            // 여기서는 명시적인 턴수 해제를 찾는 것이 목적이므로 maxTurns 반환
+            return maxTurns === 0 && targetText.includes(gimmickName) ? 1 : maxTurns;
         }
 
         function autoBuildDeck() {
@@ -186,7 +197,6 @@
 
             const rankBonus = { 'A': 10000, 'B': 5000, 'C': 1000 };
 
-            // 1. 캐릭터별 기믹 대응 수치 분석 및 점수화
             let candidates = boostChars.map(char => {
                 const id = char.id;
                 const data = window.details_kor[id];
@@ -199,17 +209,14 @@
 
                     [2, 3].forEach(round => {
                         activeGimmicks[round].forEach(g => {
-                            // 필살기 정밀 분석
                             let sTurns = getReductionTurns(data.special, g.name);
-                            if (sTurns >= g.turn) specialScore += 3000; // 완벽 해결 가점
-                            else if (sTurns > 0) specialScore += 500;   // 부분 해결 가점
+                            if (sTurns >= g.turn) specialScore += 3000;
+                            else if (sTurns > 0) specialScore += 500;
 
-                            // 선장효과 정밀 분석
                             let cTurns = getReductionTurns(data.captain, g.name);
                             if (cTurns >= g.turn) captainScore += 3000;
                             else if (cTurns > 0) captainScore += 500;
 
-                            // 선원효과 정밀 분석
                             let mTurns = getReductionTurns(data.crewman, g.name);
                             if (mTurns >= g.turn) crewmanScore += 1500;
                             else if (mTurns > 0) crewmanScore += 300;
@@ -225,7 +232,6 @@
 
             const canUse = (id, name) => !usedIds.has(id) && !usedNames.has(name);
 
-            // 1. 선장 선출
             candidates.sort((a, b) => b.captainScore - a.captainScore);
             const captain = candidates.find(c => canUse(c.id, c.name));
             if(captain) {
@@ -233,7 +239,6 @@
                 usedIds.add(captain.id); usedNames.add(captain.name);
             }
 
-            // 2. 선원 선출
             let memberCandidates = candidates.filter(c => canUse(c.id, c.name));
             memberCandidates.sort((a, b) => b.memberScore - a.memberScore);
             for(let i=1; i<=4; i++) {
@@ -244,7 +249,6 @@
                 }
             }
 
-            // 3. 서포트 선출 (정밀 분석)
             const baseSlots = ['c1', 'm1', 'm2', 'm3', 'm4'];
             const allCharIds = Object.keys(window.details_kor);
 
@@ -310,30 +314,29 @@
                         const data = window.details_kor[id];
                         let abilities = [];
                         
-                        // 필살기 확인
                         let sTurns = getReductionTurns(data.special, g.name);
                         if (sTurns > 0) abilities.push(`필살기(${sTurns}턴)`);
 
-                        // 선장 확인
                         if (slot === 'c1' || slot === 'f1') {
                             let cTurns = getReductionTurns(data.captain, g.name);
                             if (cTurns > 0) abilities.push(`선장효과(${cTurns}턴)`);
                         }
-                        // 선원 확인
                         if (slot.startsWith('m')) {
                             let mTurns = getReductionTurns(data.crewman, g.name);
                             if (mTurns > 0) abilities.push(`선원효과(${mTurns}턴)`);
                         }
-                        // 서포트 확인
                         if (slot.startsWith('s')) {
                             const effectText = typeof data.support.effect === 'string' ? data.support.effect : JSON.stringify(data.support.effect);
                             let suppTurns = getReductionTurns(effectText, g.name);
                             if (suppTurns > 0) abilities.push(`서포트(${suppTurns}턴)`);
                         }
 
-                        // 분석 결과 가독성: 요구 턴수 만족 여부 표시
-                        const totalPower = abilities.reduce((acc, cur) => acc + parseInt(cur.match(/\d+/)[0]), 0);
                         if (abilities.length > 0) {
+                            // [수정] 정규표현식으로 각 능력에서 숫자만 합산하여 판정
+                            const totalPower = abilities.reduce((acc, cur) => {
+                                const m = cur.match(/\d+/);
+                                return acc + (m ? parseInt(m[0]) : 0);
+                            }, 0);
                             const color = totalPower >= g.turn ? '#00ffcc' : '#ffcc00';
                             solvers.push(`<span style="color:${color}">${slotNames[slot]}(ID ${id}) [${abilities.join('/')}]</span>`);
                         }
