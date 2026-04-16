@@ -156,142 +156,109 @@
             renderBoostList();
         }
 
-        /**
-         * 텍스트 내에서 기믹 이름 뒤에 오는 숫자를 찾아 해제 가능한 턴수를 반환
-         * 디테일 알고리즘 수정:
-         * 1. 봉쇄와 필살기 봉쇄 구분 (필살기 봉쇄 문자열을 임시 제거 후 검색)
-         * 2. 숫자 전까지 모든 문자([^\d]*)를 허용하여 "화상 상태를 5턴" 같은 패턴 대응
-         */
-        function getReductionTurns(text, gimmickName) {
-            if (!text) return 0;
-            
-            let targetText = text;
-
-            // [수정] "봉쇄" 기믹일 경우 "필살기 봉쇄"라는 단어를 임시 치환하여 혼동 방지
-            if (gimmickName === "봉쇄") {
-                targetText = text.replace(/필살기\s?봉쇄/g, "SPECIAL_SEAL_TEMP");
-            }
-
+        function getReductionTurns(rawText, gimmickName) {
+            if (!rawText) return 0;
+            let targetText = typeof rawText === 'object' ? JSON.stringify(rawText) : String(rawText);
+            if (gimmickName === "방어력 상승" && targetText.includes("방어력을 0으로")) return 99;
+            if (gimmickName === "봉쇄") targetText = targetText.replace(/필살기\s?봉쇄/g, "SPECIAL_SEAL_TEMP");
             if (!targetText.includes(gimmickName)) return 0;
-            
-            // [수정] 기믹명 뒤에 어떤 글자(조사 등)가 오더라도 가장 먼저 나오는 숫자를 추출
-            const regex = new RegExp(`${gimmickName}[^\\d]*(\\d+)`, 'g');
+            const regex = new RegExp(`${gimmickName}[^\\d]{0,20}(\\d+)`, 'g');
             let maxTurns = 0;
             let match;
-            
             while ((match = regex.exec(targetText)) !== null) {
                 const turnValue = parseInt(match[1]);
                 if (turnValue > maxTurns) maxTurns = turnValue;
             }
-
-            // 숫자가 없는데 기믹 명칭만 포함된 경우 데이터 무결성을 위해 1턴으로 간주하거나 0 반환
-            // 여기서는 명시적인 턴수 해제를 찾는 것이 목적이므로 maxTurns 반환
             return maxTurns === 0 && targetText.includes(gimmickName) ? 1 : maxTurns;
         }
 
         function autoBuildDeck() {
-            if (boostChars.length < 1) {
-                alert("특공 캐릭터를 먼저 등록해주세요!");
-                return;
-            }
+            if (boostChars.length < 1) { alert("특공 캐릭터를 먼저 등록해주세요!"); return; }
 
-            const rankBonus = { 'A': 10000, 'B': 5000, 'C': 1000 };
-
-            let candidates = boostChars.map(char => {
-                const id = char.id;
-                const data = window.details_kor[id];
-                let captainScore = rankBonus[char.rank]; 
-                let specialScore = rankBonus[char.rank];
-                let crewmanScore = 0;
-
-                if (data) {
-                    if (data.captain && (data.captain.includes("공격력") || data.captain.includes("배"))) captainScore += 100;
-
-                    [2, 3].forEach(round => {
-                        activeGimmicks[round].forEach(g => {
-                            let sTurns = getReductionTurns(data.special, g.name);
-                            if (sTurns >= g.turn) specialScore += 3000;
-                            else if (sTurns > 0) specialScore += 500;
-
-                            let cTurns = getReductionTurns(data.captain, g.name);
-                            if (cTurns >= g.turn) captainScore += 3000;
-                            else if (cTurns > 0) captainScore += 500;
-
-                            let mTurns = getReductionTurns(data.crewman, g.name);
-                            if (mTurns >= g.turn) crewmanScore += 1500;
-                            else if (mTurns > 0) crewmanScore += 300;
-                        });
-                    });
-                }
-                return { id, name: data ? data.name : '', captainScore, specialScore, memberScore: (specialScore * 1.5) + crewmanScore };
-            });
-
+            let deck = { f1: null, c1: null, m1: null, m2: null, m3: null, m4: null, s1: null, s2: null, s3: null, s4: null, s5: null };
             let usedIds = new Set();
             let usedNames = new Set();
-            const deck = { f1: null, c1: null, m1: null, m2: null, m3: null, m4: null, s1: null, s2: null, s3: null, s4: null, s5: null };
+            
+            let remainingGimmicks = [];
+            [2, 3].forEach(r => activeGimmicks[r].forEach(g => remainingGimmicks.push({ ...g, currentTurns: g.turn, solved: false, round: r })));
 
-            const canUse = (id, name) => !usedIds.has(id) && !usedNames.has(name);
+            const isDuplicate = (id) => {
+                const name = window.details_kor[id]?.name;
+                if (usedIds.has(id)) return true;
+                if (name && name !== "" && usedNames.has(name)) return true;
+                return false;
+            };
 
-            candidates.sort((a, b) => b.captainScore - a.captainScore);
-            const captain = candidates.find(c => canUse(c.id, c.name));
-            if(captain) {
-                deck.c1 = captain.id; deck.f1 = captain.id;
-                usedIds.add(captain.id); usedNames.add(captain.name);
-            }
-
-            let memberCandidates = candidates.filter(c => canUse(c.id, c.name));
-            memberCandidates.sort((a, b) => b.memberScore - a.memberScore);
-            for(let i=1; i<=4; i++) {
-                const member = memberCandidates.find(c => canUse(c.id, c.name));
-                if(member) {
-                    deck[`m${i}`] = member.id;
-                    usedIds.add(member.id); usedNames.add(member.name);
+            const fillSlot = (id, isCaptain) => {
+                const data = window.details_kor[id];
+                if (isCaptain) { deck.c1 = id; deck.f1 = id; }
+                else {
+                    const slot = ['m1', 'm2', 'm3', 'm4'].find(s => !deck[s]);
+                    if (slot) deck[slot] = id;
+                    else return false;
                 }
-            }
+                usedIds.add(id);
+                if (data?.name) usedNames.add(data.name);
 
+                // 실시간 기믹 차감 로직 (여러 캐릭 합산 대응)
+                remainingGimmicks.forEach(rg => {
+                    if (rg.solved) return;
+                    let s = getReductionTurns(data?.special, rg.name);
+                    let c = isCaptain ? getReductionTurns(data?.captain, rg.name) : 0;
+                    let m = !isCaptain ? getReductionTurns(data?.crewman, rg.name) : 0;
+                    let maxReduction = Math.max(s, c, m);
+                    
+                    rg.currentTurns -= maxReduction;
+                    if (rg.currentTurns <= 0) rg.solved = true;
+                });
+                return true;
+            };
+
+            ['A', 'B', 'C'].forEach(rank => {
+                let rankChars = boostChars.filter(c => c.rank === rank);
+                rankChars.forEach(c => {
+                    if (isDuplicate(c.id)) return;
+                    const data = window.details_kor[c.id];
+                    const canContribute = remainingGimmicks.some(rg => !rg.solved && (
+                        getReductionTurns(data?.special, rg.name) > 0 || 
+                        getReductionTurns(data?.captain, rg.name) > 0 || 
+                        getReductionTurns(data?.crewman, rg.name) > 0
+                    ));
+
+                    if (canContribute) {
+                        if (!deck.c1) fillSlot(c.id, true);
+                        else fillSlot(c.id, false);
+                    }
+                });
+
+                rankChars.forEach(c => {
+                    if (isDuplicate(c.id)) return;
+                    if (!deck.c1) fillSlot(c.id, true);
+                    else fillSlot(c.id, false);
+                });
+            });
+
+            // 서포트 로직
             const baseSlots = ['c1', 'm1', 'm2', 'm3', 'm4'];
-            const allCharIds = Object.keys(window.details_kor);
-
             baseSlots.forEach((slotKey, idx) => {
                 const baseId = deck[slotKey];
                 if (!baseId) return;
                 const baseData = window.details_kor[baseId];
-
-                let bestSupport = null;
-                let maxSuppScore = -1;
-
-                for (let sId of allCharIds) {
+                let bestS = null; let maxScore = -1;
+                Object.keys(window.details_kor).forEach(sId => {
                     const sData = window.details_kor[sId];
-                    if (!sData || !sData.support || !canUse(sId, sData.name)) continue;
-
+                    if (!sData || !sData.support || isDuplicate(sId)) return;
                     const target = sData.support.target || "";
-                    const isEligible = target.includes("전 캐릭터") || target.includes(baseData.name) || 
-                                     (baseData.type && target.includes(baseData.type)) ||
-                                     (baseData.class && baseData.class.some(cls => target.includes(cls)));
-
-                    if (isEligible) {
-                        let currentScore = 0;
-                        const effectText = typeof sData.support.effect === 'string' ? sData.support.effect : JSON.stringify(sData.support.effect);
-                        
-                        [2, 3].forEach(round => {
-                            activeGimmicks[round].forEach(g => {
-                                let turns = getReductionTurns(effectText, g.name);
-                                if (turns >= g.turn) currentScore += 5000;
-                                else if (turns > 0) currentScore += 1000;
-                            });
+                    if (target.includes("전 캐릭터") || target.includes(baseData?.name) || (baseData?.type && target.includes(baseData.type))) {
+                        let score = 0;
+                        remainingGimmicks.forEach(rg => { 
+                            let reduction = getReductionTurns(sData.support.effect, rg.name);
+                            if (reduction > 0) score += reduction; 
                         });
-
-                        if (currentScore > maxSuppScore) {
-                            maxSuppScore = currentScore;
-                            bestSupport = { id: sId, name: sData.name };
-                        }
+                        if (score > maxScore) { maxScore = score; bestS = sId; }
                     }
-                }
-
-                if (bestSupport) {
-                    deck[`s${idx + 1}`] = bestSupport.id;
-                    usedIds.add(bestSupport.id); usedNames.add(bestSupport.name);
-                }
+                });
+                if (bestS) { deck[`s${idx + 1}`] = bestS; usedIds.add(bestS); }
             });
 
             applyToDeck(deck);
@@ -303,72 +270,63 @@
             analysisArea.style.display = 'block';
             let html = '';
             const slotNames = { f1: 'Friend', c1: 'Captain', m1: 'Member 1', m2: 'Member 2', m3: 'Member 3', m4: 'Member 4', s1: 'Support 1', s2: 'Support 2', s3: 'Support 3', s4: 'Support 4', s5: 'Support 5' };
-
+            
             [2, 3].forEach(round => {
-                if (activeGimmicks[round].length === 0) return;
+                const roundGimmicks = activeGimmicks[round];
+                if (!roundGimmicks || roundGimmicks.length === 0) return;
                 html += `<div class="solution-round"><h3>BATTLE ${round} 해결 분석</h3>`;
-                activeGimmicks[round].forEach(g => {
+                
+                roundGimmicks.forEach(g => {
                     let solvers = [];
+                    let totalReduced = 0;
+                    
                     for (const [slot, id] of Object.entries(deck)) {
                         if (!id) continue;
                         const data = window.details_kor[id];
-                        let abilities = [];
-                        
-                        let sTurns = getReductionTurns(data.special, g.name);
-                        if (sTurns > 0) abilities.push(`필살기(${sTurns}턴)`);
+                        let turn = 0;
+                        let type = "";
 
-                        if (slot === 'c1' || slot === 'f1') {
-                            let cTurns = getReductionTurns(data.captain, g.name);
-                            if (cTurns > 0) abilities.push(`선장효과(${cTurns}턴)`);
-                        }
-                        if (slot.startsWith('m')) {
-                            let mTurns = getReductionTurns(data.crewman, g.name);
-                            if (mTurns > 0) abilities.push(`선원효과(${mTurns}턴)`);
-                        }
-                        if (slot.startsWith('s')) {
-                            const effectText = typeof data.support.effect === 'string' ? data.support.effect : JSON.stringify(data.support.effect);
-                            let suppTurns = getReductionTurns(effectText, g.name);
-                            if (suppTurns > 0) abilities.push(`서포트(${suppTurns}턴)`);
-                        }
+                        let s = getReductionTurns(data?.special, g.name);
+                        let c = (slot === 'c1' || slot === 'f1') ? getReductionTurns(data?.captain, g.name) : 0;
+                        let m = slot.startsWith('m') ? getReductionTurns(data?.crewman, g.name) : 0;
+                        let sup = slot.startsWith('s') ? getReductionTurns(data?.support?.effect, g.name) : 0;
 
-                        if (abilities.length > 0) {
-                            // [수정] 정규표현식으로 각 능력에서 숫자만 합산하여 판정
-                            const totalPower = abilities.reduce((acc, cur) => {
-                                const m = cur.match(/\d+/);
-                                return acc + (m ? parseInt(m[0]) : 0);
-                            }, 0);
-                            const color = totalPower >= g.turn ? '#00ffcc' : '#ffcc00';
-                            solvers.push(`<span style="color:${color}">${slotNames[slot]}(ID ${id}) [${abilities.join('/')}]</span>`);
+                        if (s > 0) { turn = s; type = "필살기"; }
+                        else if (c > 0) { turn = c; type = "선장"; }
+                        else if (m > 0) { turn = m; type = "선원"; }
+                        else if (sup > 0) { turn = sup; type = "서포트"; }
+
+                        if (turn > 0) {
+                            solvers.push(`${slotNames[slot]}(${turn}턴)`);
+                            totalReduced += turn;
                         }
                     }
-                    const solverText = solvers.length > 0 ? solvers.join(', ') : '<span style="color:#ff6b6b;">해결사 없음</span>';
-                    html += `<div class="solution-line"><span class="sol-label">● ${g.name} ${g.turn}턴 :</span> ${solverText}</div>`;
+
+                    const isSolved = totalReduced >= g.turn;
+                    html += `<div class="solution-line">
+                        <span class="sol-label">● ${g.name} ${g.turn}턴 :</span> 
+                        ${solvers.length > 0 ? solvers.join(' + ') : '조합 불가'} 
+                        <span style="color:${isSolved ? '#00ffcc' : '#ff6b6b'}; font-weight:bold; margin-left:10px;">
+                            [${isSolved ? '해결 완료' : '부족: ' + (g.turn - totalReduced) + '턴'}]
+                        </span>
+                    </div>`;
                 });
                 html += `</div>`;
             });
-            analysisArea.innerHTML = html || '<div class="solution-line">설정된 라운드 기믹이 없습니다.</div>';
+            analysisArea.innerHTML = html;
         }
 
         function applyToDeck(deck) {
-            const slots = ['f1', 'c1', 'm1', 'm2', 'm3', 'm4', 's1', 's2', 's3', 's4', 's5'];
-            slots.forEach(s => setDeckUnit(`img-${s}`, deck[s]));
-        }
-
-        function setDeckUnit(slotId, charId) {
-            const container = document.getElementById(slotId);
-            if(!charId) {
-                container.innerHTML = '<span class="empty-text">EMPTY</span>';
-                return;
-            }
-            container.innerHTML = `<img src="${generateImgSrc(charId)}" title="ID: ${charId}">`;
+            ['f1', 'c1', 'm1', 'm2', 'm3', 'm4', 's1', 's2', 's3', 's4', 's5'].forEach(s => {
+                const container = document.getElementById(`img-${s}`);
+                const id = deck[s];
+                container.innerHTML = id ? `<img src="${generateImgSrc(id)}" title="ID: ${id}">` : '<span class="empty-text">EMPTY</span>';
+            });
         }
 
         function generateImgSrc(id) {
             const i = parseInt(id);
-            const charId = i.toString().padStart(4, '0');
-            const thousand = Math.floor(i / 1000);
-            const hundred = (Math.floor((i % 1000) / 100) * 100).toString().padStart(3, '0');
-            return `https://hayaden.github.io/optcDB_Ko/api/images/thumbnail/glo/${thousand}/${hundred}/${charId}.png`;
+            return `https://hayaden.github.io/optcDB_Ko/api/images/thumbnail/glo/${Math.floor(i / 1000)}/${(Math.floor((i % 1000) / 100) * 100).toString().padStart(3, '0')}/${i.toString().padStart(4, '0')}.png`;
         }
 
         document.getElementById('deck-display').innerHTML = `
