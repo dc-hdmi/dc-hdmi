@@ -106,12 +106,12 @@
             .gimmick-item { font-size: 13px; }
             .round-box select { max-width: 100%; }
 
-            /* 컨트롤 영역 — 줄바꿈 허용 */
-            .round-ctrl-area { flex-wrap: wrap; gap: 8px; flex-direction: column; }
-            .round-ctrl-area button { padding: 8px 12px; font-size: 13px; }
-            /* 이벤트 패턴 버튼 3개 — 한 줄에 균등 배치 */
-            .event-btn-group { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; width: 100%; }
-            .event-btn-group button { width: 100%; padding: 10px 4px; font-size: 13px; }
+            /* 컨트롤 영역 — 2칸 grid (이벤트 버튼 그룹은 한 행 전체 차지) */
+            .round-ctrl-area { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+            .round-ctrl-area > button { padding: 7px 4px; font-size: 12px; width: 100%; }
+            /* 이벤트 패턴 버튼 4개 — 한 줄에 균등 배치 (전체 너비 차지) */
+            .event-btn-group { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 4px; width: 100%; grid-column: 1 / -1; }
+            .event-btn-group button { width: 100%; padding: 8px 2px; font-size: 11px; }
 
             /* 패턴 설정 select/button — 한 줄에 안 맞으면 줄바꿈 */
             .round-box select, .round-box button { font-size: 13px; padding: 5px; }
@@ -197,7 +197,8 @@
         <div class="round-ctrl-area">
             <div class="event-btn-group">
                 <button class="load-btn" id="btn-load-궤적" onclick="loadEventGimmicks('궤적')">궤적 패턴 📂</button>
-                <button class="load-btn" id="btn-load-트맵" onclick="loadEventGimmicks('트맵')">트맵 패턴 📂</button>
+                <button class="load-btn" id="btn-load-트맵[보스]" onclick="loadEventGimmicks('트맵[보스]')">트맵[보스] 패턴 📂</button>
+                <button class="load-btn" id="btn-load-트맵[난입]" onclick="loadEventGimmicks('트맵[난입]')">트맵[난입] 패턴 📂</button>
                 <button class="load-btn" id="btn-load-유대" onclick="loadEventGimmicks('유대')">유대 패턴 📂</button>
             </div>
             <button class="reset-btn" onclick="resetGimmicks()">패턴 초기화 🔄</button>
@@ -263,15 +264,16 @@
         let currentMaxRound = 3;
 
         // ===== 이벤트 로테이션 설정 =====
-        // 매달 궤적/트맵/유대 3개가 로테이션으로 열린다.
+        // 매달 궤적/트맵[보스]/트맵[난입]/유대 4개가 로테이션으로 열린다.
         // 이번 달 활성 이벤트를 아래에서 선택 (UI에서 활성 이벤트 버튼이 강조 표시됨)
-        // 값: '궤적' | '트맵' | '유대'
+        // 값: '궤적' | '트맵[보스]' | '트맵[난입]' | '유대'
         const ACTIVE_EVENT = '궤적';
 
         // 이벤트별 기믹 패턴 (활성 이벤트만 데이터 보유, 나머지는 빈 패턴)
         const eventGimmicksData = {
             '궤적': `{"battleInfo": {"3": [{"name": "[폭탄]슬롯 변환", "turn": 0}, {"name": "공격력 감소", "turn": 7}, {"name": "선장효과 무효", "turn": 8}, {"name": "슬롯 고정", "turn": 1}],"4": [{"name": "일정이상 데미지 감소(격감)", "turn": 7}, {"name": "남은 체력 1로 버티기", "turn": 7}],"5": [{"name": "선장효과 무효", "turn": 10}, {"name": "방어력 상승", "turn": 6}, {"name": "방어력 감소 무효", "turn": 98}, {"name": "[독]슬롯 변환", "turn": 0}, {"name": "[방해]슬롯 변환", "turn": 0}, {"name": "[마비]슬롯 변환", "turn": 0}, {"name": "필살기 봉쇄", "turn": 7}, {"name": "봉쇄", "turn": 9, "scope": {"row": ["middle","bottom"], "col": "left"}}, {"name": "필살기 턴 되돌리기", "turn": 2, "scope": {"row": ["middle","bottom"], "col": "right"}}]}}`,
-            '트맵': `{"battleInfo": {}}`,
+            '트맵[보스]': `{"battleInfo": {}}`,
+            '트맵[난입]': `{"battleInfo": {}}`,
             '유대': `{"battleInfo": {}}`
         };
         // 이벤트별 특별효과 캐릭 목록
@@ -285,7 +287,10 @@
                 "D": ["4513", "4514", "4526", "4527"],
                 "E": ["4511", "4497", "4481", "4464", "4448", "4430", "4414", "4399", "4385", "4358", "4342", "4327", "4312", "4298", "4280", "4261", "4246", "4225", "4206", "4191", "4177", "4147", "4128", "4108", "4089", "4074", "4053", "4033", "3886"]
             },
-            '트맵': {
+            '트맵[보스]': {
+                "A": [], "B": [], "C": [], "D": [], "E": []
+            },
+            '트맵[난입]': {
                 "A": [], "B": [], "C": [], "D": [], "E": []
             },
             '유대': {
@@ -424,7 +429,7 @@
         //   - 활성 이벤트(ACTIVE_EVENT): ⭐ 강조
         //   - 사용자가 클릭한 이벤트: 파란 외곽선
         function _highlightActiveEventButton() {
-            ['궤적', '트맵', '유대'].forEach(ev => {
+            ['궤적', '트맵[보스]', '트맵[난입]', '유대'].forEach(ev => {
                 const btn = document.getElementById(`btn-load-${ev}`);
                 if (!btn) return;
                 const isEmpty = _isEventEmpty(ev);
