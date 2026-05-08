@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-    <title>트갤 덱 구성 시뮬레이터</title>
+    <title>OPTC 덱 구성 시뮬레이터</title>
     <script src="units.js?v=20260504"></script>
     <script src="details_kor.js?v=20260504"></script>
     <style>
@@ -41,11 +41,35 @@
         .action-area { text-align: center; margin: 40px 0; }
         .build-btn { background: #00ffcc; color: #000; border: none; padding: 15px 40px; font-size: 18px; font-weight: bold; cursor: pointer; border-radius: 50px; box-shadow: 0 0 20px rgba(0, 255, 204, 0.4); }
         .build-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        #loading-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); display: none; align-items: center; justify-content: center; z-index: 9999; flex-direction: column; gap: 20px; }
+        /* 캐릭터 이름 검색 모달 (우측 슬라이드 패널) */
+        #char-search-modal { position: fixed; top: 0; right: 0; bottom: 0; width: 360px; background: #111; border-left: 2px solid #00ffcc; box-shadow: -4px 0 20px rgba(0,0,0,0.5); display: none; flex-direction: column; z-index: 9997; }
+        #char-search-modal.active { display: flex; }
+        .search-modal-header { padding: 12px 14px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+        #char-search-title { color: #00ffcc; font-size: 14px; font-weight: bold; }
+        .search-modal-close { background: #444; color: #fff; border: none; padding: 4px 10px; cursor: pointer; border-radius: 4px; font-weight: bold; }
+        .search-modal-list { flex: 1; overflow-y: auto; padding: 10px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+        .search-result-card { border: 1px solid #444; padding: 6px; text-align: center; cursor: pointer; background: #000; transition: all 0.15s; border-radius: 4px; }
+        .search-result-card:hover { border-color: #00ffcc; box-shadow: 0 0 10px rgba(0,255,204,0.3); transform: scale(1.03); }
+        .search-result-card img { width: 100%; max-width: 90px; }
+        .search-result-card .sr-id { font-size: 11px; color: #aaa; margin-top: 4px; }
+        .search-result-card .sr-name { font-size: 10px; color: #fff; word-break: break-all; }
+        @media (max-width: 768px) {
+            #char-search-modal { width: 80%; }
+            .search-modal-list { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        /* 전체 화면 마스킹 (UI 클릭 차단 + 덱 영역도 가림) */
+        #loading-mask { position: fixed; inset: 0; background: rgba(0,0,0,0.55); display: none; z-index: 9998; cursor: wait; }
+        #loading-mask.active { display: block; }
+        /* 상단 배너 — 마스킹 위 */
+        #loading-overlay { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.95); border: 2px solid #00ffcc; box-shadow: 0 0 20px rgba(0,255,204,0.5); padding: 12px 24px; border-radius: 30px; display: none; align-items: center; z-index: 9999; flex-direction: row; gap: 15px; }
         #loading-overlay.active { display: flex; }
-        .loading-spinner { width: 60px; height: 60px; border: 5px solid #333; border-top-color: #00ffcc; border-radius: 50%; animation: spin 1s linear infinite; }
+        .loading-spinner { width: 28px; height: 28px; border: 3px solid #333; border-top-color: #00ffcc; border-radius: 50%; animation: spin 1s linear infinite; flex-shrink: 0; }
         @keyframes spin { to { transform: rotate(360deg); } }
-        .loading-text { color: #00ffcc; font-size: 16px; font-weight: bold; letter-spacing: 1px; }
+        .loading-text { color: #00ffcc; font-size: 14px; font-weight: bold; letter-spacing: 1px; line-height: 28px; white-space: nowrap; }
+        /* swap 시 슬롯 강조 */
+        .slot.searching .char-box { border-color: #00ffcc; box-shadow: 0 0 15px rgba(0,255,204,0.7); animation: searchPulse 0.8s ease-in-out infinite; }
+        @keyframes searchPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.05); } }
 
         .deck-layout { display: grid; grid-template-columns: repeat(2, 1fr); justify-content: center; gap: 15px; max-width: 500px; margin: 0 auto; background: #111; padding: 25px; border-radius: 20px; }
         .unit-group { display: flex; align-items: center; justify-content: center; gap: 10px; }
@@ -149,9 +173,19 @@
 </head>
 <body>
 
+    <!-- 캐릭터 이름 검색 결과 모달 (우측 슬라이드 패널) -->
+    <div id="char-search-modal">
+        <div class="search-modal-header">
+            <span id="char-search-title">검색 결과</span>
+            <button class="search-modal-close" onclick="closeCharSearchModal()">✕</button>
+        </div>
+        <div class="search-modal-list" id="char-search-results"></div>
+    </div>
+
+    <div id="loading-mask"></div>
     <div id="loading-overlay">
         <div class="loading-spinner"></div>
-        <div class="loading-text">덱 구성 중...</div>
+        <div class="loading-text" id="loading-text">덱 구성 중...</div>
     </div>
 
     <div class="container">
@@ -181,8 +215,8 @@
                 <option value="D">D 등급</option>
                 <option value="E">E 등급</option>
             </select>
-            <input type="number" id="boost-id-input" placeholder="캐릭터 ID 입력">
-            <button onclick="addBoost()">수동 추가</button>
+            <input type="text" id="boost-id-input" placeholder="캐릭터 이름 입력" onkeydown="if(event.key==='Enter') searchBoostChar()">
+            <button onclick="searchBoostChar()">검색</button>
         </div>
         <div id="boost-list"></div>
     </div>
@@ -190,9 +224,9 @@
     <div class="container">
         <h2>🤝 친구선장</h2>
         <div style="margin-bottom: 10px;">
-            <input type="number" id="friend-captain-input" placeholder="캐릭터 ID 입력 (선택)">
-            <button onclick="setFriendCaptain()">설정</button>
-            <span style="margin-left: 10px; color: #888; font-size: 12px;">비워두면 자기 선장과 동일하게 자동 설정됩니다</span>
+            <input type="text" id="friend-captain-input" placeholder="캐릭터 이름 입력" onkeydown="if(event.key==='Enter') searchFriendCaptain()">
+            <button onclick="searchFriendCaptain()">검색</button>
+            <span style="margin-left: 10px; color: #ff5252; font-size: 13px; font-weight: bold;">⚠ 친구선장을 선택하세요 (필수)</span>
         </div>
         <div id="friend-captain-display" style="min-height: 100px; padding: 10px; border: 1px solid #333; display: flex; align-items: center; gap: 10px;"></div>
     </div>
@@ -200,8 +234,8 @@
     <div class="container">
         <h2>👤 필수 포함 케릭</h2>
         <div style="margin-bottom: 10px;">
-            <input type="number" id="pref-id-input" placeholder="캐릭터 ID 입력">
-            <button onclick="addPreferred()">추가</button>
+            <input type="text" id="pref-id-input" placeholder="캐릭터 이름 입력" onkeydown="if(event.key==='Enter') searchPreferred()">
+            <button onclick="searchPreferred()">검색</button>
             <span style="margin-left: 10px; color: #888; font-size: 12px;">무조건 덱에 포함됩니다</span>
         </div>
         <div id="pref-list" style="display: flex; flex-wrap: wrap; gap: 10px; min-height: 80px; border: 1px solid #333; padding: 10px;"></div>
@@ -487,29 +521,95 @@
         function removeGimmick(round, index) { activeGimmicks[round].splice(index, 1); renderGimmicks(round); }
 
         function loadBoostCharacters() {
-            // 가드: 사용자가 패턴 버튼을 한 번도 클릭하지 않았으면 먼저 선택하도록 안내
+            // 가드: 사용자가 패턴 버튼을 한 번도 클릭하지 않았으면 안내 (이건 유지 — 동작 흐름 보장 필요)
             if (!userPickedEvent) {
                 alert('먼저 어떤 이벤트의 패턴인지 선택해주세요.\n(궤적 / 트맵 / 유대 패턴 버튼 중 하나를 클릭)');
                 return;
             }
             const boostData = eventBoostData[currentEventType];
-            if (!boostData) { alert(`${currentEventType} 특별효과 데이터가 없습니다.`); return; }
-            let addCount = 0;
-            let totalDataCount = 0;
+            if (!boostData) return;
             for (const rank in boostData) {
                 boostData[rank].forEach(id => {
-                    totalDataCount++;
-                    if (!boostChars.some(c => c.id === id)) { boostChars.push({ id, rank }); addCount++; }
+                    if (!boostChars.some(c => c.id === id)) boostChars.push({ id, rank });
                 });
             }
             renderBoostList();
-            if (totalDataCount === 0) {
-                alert(`${currentEventType} 이벤트의 특별효과 캐릭터가 아직 등록되지 않았습니다.`);
-            } else if (addCount > 0) {
-                alert(`[${currentEventType}] ${addCount}명의 특별효과 캐릭터를 불러왔습니다.`);
-            } else {
-                alert(`[${currentEventType}] 이미 모두 등록되어 있습니다.`);
+        }
+
+        // ===== 캐릭터 이름 검색 모달 =====
+        let _currentSearchOnSelect = null;
+        function openCharSearchModal(query, onSelect) {
+            const modal = document.getElementById('char-search-modal');
+            const list = document.getElementById('char-search-results');
+            const title = document.getElementById('char-search-title');
+            if (!modal) return;
+            if (!query) { alert('캐릭터 이름을 입력하세요.'); return; }
+            _currentSearchOnSelect = onSelect;
+            // 검색: units에서 이름 부분 일치 (대소문자 무시), sub-character ID(예: "4551-1") 제외
+            const matches = [];
+            const q = query.toLowerCase();
+            for (const id in window.units) {
+                if (id.includes('-')) continue; // sub-character 제외
+                const u = window.units[id];
+                if (u?.name && u.name.toLowerCase().includes(q)) {
+                    matches.push({ id, name: u.name });
+                }
             }
+            // ID 내림차순 (신규 캐릭 위)
+            matches.sort((a, b) => (parseInt(b.id) || 0) - (parseInt(a.id) || 0));
+            title.textContent = `"${query}" 검색 결과 (${matches.length}명)`;
+            if (matches.length === 0) {
+                list.innerHTML = '<div style="grid-column: 1/-1; padding: 20px; text-align: center; color: #888;">검색 결과 없음</div>';
+            } else {
+                list.innerHTML = matches.map(m => `
+                    <div class="search-result-card" onclick="selectSearchResult('${m.id}')">
+                        <img src="${generateImgSrc(m.id)}" onerror="this.style.opacity=0.3">
+                        <div class="sr-id">${m.id}</div>
+                        <div class="sr-name">${m.name}</div>
+                    </div>
+                `).join('');
+            }
+            modal.classList.add('active');
+        }
+        function closeCharSearchModal() {
+            const modal = document.getElementById('char-search-modal');
+            if (modal) modal.classList.remove('active');
+            _currentSearchOnSelect = null;
+        }
+        function selectSearchResult(id) {
+            if (_currentSearchOnSelect) _currentSearchOnSelect(id);
+            closeCharSearchModal();
+        }
+
+        // ===== 각 입력 필드용 검색 진입 함수 =====
+        function searchBoostChar() {
+            const query = document.getElementById('boost-id-input').value.trim();
+            const rank = document.getElementById('boost-rank-select').value;
+            openCharSearchModal(query, (id) => {
+                if (!boostChars.some(c => c.id === id)) {
+                    boostChars.push({ id, rank });
+                    renderBoostList();
+                }
+                document.getElementById('boost-id-input').value = '';
+            });
+        }
+        function searchFriendCaptain() {
+            const query = document.getElementById('friend-captain-input').value.trim();
+            openCharSearchModal(query, (id) => {
+                friendCaptainId = id;
+                document.getElementById('friend-captain-input').value = '';
+                renderFriendCaptain();
+            });
+        }
+        function searchPreferred() {
+            const query = document.getElementById('pref-id-input').value.trim();
+            openCharSearchModal(query, (id) => {
+                if (!preferredChars.includes(id)) {
+                    preferredChars.push(id);
+                    renderPreferredList();
+                }
+                document.getElementById('pref-id-input').value = '';
+            });
         }
 
         function addBoost() {
@@ -604,7 +704,7 @@
             const display = document.getElementById('friend-captain-display');
             if (!display) return;
             if (!friendCaptainId) {
-                display.innerHTML = '<span style="color:#666;">자동 (자기 선장과 동일)</span>';
+                display.innerHTML = '';
                 return;
             }
             const name = (window.units && window.units[friendCaptainId]?.name) || '';
@@ -1233,6 +1333,38 @@
             return max;
         }
 
+        // 기믹별 솔버 후보 캐시 (성능 최적화)
+        //   각 기믹에 대해 details_kor 전체에서 어떤 캐릭이 어떤 효과로 풀 수 있는지 사전 계산
+        //   _buildDeckSingle이 여러 번 호출돼도 1회만 계산
+        //   activeGimmicks/round 변경 시 무효화 필요 → 빌드 시작 시 reset
+        window.__gimmickSolverCache = window.__gimmickSolverCache || {};
+        function _resetGimmickSolverCache() { window.__gimmickSolverCache = {}; }
+        function _getGimmickSolvers(gimmickName) {
+            if (window.__gimmickSolverCache[gimmickName]) return window.__gimmickSolverCache[gimmickName];
+            const solvers = new Set();
+            for (const id in window.details_kor) {
+                const data = window.details_kor[id];
+                if (!data) continue;
+                // 어떤 source라도 turn > 0이면 솔버 가능성
+                if (getReductionTurns(data.captain, gimmickName) > 0) { solvers.add(id); continue; }
+                if (getReductionTurns(data.special, gimmickName) > 0) { solvers.add(id); continue; }
+                if (getReductionTurns(data.crewman, gimmickName) > 0) { solvers.add(id); continue; }
+                if (data.sailor) {
+                    const txt = typeof data.sailor === 'object' ? Object.values(data.sailor).join('. ') : String(data.sailor);
+                    if (getReductionTurns(txt, gimmickName) > 0) { solvers.add(id); continue; }
+                }
+                if (data.swap) {
+                    const txt = typeof data.swap === 'object' ? Object.values(data.swap).join('. ') : String(data.swap);
+                    if (getReductionTurns(txt, gimmickName) > 0) { solvers.add(id); continue; }
+                }
+                if (data.superSpecial && getReductionTurns(data.superSpecial, gimmickName) > 0) {
+                    solvers.add(id); continue;
+                }
+            }
+            window.__gimmickSolverCache[gimmickName] = solvers;
+            return solvers;
+        }
+
         // 덱 + 기믹 리스트로부터 currentTurns/solved 정확히 재계산
         //   필살기는 라운드당 1회만 사용 가능 (재충전 보유 캐릭은 2회), 같은 라운드 내 여러 기믹은 1회 trigger로 동시 처리
         //   non-special 효과(captain, sailor, swap, 초월)는 모든 라운드에 항상 적용
@@ -1342,16 +1474,253 @@
             }
         }
 
+        // 비동기 버전 — 슬롯별 처리 사이에 setTimeout 삽입해 시각적 갱신 가능
+        //   각 슬롯 처리 시: 슬롯 강조 → swap 시도 → 결과 적용 → 화면 갱신 → 다음 슬롯
+        function _intensiveOptimizeAsync(deck, remainingGimmicks, captainReqs, friendReqs, usedIds, usedNames, onDone) {
+            const memberSlots = ['m1','m2','m3','m4'];
+            const MAX_ITER = 4;
+            const protectedBoostIdSet = new Set(
+                (boostChars || []).filter(b => b.rank === 'A' || b.rank === 'B').map(b => String(b.id))
+            );
+            const preferredIdSet = new Set((preferredChars || []).map(String));
+
+            const isCompatBoth = (id) => {
+                if (!isMemberCompatibleWithCaptain(id, captainReqs)) return false;
+                if (friendReqs && !friendReqs.unrestricted) {
+                    if (!isMemberCompatibleWithCaptain(id, friendReqs)) return false;
+                }
+                return true;
+            };
+            const scoreState = () => {
+                const unsolved = remainingGimmicks.filter(rg => !rg.solved).length;
+                const totalRed = remainingGimmicks.reduce((s, rg) =>
+                    s + Math.max(0, rg.turn - Math.max(0, rg.currentTurns)), 0);
+                return { unsolved, totalRed };
+            };
+            const isBetter = (a, b) => {
+                if (a.unsolved < b.unsolved) return true;
+                if (a.unsolved > b.unsolved) return false;
+                return a.totalRed > b.totalRed;
+            };
+
+            const candidatePoolSet = new Set();
+            for (const rg of remainingGimmicks) {
+                const solverIds = _getGimmickSolvers(rg.name);
+                for (const id of solverIds) candidatePoolSet.add(String(id));
+            }
+            for (const b of (boostChars || [])) candidatePoolSet.add(String(b.id));
+            const candidatePool = [...candidatePoolSet].sort((a, b) => (parseInt(b) || 0) - (parseInt(a) || 0));
+
+            let iter = 0;
+            let slotIdx = 0;
+            let improvedThisIter = false;
+
+            const _highlightSlot = (slot, on) => {
+                const el = document.querySelector(`#img-${slot}`)?.closest('.slot');
+                if (el) el.classList.toggle('searching', on);
+            };
+
+            const processNextSlot = () => {
+                if (iter >= MAX_ITER) { onDone && onDone(); return; }
+                if (slotIdx >= memberSlots.length) {
+                    // iter 종료 — 개선 없으면 stop
+                    if (!improvedThisIter) { onDone && onDone(); return; }
+                    iter++;
+                    slotIdx = 0;
+                    improvedThisIter = false;
+                    if (iter >= MAX_ITER) { onDone && onDone(); return; }
+                }
+
+                const slot = memberSlots[slotIdx];
+                slotIdx++;
+
+                const currentId = deck[slot];
+                if (!currentId
+                    || preferredIdSet.has(String(currentId))
+                    || protectedBoostIdSet.has(String(currentId))) {
+                    setTimeout(processNextSlot, 0);
+                    return;
+                }
+
+                _highlightSlot(slot, true);
+
+                const currentScore = scoreState();
+                let bestAltId = null;
+                let bestAltScore = currentScore;
+
+                const otherDeckIds = new Set(Object.values(deck).map(String).filter(Boolean));
+                otherDeckIds.delete(String(currentId));
+                const otherDeckNames = new Set();
+                for (const did of otherDeckIds) {
+                    const u = getUnitMeta(did);
+                    if (u?.name) otherDeckNames.add(u.name);
+                }
+
+                for (const altId of candidatePool) {
+                    if (String(altId) === String(currentId)) continue;
+                    if (otherDeckIds.has(String(altId))) continue;
+                    const u = getUnitMeta(altId);
+                    if (u?.name) {
+                        let isShared = false;
+                        for (const dn of otherDeckNames) {
+                            if (_shareCharacter(u.name, dn)) { isShared = true; break; }
+                        }
+                        if (isShared) continue;
+                    }
+                    if (!isCompatBoth(altId)) continue;
+
+                    const orig = deck[slot];
+                    deck[slot] = altId;
+                    _recomputeGimmickStates(deck, remainingGimmicks);
+                    const newScore = scoreState();
+                    if (isBetter(newScore, bestAltScore)) {
+                        bestAltId = altId;
+                        bestAltScore = newScore;
+                    }
+                    deck[slot] = orig;
+                }
+                _recomputeGimmickStates(deck, remainingGimmicks);
+
+                if (bestAltId && isBetter(bestAltScore, currentScore)) {
+                    const orig = deck[slot];
+                    usedIds.delete(orig);
+                    const origName = getUnitMeta(orig)?.name;
+                    if (origName) usedNames.delete(origName);
+                    deck[slot] = bestAltId;
+                    usedIds.add(bestAltId);
+                    const newName = getUnitMeta(bestAltId)?.name;
+                    if (newName) usedNames.add(newName);
+                    _recomputeGimmickStates(deck, remainingGimmicks);
+                    improvedThisIter = true;
+                }
+
+                applyToDeck(deck);
+                _highlightSlot(slot, false);
+
+                setTimeout(processNextSlot, 80); // 80ms 딜레이로 시각화
+            };
+
+            processNextSlot();
+        }
+
+        // 동기 버전 (기존 호환용 — 사용 안 함)
+        function _intensiveOptimize(deck, remainingGimmicks, captainReqs, friendReqs, usedIds, usedNames) {
+            const memberSlots = ['m1','m2','m3','m4'];
+            const MAX_ITER = 4;
+            const protectedBoostIdSet = new Set(
+                (boostChars || []).filter(b => b.rank === 'A' || b.rank === 'B').map(b => String(b.id))
+            );
+            const preferredIdSet = new Set((preferredChars || []).map(String));
+
+            const isCompatBoth = (id) => {
+                if (!isMemberCompatibleWithCaptain(id, captainReqs)) return false;
+                if (friendReqs && !friendReqs.unrestricted) {
+                    if (!isMemberCompatibleWithCaptain(id, friendReqs)) return false;
+                }
+                return true;
+            };
+            const scoreState = () => {
+                const unsolved = remainingGimmicks.filter(rg => !rg.solved).length;
+                const totalRed = remainingGimmicks.reduce((s, rg) =>
+                    s + Math.max(0, rg.turn - Math.max(0, rg.currentTurns)), 0);
+                return { unsolved, totalRed };
+            };
+            const isBetter = (a, b) => {
+                if (a.unsolved < b.unsolved) return true;
+                if (a.unsolved > b.unsolved) return false;
+                return a.totalRed > b.totalRed;
+            };
+
+            // 후보 풀: 모든 기믹의 솔버 + 모든 boost (필러)
+            //   ID 내림차순 정렬 (신규 캐릭부터 시도) — 일반적으로 신규일수록 강함
+            const candidatePoolSet = new Set();
+            for (const rg of remainingGimmicks) {
+                const solverIds = _getGimmickSolvers(rg.name);
+                for (const id of solverIds) candidatePoolSet.add(String(id));
+            }
+            for (const b of (boostChars || [])) candidatePoolSet.add(String(b.id));
+            const candidatePool = [...candidatePoolSet].sort((a, b) => (parseInt(b) || 0) - (parseInt(a) || 0));
+
+            for (let iter = 0; iter < MAX_ITER; iter++) {
+                let improved = false;
+                for (const slot of memberSlots) {
+                    const currentId = deck[slot];
+                    if (!currentId) continue;
+                    if (preferredIdSet.has(String(currentId))) continue;
+                    if (protectedBoostIdSet.has(String(currentId))) continue;
+
+                    const currentScore = scoreState();
+                    let bestAltId = null;
+                    let bestAltScore = currentScore;
+
+                    const otherDeckIds = new Set(Object.values(deck).map(String).filter(Boolean));
+                    otherDeckIds.delete(String(currentId));
+                    const otherDeckNames = new Set();
+                    for (const did of otherDeckIds) {
+                        const u = getUnitMeta(did);
+                        if (u?.name) otherDeckNames.add(u.name);
+                    }
+
+                    for (const altId of candidatePool) {
+                        if (String(altId) === String(currentId)) continue;
+                        if (otherDeckIds.has(String(altId))) continue;
+                        const u = getUnitMeta(altId);
+                        if (u?.name) {
+                            let isShared = false;
+                            for (const dn of otherDeckNames) {
+                                if (_shareCharacter(u.name, dn)) { isShared = true; break; }
+                            }
+                            if (isShared) continue;
+                        }
+                        if (!isCompatBoth(altId)) continue;
+
+                        const orig = deck[slot];
+                        deck[slot] = altId;
+                        _recomputeGimmickStates(deck, remainingGimmicks);
+                        const newScore = scoreState();
+                        if (isBetter(newScore, bestAltScore)) {
+                            bestAltId = altId;
+                            bestAltScore = newScore;
+                        }
+                        deck[slot] = orig; // revert
+                    }
+                    _recomputeGimmickStates(deck, remainingGimmicks); // 원래 상태로 재계산
+
+                    if (bestAltId && isBetter(bestAltScore, currentScore)) {
+                        const orig = deck[slot];
+                        usedIds.delete(orig);
+                        const origName = getUnitMeta(orig)?.name;
+                        if (origName) usedNames.delete(origName);
+                        deck[slot] = bestAltId;
+                        usedIds.add(bestAltId);
+                        const newName = getUnitMeta(bestAltId)?.name;
+                        if (newName) usedNames.add(newName);
+                        _recomputeGimmickStates(deck, remainingGimmicks);
+                        improved = true;
+                    }
+                }
+                if (!improved) break;
+            }
+        }
+
         // 잉여 멤버를 미해결 기믹 솔버로 교체
         //   원칙: boost 우선
         //     - 후보 검색: boost 솔버를 비-boost보다 우선 (boost가 같은 기믹을 풀면 boost 선택)
         //     - swap 대상: 비-boost 멤버를 우선 교체 (boost 멤버는 마지막 폴백)
-        function _swapRedundantMembers(deck, remainingGimmicks, captainReqs, usedIds, usedNames) {
+        function _swapRedundantMembers(deck, remainingGimmicks, captainReqs, usedIds, usedNames, friendReqs) {
             const memberSlots = ['m1','m2','m3','m4'];
-            const MAX_ITER = 5;
+            const MAX_ITER = 3;  // 5→3 (성능 최적화, 보통 1-2회면 충분)
             const boostIdSet = new Set((boostChars || []).map(b => String(b.id)));
             const boostRankMap = new Map((boostChars || []).map(b => [String(b.id), b.rank]));
             const rankScore = r => ({A:0, B:1, C:2, D:3, E:4}[r] ?? 99);
+            // 멤버 호환성: 자기 선장 + 친구선장 양쪽 모두 만족 체크
+            const isCompatBoth = (id) => {
+                if (!isMemberCompatibleWithCaptain(id, captainReqs)) return false;
+                if (friendReqs && !friendReqs.unrestricted) {
+                    if (!isMemberCompatibleWithCaptain(id, friendReqs)) return false;
+                }
+                return true;
+            };
             for (let iter = 0; iter < MAX_ITER; iter++) {
                 const unsolved = remainingGimmicks.filter(rg => !rg.solved);
                 if (unsolved.length === 0) break;
@@ -1367,7 +1736,9 @@
                         if (u?.name) deckNames.add(u.name);
                     }
                     let bestCand = null, bestRed = 0, bestCandNum = -1, bestIsBoost = false, bestRankScore = 99;
-                    for (const id in window.details_kor) {
+                    // 사전 필터링된 솔버 후보 사용 (성능 최적화: 5000+ → 수십~수백)
+                    const solverIds = _getGimmickSolvers(rg.name);
+                    for (const id of solverIds) {
                         if (deckIds.has(String(id))) continue;
                         const u = getUnitMeta(id);
                         if (u?.name) {
@@ -1382,7 +1753,7 @@
                         // swap 후 어느 슬롯에 들어갈지 모르므로 includeSelfOnly는 보수적으로 false (party-wide 효과 위주)
                         const red = evaluateCharReductionSources(data, rg.name, 'member', { includeSelfOnly: false, round: rg.round }).max;
                         if (red <= 0) continue;
-                        if (!isMemberCompatibleWithCaptain(id, captainReqs)) continue;
+                        if (!isCompatBoth(id)) continue;
                         const idNum = parseInt(id) || 0;
                         const isBoost = boostIdSet.has(String(id));
                         const cRankScore = isBoost ? rankScore(boostRankMap.get(String(id))) : 99;
@@ -1424,13 +1795,17 @@
                         return (aBoost ? 1 : 0) - (bBoost ? 1 : 0); // 비-boost 먼저
                     });
                     const preferredIdSet = new Set((preferredChars || []).map(String));
+                    // A/B 등급 boost만 강하게 보호 (C/D/E는 비-boost 솔버가 더 나으면 교체 가능)
+                    const protectedBoostIdSet = new Set(
+                        (boostChars || []).filter(b => b.rank === 'A' || b.rank === 'B').map(b => String(b.id))
+                    );
                     for (const slot of orderedSlots) {
                         const memberId = deck[slot];
                         if (!memberId) continue;
-                        // 필수 캐릭은 무조건 보존 (swap 대상에서 제외)
+                        // 필수 캐릭 / A/B 등급 boost는 무조건 보존 (swap 대상에서 제외)
                         if (preferredIdSet.has(String(memberId))) continue;
-                        // 후보가 비-boost인데 슬롯이 boost면 swap 안함 (boost 보존)
-                        if (!bestIsBoost && boostIdSet.has(String(memberId))) continue;
+                        if (protectedBoostIdSet.has(String(memberId))) continue;
+                        // 후보가 비-boost인데 슬롯이 보호된 boost(A/B)면 swap 안함 — C/D/E는 허용
                         const orig = deck[slot];
                         deck[slot] = bestCand;
                         _recomputeGimmickStates(deck, remainingGimmicks);
@@ -1467,57 +1842,196 @@
             return a;
         }
 
-        // 빌드 버튼에서 호출 — 로딩 오버레이 표시 + 비동기로 실제 계산 수행
+        // 빌드 버튼에서 호출 — 로딩 오버레이 표시 + 비동기 청크 단위 실행 (UI 갱신 가능)
         function runAutoBuildDeck() {
+            // 가드: 친구선장 필수 — 미선택 시 알림 후 중단 (탐색 범위 축소 → 성능 개선)
+            if (!friendCaptainId) {
+                alert('친구선장을 먼저 선택해주세요.\n친구선장이 정해져야 자기 선장과 호환되는 캐릭을 정확히 찾을 수 있습니다.');
+                return;
+            }
+            // 기믹 패턴 변경 가능성 — 캐시 reset
+            _resetGimmickSolverCache();
             const overlay = document.getElementById('loading-overlay');
+            const mask = document.getElementById('loading-mask');
             const btn = document.getElementById('build-btn');
             if (overlay) overlay.classList.add('active');
+            if (mask) mask.classList.add('active');
+            document.body.classList.add('is-loading');
             if (btn) btn.disabled = true;
-            // setTimeout으로 다음 tick에 실행하여 DOM 업데이트(오버레이 표시)가 먼저 반영되도록 함
             setTimeout(() => {
-                try { autoBuildDeck(); }
-                finally {
+                autoBuildDeckAdaptive(() => {
                     if (overlay) overlay.classList.remove('active');
+                    if (mask) mask.classList.remove('active');
+                    document.body.classList.remove('is-loading');
                     if (btn) btn.disabled = false;
-                }
+                });
             }, 30);
         }
 
-        function autoBuildDeck() {
-            // 다중 시도: 동점일 때 랜덤 tiebreak으로 다양성 확보
-            //   1순위: 미해결 기믹 수 최소
-            //   2순위: 총 회복 턴 합 최대
-            //   3순위 (동점): 무작위 선택
-            const TRIES = 20;
-            let bestList = [];      // [{ state, unsolved, totalRed }]
-            let bestKey = null;     // 'unsolved-totalRed' 형태
+        // 진행률 메시지 갱신
+        function _setLoadingText(msg) {
+            const el = document.getElementById('loading-text');
+            if (el) el.textContent = msg;
+        }
 
-            for (let i = 0; i < TRIES; i++) {
-                const state = _buildDeckSingle();
+        // 적응형 덱 빌드:
+        //   1) 랜덤 시도 N회 (조기 종료: 모두 해결 시 즉시 stop)
+        //   2) 모든 boost A + preferred + 상위 비-boost 후보를 captain으로 강제 시도
+        //   3) MAX_TRIES 한도 도달까지 계속 탐색
+        //   비동기 청크 단위로 실행하여 진행률 갱신
+        function autoBuildDeckAdaptive(onDone) {
+            const RANDOM_PHASE_TRIES = 20;       // Phase 1: 랜덤 다양성 확보
+            const ABSOLUTE_MAX_TRIES = 250;       // 전체 시도 절대 상한
+            const RANDOM_BUFFER = 30;             // Phase 2 후 추가 랜덤 시도 수
+            const CHUNK_SIZE = 2;                 // UI 갱신 간격 (작을수록 더 자주 갱신)
+
+            let bestList = [];
+            let bestUnsolved = Infinity;
+            let bestTotalRed = -Infinity;
+            let triesDone = 0;
+            let allSolvedFound = false;
+
+            const tryOne = (forcedCaptainId) => {
+                if (allSolvedFound) return;
+                const state = _buildDeckSingle({ forcedCaptainId });
+                // 시각화: 매 시도마다 현재 시도 중인 deck을 화면에 표시
+                try { applyToDeck(state.deck); } catch (e) {}
                 const unsolved = state.remainingGimmicks.filter(rg => !rg.solved).length;
                 const totalRed = state.remainingGimmicks.reduce((s, rg) =>
                     s + Math.max(0, rg.turn - Math.max(0, rg.currentTurns)), 0);
-                const key = `${unsolved}-${-totalRed}`;
-                if (bestKey === null || _scoreLess(unsolved, totalRed, bestList[0])) {
+                if (unsolved < bestUnsolved || (unsolved === bestUnsolved && totalRed > bestTotalRed)) {
                     bestList = [{ state, unsolved, totalRed }];
-                    bestKey = key;
-                } else if (key === bestKey) {
+                    bestUnsolved = unsolved;
+                    bestTotalRed = totalRed;
+                } else if (unsolved === bestUnsolved && totalRed === bestTotalRed) {
                     bestList.push({ state, unsolved, totalRed });
                 }
-            }
-            // 동점 후보들 중 무작위 선택
-            const pick = bestList[Math.floor(Math.random() * bestList.length)];
-            window.__supportFitNote = pick.state.supportFitNote;
-            window.__lastDeck = pick.state.deck;
-            window.__lastGimmicks = pick.state.remainingGimmicks;
-            // 진단 로그
-            console.log('=== DECK BUILD COMPLETE ===');
-            console.log('Deck:', JSON.stringify(pick.state.deck));
-            console.log('Supports:', ['s1','s2','s3','s4','s5'].map(s => pick.state.deck[s] || 'EMPTY').join(' | '));
-            console.log('Mains:', ['c1','f1','m1','m2','m3','m4'].map(s => `${s}:${pick.state.deck[s]||'-'}(${getUnitMeta(pick.state.deck[s])?.name||''})`).join(', '));
-            console.log('Unsolved:', pick.state.remainingGimmicks.filter(g => !g.solved).map(g => `${g.name} ${g.turn}턴 (남은${g.currentTurns}, round${g.round})`));
-            applyToDeck(pick.state.deck);
-            analyzeGimmickSolutions(pick.state.deck);
+                if (bestUnsolved === 0) allSolvedFound = true;
+                triesDone++;
+            };
+
+            // Captain 강제 후보 목록 (boost A + preferred만)
+            //   비-boost는 Phase 1/3 랜덤에서 1-c 폴백으로만 사용 (boost A가 호환 안 될 때)
+            //   ⇒ boost A 호환 캐릭이 있으면 captain은 항상 boost A
+            const buildForcedCaptains = () => {
+                const list = [];
+                const seen = new Set();
+                for (const b of (boostChars || [])) {
+                    if (b.rank === 'A' && window.details_kor[b.id] && !seen.has(b.id)) {
+                        list.push(b.id); seen.add(b.id);
+                    }
+                }
+                for (const id of (preferredChars || [])) {
+                    if (window.details_kor[id] && !seen.has(id)) {
+                        list.push(id); seen.add(id);
+                    }
+                }
+                // boost A가 비어있고 preferred도 없으면 비-boost 상위 캐릭들도 captain 후보로 시도
+                //   친구호환 가능 + 캡틴/필살기로 기믹 솔빙 가능자 우선, 그 다음 mult 순
+                const aRankAvailable = (boostChars || []).some(b => b.rank === 'A' && window.details_kor[b.id]);
+                if (!aRankAvailable) {
+                    const boostIdSet = new Set((boostChars || []).map(b => String(b.id)));
+                    // 친구호환 사전 검사용 reqs (가벼운 필터)
+                    let preFriendReqs = null;
+                    if (friendCaptainId && window.details_kor[friendCaptainId]) {
+                        preFriendReqs = extractCaptainRequirements(window.details_kor[friendCaptainId].captain);
+                    }
+                    const isPreCompat = (id) => {
+                        if (!preFriendReqs || preFriendReqs.unrestricted) return true;
+                        return isMemberCompatibleWithCaptain(id, preFriendReqs);
+                    };
+                    const allCands = [];
+                    for (const id in window.details_kor) {
+                        if (boostIdSet.has(String(id)) || seen.has(id)) continue;
+                        const data = window.details_kor[id];
+                        if (!data?.captain) continue;
+                        const mult = getAttackMultiplier(data.captain);
+                        if (mult <= 0) continue;
+                        if (!isPreCompat(id)) continue;
+                        allCands.push({ id, mult, idNum: parseInt(id) || 0 });
+                    }
+                    // ID 내림차순 (신규 캐릭 우선) — 모두 추가, MAX_TRIES가 자연스러운 한도
+                    allCands.sort((a, b) => b.idNum - a.idNum);
+                    for (const c of allCands) {
+                        if (!seen.has(c.id)) { list.push(c.id); seen.add(c.id); }
+                    }
+                }
+                return list;
+            };
+
+            const forcedCaptains = buildForcedCaptains();
+            let forcedIdx = 0;
+            // 동적 MAX_TRIES — 탐색 공간 크기에 비례
+            //   = Phase 1 랜덤 + 강제 캡틴 수 + 추가 랜덤 (단, ABSOLUTE_MAX 상한)
+            //   A/B 등급만 있어 forcedCaptains가 적으면 시도 수도 적음 (빠른 종료)
+            const MAX_TRIES = Math.min(ABSOLUTE_MAX_TRIES,
+                RANDOM_PHASE_TRIES + forcedCaptains.length + RANDOM_BUFFER);
+
+            // 청크 단위 실행 함수 (재귀적 setTimeout)
+            const runChunk = () => {
+                const chunkStart = triesDone;
+                const chunkEnd = Math.min(triesDone + CHUNK_SIZE, MAX_TRIES);
+
+                // Phase 1: 랜덤 시도
+                while (triesDone < chunkEnd && triesDone < RANDOM_PHASE_TRIES && !allSolvedFound) {
+                    tryOne(null);
+                }
+                // Phase 2: 강제 captain 시도
+                while (triesDone < chunkEnd && triesDone < MAX_TRIES && !allSolvedFound && forcedIdx < forcedCaptains.length) {
+                    tryOne(forcedCaptains[forcedIdx]);
+                    forcedIdx++;
+                }
+                // Phase 3: 추가 랜덤 시도 (강제 다 끝나도 미해결 남으면)
+                while (triesDone < chunkEnd && triesDone < MAX_TRIES && !allSolvedFound) {
+                    tryOne(null);
+                }
+
+                if (!allSolvedFound && triesDone < MAX_TRIES) {
+                    setTimeout(runChunk, 0);
+                } else {
+                    finalize();
+                }
+            };
+
+            const finalize = () => {
+                const pick = bestList[Math.floor(Math.random() * bestList.length)];
+                _setLoadingText('최적화 중...');
+                applyToDeck(pick.state.deck);
+                // 집중 최적화: BEST deck에 hill climbing으로 멤버 swap 시도 (비동기)
+                //   각 슬롯 swap 시 시각화 — 슬롯 강조 + 캐릭 변경 보임
+                let captainReqs, friendReqs, usedIds, usedNames;
+                try {
+                    captainReqs = extractCaptainRequirements(window.details_kor[pick.state.deck.c1]?.captain);
+                    const friendId = pick.state.deck.f1;
+                    friendReqs = friendId && window.details_kor[friendId]
+                        ? extractCaptainRequirements(window.details_kor[friendId].captain) : null;
+                    usedIds = new Set();
+                    usedNames = new Set();
+                    for (const [slot, id] of Object.entries(pick.state.deck)) {
+                        if (!id) continue;
+                        if (slot === 'f1' && String(pick.state.deck.c1) === String(id)) continue;
+                        usedIds.add(id);
+                        const name = getUnitMeta(id)?.name;
+                        if (name) usedNames.add(name);
+                    }
+                } catch (e) { console.warn('Optimize setup failed:', e); }
+
+                _intensiveOptimizeAsync(pick.state.deck, pick.state.remainingGimmicks, captainReqs, friendReqs, usedIds, usedNames, () => {
+                    window.__supportFitNote = pick.state.supportFitNote;
+                    window.__lastDeck = pick.state.deck;
+                    window.__lastGimmicks = pick.state.remainingGimmicks;
+                    console.log('=== DECK BUILD COMPLETE ===');
+                    console.log(`Tries: ${triesDone}/${MAX_TRIES}, Unsolved: ${bestUnsolved}, TotalRed: ${bestTotalRed}`);
+                    console.log('Deck:', JSON.stringify(pick.state.deck));
+                    console.log('Mains:', ['c1','f1','m1','m2','m3','m4'].map(s => `${s}:${pick.state.deck[s]||'-'}(${getUnitMeta(pick.state.deck[s])?.name||''})`).join(', '));
+                    console.log('Unsolved:', pick.state.remainingGimmicks.filter(g => !g.solved).map(g => `${g.name} ${g.turn}턴 (남은${g.currentTurns}, round${g.round})`));
+                    applyToDeck(pick.state.deck);
+                    analyzeGimmickSolutions(pick.state.deck);
+                    if (onDone) onDone();
+                });
+            };
+
+            runChunk();
         }
 
         // 더 좋은 점수인지 (낮은 unsolved, 높은 totalRed)
@@ -1527,8 +2041,10 @@
             return totalRed > current.totalRed;
         }
 
-        function _buildDeckSingle() {
+        function _buildDeckSingle(opts = {}) {
             // boost 캐릭이 없어도 진행 — 전체 캐릭터로 폴백 매칭됨
+            // opts.forcedCaptainId: 지정 시 그 ID를 자기 선장으로 강제 (1-a 우회)
+            const forcedCaptainId = opts.forcedCaptainId || null;
             let deck = { f1: null, c1: null, m1: null, m2: null, m3: null, m4: null, s1: null, s2: null, s3: null, s4: null, s5: null };
             let usedIds = new Set();
             let usedNames = new Set();
@@ -1566,7 +2082,7 @@
                 if (isCaptain) {
                     deck.c1 = id;
                     assignedSlot = 'c1';
-                    if (!friendCaptainId) deck.f1 = id;
+                    // f1(친구선장)은 1-aa에서 effectiveFriendId 기준으로 단일 설정
                 }
                 else {
                     const slot = ['m1', 'm2', 'm3', 'm4'].find(s => !deck[s]);
@@ -1644,12 +2160,30 @@
                 const topN = Math.min(3, list.length);
                 return list[Math.floor(Math.random() * topN)];
             };
-            // 친구선장 호환성 필터: 사용자가 친구선장을 지정했다면, 자기 선장도 친구선장의
-            // 공격/체력 배수를 온전히 받을 수 있는 type/class 보유 캐릭이어야 함 (strict)
-            // boost에 호환자가 없으면 1-c 폴백(전체 캐릭)에서 호환 캐릭 검색
+            // 친구선장 자동 선택: 사용자가 친구선장 지정 안 했다면 boost A 등급에서 자동 선택
+            //   - 솔버 우선 → 솔버 없으면 mult 가장 높은 A 등급
+            //   - forcedCaptainId(자기 선장 강제)와 다른 캐릭 우선 (mirror 회피, 단 후보 없으면 같아도 OK)
+            let effectiveFriendId = friendCaptainId;
+            if (!effectiveFriendId) {
+                const aCands = candidates.filter(c => c.rank === 'A');
+                if (aCands.length > 0) {
+                    const aSolvers = aCands.filter(c => {
+                        const d = window.details_kor[c.id];
+                        return remainingGimmicks.some(rg =>
+                            !rg.solved && evaluateCharReductionSources(d, rg.name, 'captain', { round: rg.round }).max > 0
+                        );
+                    });
+                    const pool = aSolvers.length > 0 ? aSolvers : aCands;
+                    const nonForced = pool.filter(c => String(c.id) !== String(forcedCaptainId));
+                    effectiveFriendId = (nonForced.length > 0 ? nonForced[0] : pool[0]).id;
+                }
+            }
+
+            // 친구선장 호환성 필터: 친구선장이 있으면 자기 선장도 친구의 공격/체력 배수를 온전히 받는 type/class 필요
+            //   boost에 호환자가 없으면 1-c 폴백(전체 캐릭)에서 호환 캐릭 검색
             let friendReqs = null;
-            if (friendCaptainId && window.details_kor[friendCaptainId]) {
-                friendReqs = extractCaptainRequirements(window.details_kor[friendCaptainId].captain);
+            if (effectiveFriendId && window.details_kor[effectiveFriendId]) {
+                friendReqs = extractCaptainRequirements(window.details_kor[effectiveFriendId].captain);
             }
             const friendCompatActive = friendReqs && !friendReqs.unrestricted;
             const isCompatWithFriend = (charId) => {
@@ -1660,8 +2194,11 @@
             //   A 등급에서 친구호환 캐릭만 후보 (솔버 우선 → 비-솔버)
             //   A에서 못 찾으면 그대로 두고, 이후 1-bb(필수 캐릭) 또는 1-c(비-boost 전체)에서 채움
             //   ⇒ B/C/D/E 등급은 선장 후보 아님 (멤버에서만 사용)
+            //   forcedCaptainId가 지정되면 그 ID를 강제로 선장으로 사용
             let captainPick = null;
-            {
+            if (forcedCaptainId && window.details_kor[forcedCaptainId] && !isDuplicate(forcedCaptainId)) {
+                captainPick = { id: forcedCaptainId };
+            } else {
                 const aRankCands = candidates.filter(c => c.rank === 'A' && !isDuplicate(c.id));
                 const compatA = friendCompatActive
                     ? aRankCands.filter(c => isCompatWithFriend(c.id))
@@ -1681,13 +2218,13 @@
             }
 
             // 1-aa. 친구선장 처리
-            //   친구선장은 별개 슬롯이라 사용자가 구성하는 덱(자기 선장 + 멤버 + 서포트)의 중복 검사 대상이 아님
-            //   ⇒ usedIds/usedNames에 추가하지 않음 (4550 친구라도 자기 선장/멤버/서포트로 다시 쓸 수 있음)
+            //   친구선장은 별개 슬롯 — 사용자 미지정 시 자동 선택된 effectiveFriendId 사용
+            //   usedIds/usedNames에 추가하지 않음 (자기 선장/멤버/서포트로 다시 쓸 수 있음)
             //   captain 효과로 기믹 감소만 추가 적용
-            if (friendCaptainId) {
-                deck.f1 = String(friendCaptainId);
-                if (window.details_kor[friendCaptainId] && String(friendCaptainId) !== String(deck.c1)) {
-                    const friendData = window.details_kor[friendCaptainId];
+            if (effectiveFriendId) {
+                deck.f1 = String(effectiveFriendId);
+                if (window.details_kor[effectiveFriendId] && String(effectiveFriendId) !== String(deck.c1)) {
+                    const friendData = window.details_kor[effectiveFriendId];
                     remainingGimmicks.forEach(rg => {
                         if (rg.solved) return;
                         const isPartyWide = !rg.scope || (rg.scope.row === 'all' && rg.scope.col === 'all');
@@ -1740,13 +2277,22 @@
             const captainReqs = extractCaptainRequirements(captainData?.captain);
             const memberSlotKeys = ['m1', 'm2', 'm3', 'm4'];
             const hasEmptyMemberSlot = () => memberSlotKeys.some(s => !deck[s]);
+            // 멤버 호환성: 자기 선장 + 친구선장 양쪽 모두 만족해야 진정한 호환
+            //   (둘 다 type/class 매칭 시 두 captain 효과 모두 받음)
+            const isMemberCompatibleWithBoth = (memberId) => {
+                if (!isMemberCompatibleWithCaptain(memberId, captainReqs)) return false;
+                if (friendReqs && !friendReqs.unrestricted) {
+                    if (!isMemberCompatibleWithCaptain(memberId, friendReqs)) return false;
+                }
+                return true;
+            };
 
             // 1-bb-2) Preferred 멤버 강제 채우기 (boost 채우기 이전)
-            //   1) 호환되는 preferred → 빈 선원 슬롯에 즉시 배치
+            //   1) 양쪽 captain 호환 preferred → 빈 선원 슬롯에 즉시 배치
             validPreferred.forEach(p => {
                 if (isDuplicate(p.id)) return;
                 if (!hasEmptyMemberSlot()) return;
-                if (isMemberCompatibleWithCaptain(p.id, captainReqs)) fillSlot(p.id, false);
+                if (isMemberCompatibleWithBoth(p.id)) fillSlot(p.id, false);
             });
             //   2) 미호환 preferred (어쨌든 강제 포함)
             validPreferred.forEach(p => {
@@ -1754,6 +2300,18 @@
                 if (!hasEmptyMemberSlot()) return;
                 fillSlot(p.id, false);
             });
+
+            // 1-bb-3) A/B 등급 boost 강제 멤버 배치 (필수 캐릭처럼 취급)
+            //   captain으로 이미 사용된 캐릭은 isDuplicate로 자동 스킵됨
+            //   A 먼저 → B 순으로 채워서 등급 우선 보장
+            for (const rank of ['A', 'B']) {
+                for (const c of candidates) {
+                    if (c.rank !== rank) continue;
+                    if (isDuplicate(c.id)) continue;
+                    if (!hasEmptyMemberSlot()) break;
+                    fillSlot(c.id, false);
+                }
+            }
 
             // 1-b-1) 등급 순(A→B→C→D→E) 멤버 채우기 — 등급이 절대 우선
             //   각 등급 안에서: 솔버(미해결 기믹 해제 가능자) 우선 → 비-솔버 순
@@ -1766,7 +2324,7 @@
                     for (const c of shuffledCandidates) {
                         if (c.rank !== rank) continue;
                         if (isDuplicate(c.id)) continue;
-                        if (!isMemberCompatibleWithCaptain(c.id, captainReqs)) continue;
+                        if (!isMemberCompatibleWithBoth(c.id)) continue;
                         const data = window.details_kor[c.id];
                         let cov = 0;
                         for (const rg of remainingGimmicks) {
@@ -1798,11 +2356,13 @@
             const boostIdSet = new Set(boostChars.map(b => String(b.id)));
 
             if (!deck.c1) {
-                let bestSolver = null, bestSolverMult = -1, bestSolverNum = -1;
-                let bestAny = null, bestAnyMult = -1, bestAnyNum = -1;
+                // ID 내림차순으로 비-boost 캐릭 탐색 (신규 우선)
+                //   - solver 우선, 없으면 mult 양수인 강캐 폴백
+                //   - 동등 조건에서는 ID 큰 것 (신규) 우선
+                let bestSolver = null, bestSolverNum = -1, bestSolverMult = -1;
+                let bestAny = null, bestAnyNum = -1, bestAnyMult = -1;
                 for (const id in window.details_kor) {
                     if (boostIdSet.has(String(id))) continue;
-                    // 친구선장 호환성: 활성화 시 비호환 캐릭은 폴백에서도 제외
                     if (friendCompatActive && !isCompatWithFriend(id)) continue;
                     const data = window.details_kor[id];
                     if (!data?.captain) continue;
@@ -1812,12 +2372,12 @@
                         !rg.solved && evaluateCharReductionSources(data, rg.name, 'captain', { round: rg.round }).max > 0
                     );
                     const idNum = parseInt(id) || 0;
-                    // 동률 시 ID가 큰(신규) 캐릭 우선
-                    if (solves && (mult > bestSolverMult || (mult === bestSolverMult && idNum > bestSolverNum))) {
-                        bestSolver = id; bestSolverMult = mult; bestSolverNum = idNum;
+                    // ID 큰(신규) 우선, 동률 시 mult 큰 것
+                    if (solves && (idNum > bestSolverNum || (idNum === bestSolverNum && mult > bestSolverMult))) {
+                        bestSolver = id; bestSolverNum = idNum; bestSolverMult = mult;
                     }
-                    if (mult > bestAnyMult || (mult === bestAnyMult && idNum > bestAnyNum)) {
-                        bestAny = id; bestAnyMult = mult; bestAnyNum = idNum;
+                    if (idNum > bestAnyNum || (idNum === bestAnyNum && mult > bestAnyMult)) {
+                        bestAny = id; bestAnyNum = idNum; bestAnyMult = mult;
                     }
                 }
                 const pick = bestSolver || bestAny;
@@ -1848,7 +2408,7 @@
                     }
                     if (bestAny && !isDuplicate(bestAny)) fillSlot(bestAny, true);
                 }
-                if (deck.c1 && !deck.f1) deck.f1 = friendCaptainId ? String(friendCaptainId) : deck.c1;
+                if (deck.c1 && !deck.f1) deck.f1 = effectiveFriendId ? String(effectiveFriendId) : deck.c1;
             }
 
             // 1-d. boost 미호환 폴백 (등급 순으로 채워도 빈 슬롯 남았을 때 마지막 시도)
@@ -1875,7 +2435,10 @@
                 let bestCompat = null, bestCompatRed = 0, bestCompatMult = -1, bestCompatNum = -1;
                 let bestAny = null, bestAnyRed = 0, bestAnyMult = -1, bestAnyNum = -1;
 
-                for (const id in window.details_kor) {
+                // 사전 필터링된 솔버 후보 사용 (성능 최적화)
+                //   비-boost 폴백 — ID 큰(신규) 캐릭 우선, 동률 시 red 큰 것 → mult 큰 것
+                const solverIds = _getGimmickSolvers(rg.name);
+                for (const id of solverIds) {
                     if (boostIdSet.has(String(id))) continue;
                     if (isDuplicate(id)) continue;
                     const data = window.details_kor[id];
@@ -1884,16 +2447,16 @@
                     const mult = getAttackMultiplier(data.captain || '');
                     const compat = isMemberCompatibleWithCaptain(id, captainReqsForFallback);
                     const idNum = parseInt(id) || 0;
-                    // 동률 시 ID가 큰(신규) 캐릭 우선
-                    const compatBetter = evalRes.max > bestCompatRed
-                        || (evalRes.max === bestCompatRed && mult > bestCompatMult)
-                        || (evalRes.max === bestCompatRed && mult === bestCompatMult && idNum > bestCompatNum);
+                    // ID 큰(신규) 우선 → red 큰 것 → mult 큰 것
+                    const compatBetter = idNum > bestCompatNum
+                        || (idNum === bestCompatNum && evalRes.max > bestCompatRed)
+                        || (idNum === bestCompatNum && evalRes.max === bestCompatRed && mult > bestCompatMult);
                     if (compat && compatBetter) {
                         bestCompat = id; bestCompatRed = evalRes.max; bestCompatMult = mult; bestCompatNum = idNum;
                     }
-                    const anyBetter = evalRes.max > bestAnyRed
-                        || (evalRes.max === bestAnyRed && mult > bestAnyMult)
-                        || (evalRes.max === bestAnyRed && mult === bestAnyMult && idNum > bestAnyNum);
+                    const anyBetter = idNum > bestAnyNum
+                        || (idNum === bestAnyNum && evalRes.max > bestAnyRed)
+                        || (idNum === bestAnyNum && evalRes.max === bestAnyRed && mult > bestAnyMult);
                     if (anyBetter) {
                         bestAny = id; bestAnyRed = evalRes.max; bestAnyMult = mult; bestAnyNum = idNum;
                     }
@@ -1907,7 +2470,7 @@
             // 1-e. Swap pass: 미해결 기믹이 남고 멤버 슬롯이 모두 차있으면
             //      잉여 멤버(제거해도 다른 기믹이 모두 그대로 solved 유지되는 멤버)를 미해결 기믹 솔버로 교체
             //      (boost로 채워진 슬롯 중 redundant한 것을 비-boost 솔버로 교체)
-            _swapRedundantMembers(deck, remainingGimmicks, captainReqs, usedIds, usedNames);
+            _swapRedundantMembers(deck, remainingGimmicks, captainReqs, usedIds, usedNames, friendReqs);
 
             // 1-f. 정확한 미해결 기믹 상태 재계산 (per-round 필살기 커밋 추적)
             //      서포트 매칭이 실제 미해결 기믹에만 동작하도록 함
@@ -1920,8 +2483,17 @@
             const looseMatches = []; // { rg, sId, redTurns } — 1차에서 strict로 못 채운 후보들
             const supportFitNote = {}; // sId → 'loose' 표시용
 
-            // 서포트 후보 ID 순회 순서를 랜덤화하여 동등 후보 중 다양한 선택
-            const allSupportIds = _shuffle(Object.keys(window.details_kor));
+            // 서포트 후보 ID — 서포트 엔트리가 있는 캐릭만 미리 필터링 (성능 최적화)
+            //   매 시도마다 재계산되지 않도록 module-level 캐시 사용
+            if (!window.__supportIdsCache) {
+                const filtered = [];
+                for (const id in window.details_kor) {
+                    const sData = window.details_kor[id];
+                    if (getSupportEntries(sData).length > 0) filtered.push(id);
+                }
+                window.__supportIdsCache = filtered;
+            }
+            const allSupportIds = _shuffle(window.__supportIdsCache);
             // 처리 우선순위: 포지셔널 기믹 우선 (지정 슬롯에만 영향이라 매칭 제약), 큰 회복 필요 우선
             const sortedUnsolvedGimmicks = remainingGimmicks
                 .filter(rg => !rg.solved)
@@ -1932,68 +2504,63 @@
                     return (b.currentTurns ?? 0) - (a.currentTurns ?? 0); // 큰 부족분 우선
                 });
             sortedUnsolvedGimmicks.forEach(rg => {
-                let matchedThisGimmick = false;
+                const isPartyWide = !rg.scope || (rg.scope.row === 'all' && rg.scope.col === 'all');
                 for (const sId of allSupportIds) {
                     if (isDuplicate(sId)) continue;
                     const sData = window.details_kor[sId];
                     const entries = getSupportEntries(sData);
                     if (entries.length === 0) continue;
 
-                    // 이 기믹에 가장 큰 효과를 가진 엔트리 선택
-                    let bestEntry = null;
-                    let bestRed = 0;
+                    // 모든 (entry, slot) 조합 평가 — 정확한 scope 반영 (evaluateSupportContribution 사용)
+                    //   strict 매칭 우선, loose는 후보로만 보관
+                    let strictBest = null;  // {entry, red, slotIdx, target}
+                    let looseBest = null;
                     for (const e of entries) {
-                        const r = getReductionTurns(e.effect, rg.name);
-                        if (r > bestRed) { bestRed = r; bestEntry = e; }
-                    }
-                    if (bestRed === 0 || !bestEntry) continue;
-
-                    // strict 매칭 우선 시도
-                    let placed = false;
-                    let anyLoose = false;  // loose 매칭 가능한 슬롯 존재 여부
-                    for (let i = 0; i < baseSlotKeys.length; i++) {
-                        const mainId = deck[baseSlotKeys[i]];
-                        const supportSlot = `s${i + 1}`;
-                        if (mainId && !deck[supportSlot]) {
-                            const fit = checkSupportFit(bestEntry.target, mainId);
+                        for (let i = 0; i < baseSlotKeys.length; i++) {
+                            const mainId = deck[baseSlotKeys[i]];
+                            const supportSlot = `s${i + 1}`;
+                            if (!mainId || deck[supportSlot]) continue;
+                            const fit = checkSupportFit(e.target, mainId);
+                            if (fit === 'reject') continue;
+                            const pairedMainAffected = isSlotAffected(baseSlotKeys[i], rg.scope);
+                            const r = evaluateSupportContribution(e.effect, rg.name, pairedMainAffected, isPartyWide);
+                            if (r.turns <= 0) continue;
+                            const cand = { red: r.turns, slotIdx: i, target: e.target };
                             if (fit === 'strict') {
-                                deck[supportSlot] = sId;
-                                usedIds.add(sId);
-                                rg.currentTurns -= bestRed;
-                                if (rg.currentTurns <= 0) rg.solved = true;
-                                placed = true;
-                                matchedThisGimmick = true;
-                                break;
+                                if (!strictBest || r.turns > strictBest.red) strictBest = cand;
+                            } else if (fit === 'loose') {
+                                if (!looseBest || r.turns > looseBest.red) looseBest = cand;
                             }
-                            if (fit === 'loose') anyLoose = true;
-                            // 'reject'는 명확히 매칭 불가 — 무시
                         }
                     }
-                    if (!placed && anyLoose) {
-                        // 적어도 한 슬롯이 loose이면 후보로 보관 (reject만 있으면 보관 안 함)
-                        looseMatches.push({ rg, sId, redTurns: bestRed, target: bestEntry.target });
+
+                    // strict 매칭 즉시 배치
+                    if (strictBest) {
+                        const supportSlot = `s${strictBest.slotIdx + 1}`;
+                        deck[supportSlot] = sId;
+                        usedIds.add(sId);
+                        rg.currentTurns -= strictBest.red;
+                        if (rg.currentTurns <= 0) rg.solved = true;
+                    } else if (looseBest) {
+                        // strict 후보 없으면 loose 후보로 보관 (2차에서 사용)
+                        looseMatches.push({ rg, sId, redTurns: looseBest.red, target: looseBest.target, slotIdx: looseBest.slotIdx });
                     }
                     if (rg.solved) break;
                 }
             });
 
-            // 2차: loose 후보로 빈 서포트 슬롯 채우기 (단, 'reject' 슬롯엔 절대 배치 안 함)
-            looseMatches.forEach(({ rg, sId, redTurns, target }) => {
+            // 2차: loose 후보로 빈 서포트 슬롯 채우기 (저장된 slotIdx에 직접 배치)
+            looseMatches.forEach(({ rg, sId, redTurns, target, slotIdx }) => {
                 if (rg.solved || isDuplicate(sId)) return;
-                for (let i = 0; i < baseSlotKeys.length; i++) {
-                    const mainId = deck[baseSlotKeys[i]];
-                    const supportSlot = `s${i + 1}`;
-                    if (mainId && !deck[supportSlot]) {
-                        // target 제약 명확히 미충족(reject)이면 skip
-                        if (checkSupportFit(target, mainId) === 'reject') continue;
-                        deck[supportSlot] = sId;
-                        usedIds.add(sId);
-                        supportFitNote[sId] = 'loose';
-                        rg.currentTurns -= redTurns;
-                        if (rg.currentTurns <= 0) rg.solved = true;
-                        break;
-                    }
-                }
+                const supportSlot = `s${slotIdx + 1}`;
+                const mainId = deck[baseSlotKeys[slotIdx]];
+                if (!mainId || deck[supportSlot]) return;
+                if (checkSupportFit(target, mainId) === 'reject') return;
+                deck[supportSlot] = sId;
+                usedIds.add(sId);
+                supportFitNote[sId] = 'loose';
+                rg.currentTurns -= redTurns;
+                if (rg.currentTurns <= 0) rg.solved = true;
             });
             return { deck, supportFitNote, remainingGimmicks };
         }
@@ -2198,12 +2765,12 @@
         }
 
         document.getElementById('deck-display').innerHTML = `
-            <div class="unit-group"><div class="empty-slot"></div><div class="slot"><label>FRIEND</label><div id="img-f1" class="char-box"></div></div></div>
-            <div class="unit-group"><div class="slot"><label>CAPTAIN</label><div id="img-c1" class="char-box"></div></div><div class="slot"><label>SUPPORT</label><div id="img-s1" class="support-box"></div></div></div>
-            <div class="unit-group"><div class="slot"><label>SUPPORT</label><div id="img-s2" class="support-box"></div></div><div class="slot"><label>MEMBER 1</label><div id="img-m1" class="char-box"></div></div></div>
-            <div class="unit-group"><div class="slot"><label>MEMBER 2</label><div id="img-m2" class="char-box"></div></div><div class="slot"><label>SUPPORT</label><div id="img-s3" class="support-box"></div></div></div>
-            <div class="unit-group"><div class="slot"><label>SUPPORT</label><div id="img-s4" class="support-box"></div></div><div class="slot"><label>MEMBER 3</label><div id="img-m3" class="char-box"></div></div></div>
-            <div class="unit-group"><div class="slot"><label>MEMBER 4</label><div id="img-m4" class="char-box"></div></div><div class="slot"><label>SUPPORT</label><div id="img-s5" class="support-box"></div></div></div>
+        	<div class="unit-group"><div class="empty-slot"></div><div class="slot"><label>친구선장</label><div id="img-f1" class="char-box"></div></div></div>
+            <div class="unit-group"><div class="slot"><label>내 선장</label><div id="img-c1" class="char-box"></div></div><div class="slot"><label>서포트</label><div id="img-s1" class="support-box"></div></div></div>
+            <div class="unit-group"><div class="slot"><label>서포트</label><div id="img-s2" class="support-box"></div></div><div class="slot"><label>선원 1</label><div id="img-m1" class="char-box"></div></div></div>
+            <div class="unit-group"><div class="slot"><label>선원 2</label><div id="img-m2" class="char-box"></div></div><div class="slot"><label>서포트</label><div id="img-s3" class="support-box"></div></div></div>
+            <div class="unit-group"><div class="slot"><label>서포트</label><div id="img-s4" class="support-box"></div></div><div class="slot"><label>선원 3</label><div id="img-m3" class="char-box"></div></div></div>
+            <div class="unit-group"><div class="slot"><label>선원 4</label><div id="img-m4" class="char-box"></div></div><div class="slot"><label>서포트</label><div id="img-s5" class="support-box"></div></div></div>
         `;
 
         initRounds();
