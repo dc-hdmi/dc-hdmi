@@ -41,6 +41,44 @@
         .action-area { text-align: center; margin: 40px 0; }
         .build-btn { background: #00ffcc; color: #000; border: none; padding: 15px 40px; font-size: 18px; font-weight: bold; cursor: pointer; border-radius: 50px; box-shadow: 0 0 20px rgba(0, 255, 204, 0.4); }
         .build-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        /* 우측 하단 floating: 제외 케릭 설정 버튼 (작게) */
+        #exclude-fab { position: fixed; bottom: 16px; right: 16px; z-index: 9990; background: #ff6b6b; color: #fff; border: 2px solid transparent; padding: 7px 12px; border-radius: 20px; font-weight: bold; cursor: pointer; box-shadow: 0 3px 10px rgba(0,0,0,0.4); font-size: 11px; }
+        #exclude-fab:hover { background: #ff8c8c; }
+        #exclude-fab.has-excluded { animation: excludeBlink 1.2s ease-in-out infinite; }
+        @keyframes excludeBlink {
+            0%, 100% {
+                background: #ff6b6b;
+                border-color: #fff8;
+                box-shadow: 0 3px 10px rgba(0,0,0,0.4), 0 0 0 0 rgba(255,170,0,0.8);
+            }
+            50% {
+                background: #ffaa00;
+                border-color: #fff;
+                box-shadow: 0 3px 18px rgba(255,170,0,0.9), 0 0 0 6px rgba(255,170,0,0.25);
+            }
+        }
+        #exclude-count { font-size: 10px; opacity: 0.9; }
+        /* 검색 모달에서 제외된 캐릭 비활성화 */
+        .search-result-card.excluded { opacity: 0.4; cursor: not-allowed; pointer-events: none; position: relative; }
+        .search-result-card.excluded::after { content: '🚫 제외됨'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #ff6b6b; font-size: 11px; font-weight: bold; background: rgba(0,0,0,0.7); padding: 2px 6px; border-radius: 3px; }
+        /* 제외 모달 */
+        #exclude-mask { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; z-index: 9994; }
+        #exclude-mask.active { display: block; }
+        #exclude-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 480px; max-height: 80vh; background: #2a2a2a; border: 2px solid #4a90e2; border-radius: 8px; display: none; flex-direction: column; z-index: 9995; box-shadow: 0 0 30px rgba(74,144,226,0.5); }
+        #exclude-modal.active { display: flex; }
+        .exclude-modal-header { padding: 12px 14px; border-bottom: 1px solid #333; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+        .exclude-reset-btn { background: #ffcc00; color: #000; border: none; padding: 6px 14px; cursor: pointer; border-radius: 4px; font-weight: bold; }
+        .exclude-close-btn { background: #444; color: #fff; border: none; padding: 6px 12px; cursor: pointer; border-radius: 4px; font-weight: bold; }
+        .exclude-modal-search { padding: 10px 12px; border-bottom: 1px solid #333; display: flex; gap: 6px; flex-shrink: 0; }
+        .exclude-modal-search input { flex: 1; min-width: 0; }
+        .exclude-modal-list { flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: 12px; display: flex; flex-wrap: wrap; gap: 8px; align-content: flex-start; }
+
+        /* 선장 설정 탭 */
+        .captain-tabs { display: flex; gap: 4px; margin-bottom: 12px; border-bottom: 2px solid #333; }
+        .tab-btn { background: #222; color: #888; border: none; padding: 10px 20px; cursor: pointer; border-radius: 6px 6px 0 0; font-weight: bold; transition: all 0.15s; margin-bottom: -2px; }
+        .tab-btn:hover { color: #fff; background: #333; }
+        .tab-btn.active { background: #00ffcc; color: #000; border-bottom: 2px solid #00ffcc; }
+
         /* 캐릭터 이름 검색 모달 (우측 슬라이드 패널) — 좁고 1열 */
         #char-search-mask { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; z-index: 9996; cursor: pointer; }
         #char-search-mask.active { display: block; }
@@ -176,6 +214,24 @@
 </head>
 <body>
 
+    <!-- 우측 하단 floating: 제외 케릭 설정 버튼 -->
+    <button id="exclude-fab" onclick="openExcludeModal()">🚫 제외 설정 <span id="exclude-count"></span></button>
+
+    <!-- 제외 케릭 설정 팝업 -->
+    <div id="exclude-mask" onclick="closeExcludeModal()"></div>
+    <div id="exclude-modal">
+        <div class="exclude-modal-header">
+            <span style="flex:1; color:#ff6b6b; font-weight:bold;">🚫 제외 케릭 설정</span>
+            <button class="exclude-reset-btn" onclick="resetExcluded()">초기화</button>
+            <button class="exclude-close-btn" onclick="closeExcludeModal()">✕</button>
+        </div>
+        <div class="exclude-modal-search">
+            <input type="text" id="exclude-search-input" placeholder="캐릭터 이름 입력" onkeydown="if(event.key==='Enter') searchExcludeChar()">
+            <button onclick="searchExcludeChar()">검색</button>
+        </div>
+        <div class="exclude-modal-list" id="exclude-char-list"></div>
+    </div>
+
     <!-- 캐릭터 이름 검색 결과 모달 (우측 슬라이드 패널) -->
     <div id="char-search-mask" onclick="closeCharSearchModal()"></div>
     <div id="char-search-modal">
@@ -227,13 +283,29 @@
     </div>
 
     <div class="container">
-        <h2>🤝 친구선장</h2>
-        <div style="margin-bottom: 10px;">
-            <input type="text" id="friend-captain-input" placeholder="캐릭터 이름 입력" onkeydown="if(event.key==='Enter') searchFriendCaptain()">
-            <button onclick="searchFriendCaptain()">검색</button>
-            <span style="margin-left: 10px; color: #ff5252; font-size: 13px; font-weight: bold;">⚠ 친구선장을 선택하세요 (필수)</span>
+        <h2>🤝 선장 설정</h2>
+        <div class="captain-tabs">
+            <button class="tab-btn active" data-tab="friend" onclick="switchCaptainTab('friend')">친구선장</button>
+            <button class="tab-btn" data-tab="own" onclick="switchCaptainTab('own')">내 선장</button>
         </div>
-        <div id="friend-captain-display" style="min-height: 100px; padding: 10px; border: 1px solid #333; display: flex; align-items: center; gap: 10px;"></div>
+        <!-- 친구선장 탭 -->
+        <div class="captain-tab-content" id="tab-friend">
+            <div style="margin-bottom: 10px;">
+                <input type="text" id="friend-captain-input" placeholder="캐릭터 이름 입력" onkeydown="if(event.key==='Enter') searchFriendCaptain()">
+                <button onclick="searchFriendCaptain()">검색</button>
+                <span style="margin-left: 10px; color: #ff5252; font-size: 13px; font-weight: bold;">⚠ 친구선장을 선택하세요 (필수)</span>
+            </div>
+            <div id="friend-captain-display" style="min-height: 100px; padding: 10px; border: 1px solid #333; display: flex; align-items: center; gap: 10px;"></div>
+        </div>
+        <!-- 내 선장 탭 -->
+        <div class="captain-tab-content" id="tab-own" style="display:none;">
+            <div style="margin-bottom: 10px;">
+                <input type="text" id="own-captain-input" placeholder="캐릭터 이름 입력" onkeydown="if(event.key==='Enter') searchOwnCaptain()">
+                <button onclick="searchOwnCaptain()">검색</button>
+                <span style="margin-left: 10px; color: #ffcc00; font-size: 13px; font-weight: bold;">선택 시 무조건 자기 선장으로 사용 (선택)</span>
+            </div>
+            <div id="own-captain-display" style="min-height: 100px; padding: 10px; border: 1px solid #333; display: flex; align-items: center; gap: 10px;"></div>
+        </div>
     </div>
 
     <div class="container">
@@ -261,6 +333,8 @@
         let boostChars = [];
         let preferredChars = []; // 사용자 지정 필수 포함 캐릭 ID 목록 (string[])
         let friendCaptainId = null; // 사용자 지정 친구선장 ID (null이면 자기 선장과 동일)
+        let ownCaptainId = null;    // 사용자 지정 자기 선장 ID (선택, 설정 시 무조건 자기 선장으로 사용)
+        let excludedCharIds = [];   // 덱구성에서 완전 제외할 캐릭터 ID 목록
         let currentMaxRound = 3;
 
         // ===== 이벤트 로테이션 설정 =====
@@ -537,8 +611,10 @@
             }
             const boostData = eventBoostData[currentEventType];
             if (!boostData) return;
+            const excludedSet = new Set((excludedCharIds || []).map(String));
             for (const rank in boostData) {
                 boostData[rank].forEach(id => {
+                    if (excludedSet.has(String(id))) return; // 제외 목록 캐릭은 boost로 추가 안 함
                     if (!boostChars.some(c => c.id === id)) boostChars.push({ id, rank });
                 });
             }
@@ -570,15 +646,19 @@
             if (matches.length === 0) {
                 list.innerHTML = '<div style="padding: 20px; text-align: center; color: #888;">검색 결과 없음</div>';
             } else {
-                list.innerHTML = matches.map(m => `
-                    <div class="search-result-card" onclick="selectSearchResult('${m.id}')">
+                const excludedSet = new Set((excludedCharIds || []).map(String));
+                list.innerHTML = matches.map(m => {
+                    const isExcluded = excludedSet.has(String(m.id));
+                    const cls = isExcluded ? 'search-result-card excluded' : 'search-result-card';
+                    const onclick = isExcluded ? '' : `onclick="selectSearchResult('${m.id}')"`;
+                    return `<div class="${cls}" ${onclick}>
                         <img src="${generateImgSrc(m.id)}" onerror="this.style.opacity=0.3">
                         <div class="sr-info">
                             <div class="sr-id">${m.id}</div>
                             <div class="sr-name">${m.name}</div>
                         </div>
-                    </div>
-                `).join('');
+                    </div>`;
+                }).join('');
             }
             const mask = document.getElementById('char-search-mask');
             if (mask) mask.classList.add('active');
@@ -666,7 +746,12 @@
             list.innerHTML = rows;
         }
         
-        function removeBoost(id) { boostChars = boostChars.filter(c => c.id !== id); renderBoostList(); }
+        function removeBoost(id) {
+            // boost에서 제거 + 제외 목록에 자동 등록
+            boostChars = boostChars.filter(c => c.id !== id);
+            addExcluded(id);
+            renderBoostList();
+        }
 
         function addPreferred() {
             const input = document.getElementById('pref-id-input');
@@ -731,6 +816,126 @@
                 <div style="font-size:10px;">${friendCaptainId}</div>
                 <div style="font-size:9px; color:#aaa;">${name}</div>
             </div>`;
+        }
+
+        // 내 선장 처리
+        function searchOwnCaptain() {
+            const query = document.getElementById('own-captain-input').value.trim();
+            openCharSearchModal(query, (id) => {
+                ownCaptainId = id;
+                document.getElementById('own-captain-input').value = '';
+                renderOwnCaptain();
+            });
+        }
+        function clearOwnCaptain() {
+            ownCaptainId = null;
+            renderOwnCaptain();
+        }
+        function renderOwnCaptain() {
+            const display = document.getElementById('own-captain-display');
+            if (!display) return;
+            if (!ownCaptainId) { display.innerHTML = ''; return; }
+            const name = (window.units && window.units[ownCaptainId]?.name) || '';
+            display.innerHTML = `<div class="boost-card" style="border-color:#00ffcc;">
+                <span class="remove-x" onclick="clearOwnCaptain()">x</span>
+                <img src="${generateImgSrc(ownCaptainId)}" style="width:70px;">
+                <div style="font-size:10px;">${ownCaptainId}</div>
+                <div style="font-size:9px; color:#aaa;">${name}</div>
+            </div>`;
+        }
+
+        // 선장 탭 전환
+        function switchCaptainTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            const btn = document.querySelector(`.tab-btn[data-tab="${tab}"]`);
+            if (btn) btn.classList.add('active');
+            document.getElementById('tab-friend').style.display = tab === 'friend' ? 'block' : 'none';
+            document.getElementById('tab-own').style.display = tab === 'own' ? 'block' : 'none';
+        }
+
+        // ===== 제외 케릭 설정 =====
+        function openExcludeModal() {
+            document.getElementById('exclude-mask').classList.add('active');
+            document.getElementById('exclude-modal').classList.add('active');
+            document.body.classList.add('modal-open');
+            renderExcludedList();
+        }
+        function closeExcludeModal() {
+            document.getElementById('exclude-mask').classList.remove('active');
+            document.getElementById('exclude-modal').classList.remove('active');
+            document.body.classList.remove('modal-open');
+        }
+        function searchExcludeChar() {
+            const query = document.getElementById('exclude-search-input').value.trim();
+            // 제외 검색은 일반 검색 모달 사용 (선택 시 제외 목록에 추가)
+            openCharSearchModal(query, (id) => {
+                addExcluded(id);
+                document.getElementById('exclude-search-input').value = '';
+                renderExcludedList();
+            });
+        }
+        function addExcluded(id) {
+            const sid = String(id);
+            if (excludedCharIds.includes(sid)) return;
+            excludedCharIds.push(sid);
+            updateExcludeCount();
+            // boost 목록에 있으면 자동 제거
+            const boostIdx = boostChars.findIndex(c => String(c.id) === sid);
+            if (boostIdx !== -1) {
+                boostChars.splice(boostIdx, 1);
+                renderBoostList();
+            }
+            // 친구선장으로 설정되어 있으면 자동 제거
+            if (String(friendCaptainId) === sid) {
+                friendCaptainId = null;
+                renderFriendCaptain();
+            }
+            // 자기 선장으로 설정되어 있으면 자동 제거
+            if (String(ownCaptainId) === sid) {
+                ownCaptainId = null;
+                renderOwnCaptain();
+            }
+            // 필수 케릭에 있으면 자동 제거
+            if (preferredChars.some(p => String(p) === sid)) {
+                preferredChars = preferredChars.filter(p => String(p) !== sid);
+                renderPreferredList();
+            }
+        }
+        function removeExcluded(id) {
+            excludedCharIds = excludedCharIds.filter(x => String(x) !== String(id));
+            renderExcludedList();
+            updateExcludeCount();
+        }
+        function resetExcluded() {
+            if (excludedCharIds.length === 0) return;
+            if (!confirm('제외 목록을 모두 초기화하시겠습니까?')) return;
+            excludedCharIds = [];
+            renderExcludedList();
+            updateExcludeCount();
+        }
+        function updateExcludeCount() {
+            const el = document.getElementById('exclude-count');
+            const fab = document.getElementById('exclude-fab');
+            const has = excludedCharIds.length > 0;
+            if (el) el.textContent = has ? `(${excludedCharIds.length})` : '';
+            if (fab) fab.classList.toggle('has-excluded', has);
+        }
+        function renderExcludedList() {
+            const list = document.getElementById('exclude-char-list');
+            if (!list) return;
+            if (excludedCharIds.length === 0) {
+                list.innerHTML = '<div style="padding:30px; color:#888; text-align:center; width:100%;">제외 등록된 캐릭이 없습니다.<br><br>위에서 검색하거나, 특별효과 케릭 카드를 클릭하면 자동 등록됩니다.</div>';
+                return;
+            }
+            list.innerHTML = excludedCharIds.map(id => {
+                const u = window.units && window.units[id];
+                const name = u?.name || `ID${id}`;
+                return `<div class="boost-card" style="cursor:pointer; border-color:#ff6b6b;" onclick="removeExcluded('${id}')" title="클릭하여 제외 해제">
+                    <img src="${generateImgSrc(id)}" style="width:60px;">
+                    <div style="font-size:10px; color:#aaa;">${id}</div>
+                    <div style="font-size:9px; color:#fff;">${name}</div>
+                </div>`;
+            }).join('');
         }
 
         // units.js 메타데이터 매핑 (영문 type/class → 한글)
@@ -1526,7 +1731,11 @@
                 for (const id of solverIds) candidatePoolSet.add(String(id));
             }
             for (const b of (boostChars || [])) candidatePoolSet.add(String(b.id));
-            const candidatePool = [...candidatePoolSet].sort((a, b) => (parseInt(b) || 0) - (parseInt(a) || 0));
+            // 제외 캐릭 필터링
+            const excludedSet = new Set((excludedCharIds || []).map(String));
+            const candidatePool = [...candidatePoolSet]
+                .filter(id => !excludedSet.has(id))
+                .sort((a, b) => (parseInt(b) || 0) - (parseInt(a) || 0));
 
             let iter = 0;
             let slotIdx = 0;
@@ -1728,6 +1937,7 @@
             const memberSlots = ['m1','m2','m3','m4'];
             const MAX_ITER = 3;  // 5→3 (성능 최적화, 보통 1-2회면 충분)
             const boostIdSet = new Set((boostChars || []).map(b => String(b.id)));
+            const excludedSet = new Set((excludedCharIds || []).map(String));
             const boostRankMap = new Map((boostChars || []).map(b => [String(b.id), b.rank]));
             const rankScore = r => ({A:0, B:1, C:2, D:3, E:4}[r] ?? 99);
             // 멤버 호환성: 자기 선장 + 친구선장 양쪽 모두 만족 체크
@@ -1756,6 +1966,7 @@
                     // 사전 필터링된 솔버 후보 사용 (성능 최적화: 5000+ → 수십~수백)
                     const solverIds = _getGimmickSolvers(rg.name);
                     for (const id of solverIds) {
+                        if (excludedSet.has(String(id))) continue; // 제외 캐릭 차단
                         if (deckIds.has(String(id))) continue;
                         const u = getUnitMeta(id);
                         if (u?.name) {
@@ -1930,16 +2141,21 @@
             // Captain 강제 후보 목록 (boost A + preferred만)
             //   비-boost는 Phase 1/3 랜덤에서 1-c 폴백으로만 사용 (boost A가 호환 안 될 때)
             //   ⇒ boost A 호환 캐릭이 있으면 captain은 항상 boost A
+            //   ※ 사용자 ownCaptainId가 설정되면 모든 trial에 강제 적용되므로 forced 풀 비움
             const buildForcedCaptains = () => {
+                if (ownCaptainId) return [ownCaptainId];
                 const list = [];
                 const seen = new Set();
+                const excludedSet = new Set((excludedCharIds || []).map(String));
+                // 제외 캐릭은 captain 후보에서도 제외
+                const isNotExcluded = (id) => !excludedSet.has(String(id));
                 for (const b of (boostChars || [])) {
-                    if (b.rank === 'A' && window.details_kor[b.id] && !seen.has(b.id)) {
+                    if (b.rank === 'A' && window.details_kor[b.id] && !seen.has(b.id) && isNotExcluded(b.id)) {
                         list.push(b.id); seen.add(b.id);
                     }
                 }
                 for (const id of (preferredChars || [])) {
-                    if (window.details_kor[id] && !seen.has(id)) {
+                    if (window.details_kor[id] && !seen.has(id) && isNotExcluded(id)) {
                         list.push(id); seen.add(id);
                     }
                 }
@@ -1960,6 +2176,7 @@
                     const allCands = [];
                     for (const id in window.details_kor) {
                         if (boostIdSet.has(String(id)) || seen.has(id)) continue;
+                        if (!isNotExcluded(id)) continue; // 제외 캐릭 차단
                         const data = window.details_kor[id];
                         if (!data?.captain) continue;
                         const mult = getAttackMultiplier(data.captain);
@@ -2061,7 +2278,8 @@
         function _buildDeckSingle(opts = {}) {
             // boost 캐릭이 없어도 진행 — 전체 캐릭터로 폴백 매칭됨
             // opts.forcedCaptainId: 지정 시 그 ID를 자기 선장으로 강제 (1-a 우회)
-            const forcedCaptainId = opts.forcedCaptainId || null;
+            // 사용자가 ownCaptainId를 설정했으면 무조건 그것을 우선 (모든 trial에 강제 적용)
+            const forcedCaptainId = ownCaptainId || opts.forcedCaptainId || null;
             let deck = { f1: null, c1: null, m1: null, m2: null, m3: null, m4: null, s1: null, s2: null, s3: null, s4: null, s5: null };
             let usedIds = new Set();
             let usedNames = new Set();
@@ -2080,9 +2298,11 @@
                 });
             }
 
+            const excludedSet = new Set((excludedCharIds || []).map(String));
             const isDuplicate = (id) => {
                 const charData = window.details_kor[id];
                 if (!charData) return true;
+                if (excludedSet.has(String(id))) return true; // 제외 목록 — 절대 안 들어감
                 if (usedIds.has(id)) return true;
                 const name = getUnitMeta(id)?.name;
                 if (!name) return false;
@@ -2794,6 +3014,7 @@
         renderFriendCaptain();
         _highlightActiveEventButton();
         _updateBoostBtnLabel();
+        updateExcludeCount();
     </script>
 </body>
 </html>
