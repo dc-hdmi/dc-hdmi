@@ -623,7 +623,8 @@
 
         // ===== 캐릭터 이름 검색 모달 =====
         let _currentSearchOnSelect = null;
-        function openCharSearchModal(query, onSelect) {
+        function openCharSearchModal(query, onSelect, options = {}) {
+            const ignoreExcluded = !!options.ignoreExcluded; // true면 제외 캐릭도 선택 가능
             const modal = document.getElementById('char-search-modal');
             const list = document.getElementById('char-search-results');
             const title = document.getElementById('char-search-title');
@@ -648,7 +649,8 @@
             } else {
                 const excludedSet = new Set((excludedCharIds || []).map(String));
                 list.innerHTML = matches.map(m => {
-                    const isExcluded = excludedSet.has(String(m.id));
+                    // ignoreExcluded 모드: 친구선장 검색 등 — 제외 캐릭도 선택 가능
+                    const isExcluded = !ignoreExcluded && excludedSet.has(String(m.id));
                     const cls = isExcluded ? 'search-result-card excluded' : 'search-result-card';
                     const onclick = isExcluded ? '' : `onclick="selectSearchResult('${m.id}')"`;
                     return `<div class="${cls}" ${onclick}>
@@ -692,11 +694,12 @@
         }
         function searchFriendCaptain() {
             const query = document.getElementById('friend-captain-input').value.trim();
+            // 친구선장은 제외 목록과 무관하게 선택 가능 (보유 안 해도 빌릴 수 있음)
             openCharSearchModal(query, (id) => {
                 friendCaptainId = id;
                 document.getElementById('friend-captain-input').value = '';
                 renderFriendCaptain();
-            });
+            }, { ignoreExcluded: true });
         }
         function searchPreferred() {
             const query = document.getElementById('pref-id-input').value.trim();
@@ -885,11 +888,7 @@
                 boostChars.splice(boostIdx, 1);
                 renderBoostList();
             }
-            // 친구선장으로 설정되어 있으면 자동 제거
-            if (String(friendCaptainId) === sid) {
-                friendCaptainId = null;
-                renderFriendCaptain();
-            }
+            // 친구선장은 제외 목록과 무관 — 유지 (보유 안 해도 빌릴 수 있음)
             // 자기 선장으로 설정되어 있으면 자동 제거
             if (String(ownCaptainId) === sid) {
                 ownCaptainId = null;
