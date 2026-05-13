@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <title>트갤 토벌 페스티벌 특수 능력 케릭 목록</title>
+    <script src="units.js?v=20260513"></script>
+    <script src="details_kor.js?v=20260513"></script>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            background-color: #111;
+            color: #eee;
+            font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+            margin: 0;
+            padding: 16px;
+            line-height: 1.5;
+        }
+        h1 {
+            font-size: 20px;
+            margin: 0 0 8px 0;
+            border-left: 5px solid #00ffcc;
+            padding-left: 12px;
+        }
+        .summary {
+            color: #aaa;
+            font-size: 13px;
+            margin-bottom: 16px;
+        }
+        .summary .count { color: #00ffcc; font-weight: bold; }
+        .toolbar {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+        }
+        .toolbar input {
+            flex: 1;
+            min-width: 180px;
+            background: #222;
+            border: 1px solid #444;
+            color: #fff;
+            padding: 8px 10px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .toolbar input:focus { outline: none; border-color: #00ffcc; }
+        .list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .row {
+            display: grid;
+            grid-template-columns: 96px 1fr;
+            gap: 12px;
+            background: #1c1c1c;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 12px;
+        }
+        .col-img {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+        .col-img img {
+            width: 84px;
+            height: 84px;
+            border-radius: 6px;
+            background: #000;
+        }
+        .char-id {
+            font-size: 11px;
+            color: #888;
+        }
+        .col-info {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            min-width: 0;
+        }
+        .name-row {
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .char-name {
+            font-size: 17px;
+            font-weight: bold;
+            color: #fff;
+        }
+        .char-cost {
+            font-size: 12px;
+            color: #ffcc00;
+            background: rgba(255, 204, 0, 0.12);
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+        .section {
+            border-top: 1px dashed #333;
+            padding-top: 6px;
+        }
+        .section-label {
+            font-size: 11px;
+            color: #00ffcc;
+            font-weight: bold;
+            margin-bottom: 4px;
+            letter-spacing: 0.5px;
+        }
+        .section-body {
+            font-size: 13px;
+            color: #ddd;
+            word-break: keep-all;
+            white-space: pre-wrap;
+        }
+        .cooldown {
+            display: inline-block;
+            background: #2c2c2c;
+            color: #aaa;
+            font-size: 11px;
+            padding: 1px 6px;
+            border-radius: 8px;
+            margin-right: 6px;
+        }
+        .fest-highlight {
+            color: #ff5252;
+            font-weight: bold;
+        }
+        .empty {
+            color: #666;
+            font-style: italic;
+        }
+        @media (max-width: 600px) {
+            body { padding: 10px; }
+            .row {
+                grid-template-columns: 72px 1fr;
+                gap: 10px;
+                padding: 10px;
+            }
+            .col-img img { width: 64px; height: 64px; }
+            .char-name { font-size: 15px; }
+            .section-body { font-size: 12px; }
+        }
+    </style>
+</head>
+<body>
+    <h1>토벌 페스티벌 특수 능력 케릭 목록</h1>
+    <div class="summary">
+        <span class="count" id="char-count">0</span>명 ·
+        해적제 필살기 설명에 "토벌 페스티벌일 경우" 효과가 포함된 캐릭터 목록
+    </div>
+    <div class="toolbar">
+        <input type="text" id="search-input" placeholder="캐릭터 이름 또는 ID로 검색">
+    </div>
+    <div class="list" id="char-list"></div>
+
+    <script>
+        const TARGET_IDS = [
+            4411, 4412, 4427, 4428, 4458, 4461, 4462, 4464, 4465, 4468,
+            4478, 4479, 4481, 4489, 4493, 4494, 4495, 4497, 4505, 4506,
+            4507, 4508, 4509, 4511, 4514, 4523, 4524, 4525, 4527, 4550,
+            4551, 4552, 4553, 4565, 4566, 4569, 4570, 4573, 4575
+        ];
+        const HIGHLIGHT_PHRASE = '토벌 페스티벌일 경우';
+
+        function generateImgSrc(id) {
+            const i = parseInt(id);
+            return `https://hayaden.github.io/optcDB_Ko/api/images/thumbnail/glo/${Math.floor(i / 1000)}/${(Math.floor((i % 1000) / 100) * 100).toString().padStart(3, '0')}/${i.toString().padStart(4, '0')}.png`;
+        }
+
+        function escapeHtml(s) {
+            return String(s)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function highlight(text) {
+            if (!text) return '';
+            const safe = escapeHtml(text);
+            const escPhrase = HIGHLIGHT_PHRASE.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            return safe.replace(new RegExp(escPhrase, 'g'),
+                `<span class="fest-highlight">${HIGHLIGHT_PHRASE}</span>`);
+        }
+
+        function lastOf(arr) {
+            if (!Array.isArray(arr) || arr.length === 0) return null;
+            return arr[arr.length - 1];
+        }
+
+        function buildRow(id) {
+            const meta = (window.units && window.units[id]) || {};
+            const detail = (window.details_kor && window.details_kor[id]) || {};
+            const name = meta.name || '(이름 없음)';
+            const cost = meta.cost != null ? `코스트 ${meta.cost}` : '코스트 -';
+
+            const abilityLast = lastOf(detail.festAbility);
+            const specialLast = lastOf(detail.festSpecial);
+
+            let abilityHtml = '<span class="empty">정보 없음</span>';
+            if (abilityLast) abilityHtml = highlight(abilityLast);
+
+            let specialHtml = '<span class="empty">정보 없음</span>';
+            if (specialLast) {
+                if (typeof specialLast === 'string') {
+                    specialHtml = highlight(specialLast);
+                } else {
+                    const cd = specialLast.cooldown != null
+                        ? `<span class="cooldown">쿨타임 ${specialLast.cooldown}</span>`
+                        : '';
+                    specialHtml = cd + highlight(specialLast.description || '');
+                }
+            }
+
+            return `
+                <div class="row" data-id="${id}" data-name="${escapeHtml(name)}">
+                    <div class="col-img">
+                        <img src="${generateImgSrc(id)}" alt="${escapeHtml(name)}"
+                             onerror="this.style.opacity=0.3">
+                        <div class="char-id">ID ${id}</div>
+                    </div>
+                    <div class="col-info">
+                        <div class="name-row">
+                            <span class="char-name">${escapeHtml(name)}</span>
+                            <span class="char-cost">${escapeHtml(cost)}</span>
+                        </div>
+                        <div class="section">
+                            <div class="section-label">해적제 능력</div>
+                            <div class="section-body">${abilityHtml}</div>
+                        </div>
+                        <div class="section">
+                            <div class="section-label">해적제 필살기</div>
+                            <div class="section-body">${specialHtml}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function render() {
+            const listEl = document.getElementById('char-list');
+            listEl.innerHTML = TARGET_IDS.map(buildRow).join('');
+            document.getElementById('char-count').textContent = TARGET_IDS.length;
+        }
+
+        function applyFilter() {
+            const q = document.getElementById('search-input').value.trim().toLowerCase();
+            const rows = document.querySelectorAll('#char-list .row');
+            let visible = 0;
+            rows.forEach(row => {
+                if (!q) {
+                    row.style.display = '';
+                    visible++;
+                    return;
+                }
+                const id = row.getAttribute('data-id') || '';
+                const name = (row.getAttribute('data-name') || '').toLowerCase();
+                const match = id.includes(q) || name.includes(q);
+                row.style.display = match ? '' : 'none';
+                if (match) visible++;
+            });
+            document.getElementById('char-count').textContent = visible;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            render();
+            document.getElementById('search-input').addEventListener('input', applyFilter);
+        });
+    </script>
+</body>
+</html>
