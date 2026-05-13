@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-    <title>트갤 토벌 페스티벌 특수 능력 케릭 목록</title>
+    <title>토벌 페스티벌 특수 능력 케릭 목록</title>
     <script src="units.js?v=20260513"></script>
     <script src="details_kor.js?v=20260513"></script>
     <style>
@@ -148,7 +148,7 @@
     </style>
 </head>
 <body>
-    <h1>트갤 토벌 페스티벌 특수 능력 케릭 목록</h1>
+    <h1>토벌 페스티벌 특수 능력 케릭 목록</h1>
     <div class="summary">
         <span class="count" id="char-count">0</span>명 ·
         해적제 필살기 설명에 "토벌 페스티벌일 경우" 효과가 포함된 캐릭터 목록
@@ -194,14 +194,24 @@
             return arr[arr.length - 1];
         }
 
+        function resolveLeveled(v) {
+            if (v == null) return null;
+            if (Array.isArray(v)) return lastOf(v);
+            if (typeof v === 'object') {
+                const arr = v.llbbase || v.base || v.lb || null;
+                if (Array.isArray(arr)) return lastOf(arr);
+            }
+            return null;
+        }
+
         function buildRow(id) {
             const meta = (window.units && window.units[id]) || {};
             const detail = (window.details_kor && window.details_kor[id]) || {};
             const name = meta.name || '(이름 없음)';
             const cost = meta.cost != null ? `코스트 ${meta.cost}` : '코스트 -';
 
-            const abilityLast = lastOf(detail.festAbility);
-            const specialLast = lastOf(detail.festSpecial);
+            const abilityLast = resolveLeveled(detail.festAbility);
+            const specialLast = resolveLeveled(detail.festSpecial);
 
             let abilityHtml = '<span class="empty">정보 없음</span>';
             if (abilityLast) abilityHtml = highlight(abilityLast);
