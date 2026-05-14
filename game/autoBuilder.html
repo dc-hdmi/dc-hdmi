@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
     <title>OPTC 덱 구성 시뮬레이터</title>
-    <script src="units.js?v=20260504"></script>
-    <script src="details_kor.js?v=20260504"></script>
+    <script src="units.js?v=20260508"></script>
+    <script src="details_kor.js?v=20260508"></script>
     <style>
         body { background-color: #000; color: #fff; font-family: 'Malgun Gothic', sans-serif; margin: 20px; }
         h2 { border-left: 5px solid #fff; padding-left: 15px; margin-bottom: 20px; font-size: 22px; }
@@ -19,7 +19,7 @@
         .round-ctrl-area { margin-bottom: 15px; display: flex; justify-content: center; align-items: center; gap: 15px; }
         .event-btn-group { display: flex; gap: 10px; }
         #btn-round-ctrl { background: #ffcc00; color: #000; padding: 8px 15px; border-radius: 5px; cursor: pointer; border:none; font-weight: bold; }
-        .load-btn { background: #4a90e2; color: #fff; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; border: none; }
+        .load-btn { background: #4a90e2; color: #fff; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; border: none; transition: background 0.18s, transform 0.18s, box-shadow 0.18s, outline-color 0.18s; }
         .reset-btn { background: #6c757d; color: #fff; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; border: none; }
         #boost-list { display: flex; flex-direction: column; gap: 8px; margin-top: 15px; min-height: 100px; border: 1px solid #333; padding: 10px; }
         .boost-rank-row { display: flex; align-items: flex-start; gap: 10px; }
@@ -183,6 +183,9 @@
 
             input, select { padding: 5px; font-size: 13px; }
             button { padding: 6px 10px; font-size: 13px; }
+
+            /* input-hint: 검색 라인 아래로 줄바꿈 */
+            .input-hint { display: block; margin-left: 0 !important; margin-top: 6px; }
         }
 
         /* ===== 작은 모바일 (480px 이하) ===== */
@@ -256,6 +259,7 @@
                 <button class="load-btn" id="btn-load-트맵[보스]" onclick="loadEventGimmicks('트맵[보스]')">트맵[보스] 패턴 📂</button>
                 <button class="load-btn" id="btn-load-트맵[난입]" onclick="loadEventGimmicks('트맵[난입]')">트맵[난입] 패턴 📂</button>
                 <button class="load-btn" id="btn-load-유대" onclick="loadEventGimmicks('유대')">유대 패턴 📂</button>
+                <button class="load-btn" id="btn-load-대난투" onclick="loadEventGimmicks('대난투')">대난투 패턴 📂</button>
             </div>
             <button class="reset-btn" onclick="resetGimmicks()">패턴 초기화 🔄</button>
             <button id="btn-round-ctrl" onclick="toggleRound()">배틀 라운드 추가 +</button>
@@ -293,7 +297,7 @@
             <div style="margin-bottom: 10px;">
                 <input type="text" id="friend-captain-input" placeholder="캐릭터 이름 입력" onkeydown="if(event.key==='Enter') searchFriendCaptain()">
                 <button onclick="searchFriendCaptain()">검색</button>
-                <span style="margin-left: 10px; color: #ff5252; font-size: 13px; font-weight: bold;">⚠ 친구선장을 선택하세요 (필수)</span>
+                <span class="input-hint" style="margin-left: 10px; color: #ff5252; font-size: 13px; font-weight: bold;">⚠ 친구선장을 선택하세요 (필수)</span>
             </div>
             <div id="friend-captain-display" style="min-height: 100px; padding: 10px; border: 1px solid #333; display: flex; align-items: center; gap: 10px;"></div>
         </div>
@@ -302,7 +306,7 @@
             <div style="margin-bottom: 10px;">
                 <input type="text" id="own-captain-input" placeholder="캐릭터 이름 입력" onkeydown="if(event.key==='Enter') searchOwnCaptain()">
                 <button onclick="searchOwnCaptain()">검색</button>
-                <span style="margin-left: 10px; color: #ffcc00; font-size: 13px; font-weight: bold;">선택 시 무조건 자기 선장으로 사용 (선택)</span>
+                <span class="input-hint" style="margin-left: 10px; color: #ffcc00; font-size: 13px; font-weight: bold;">선택 시 무조건 자기 선장으로 사용 (선택)</span>
             </div>
             <div id="own-captain-display" style="min-height: 100px; padding: 10px; border: 1px solid #333; display: flex; align-items: center; gap: 10px;"></div>
         </div>
@@ -313,7 +317,7 @@
         <div style="margin-bottom: 10px;">
             <input type="text" id="pref-id-input" placeholder="캐릭터 이름 입력" onkeydown="if(event.key==='Enter') searchPreferred()">
             <button onclick="searchPreferred()">검색</button>
-            <span style="margin-left: 10px; color: #888; font-size: 12px;">무조건 덱에 포함됩니다</span>
+            <span class="input-hint" style="margin-left: 10px; color: #888; font-size: 12px;">무조건 덱에 포함됩니다</span>
         </div>
         <div id="pref-list" style="display: flex; flex-wrap: wrap; gap: 10px; min-height: 80px; border: 1px solid #333; padding: 10px;"></div>
     </div>
@@ -348,7 +352,8 @@
             '궤적': `{"battleInfo": {"3": [{"name": "[폭탄]슬롯 변환", "turn": 0}, {"name": "공격력 감소", "turn": 7}, {"name": "선장효과 무효", "turn": 8}, {"name": "슬롯 고정", "turn": 1}],"4": [{"name": "일정이상 데미지 감소(격감)", "turn": 7}, {"name": "남은 체력 1로 버티기", "turn": 7}],"5": [{"name": "선장효과 무효", "turn": 10}, {"name": "방어력 상승", "turn": 6}, {"name": "방어력 감소 무효", "turn": 98}, {"name": "[독]슬롯 변환", "turn": 0}, {"name": "[방해]슬롯 변환", "turn": 0}, {"name": "[마비]슬롯 변환", "turn": 0}, {"name": "필살기 봉쇄", "turn": 7}, {"name": "봉쇄", "turn": 9, "scope": {"row": ["middle","bottom"], "col": "left"}}, {"name": "필살기 턴 되돌리기", "turn": 2, "scope": {"row": ["middle","bottom"], "col": "right"}}]}}`,
             '트맵[보스]': `{"battleInfo": {}}`,
             '트맵[난입]': `{"battleInfo": {}}`,
-            '유대': `{"battleInfo": {}}`
+            '유대': `{"battleInfo": {}}`,
+            '대난투': `{"battleInfo": {}}`
         };
         // 이벤트별 특별효과 캐릭 목록
         // 활성 이벤트 패턴을 불러오면 해당 이벤트의 boost 목록이 사용됨
@@ -369,6 +374,11 @@
             },
             '유대': {
                 "A": [], "B": [], "C": [], "D": [], "E": []
+            },
+            '대난투': {
+                "A": ["4571", "4557", "4560", "4563", "4561"],
+                "B": ["4567", "4565", "4568"],
+                "C": [], "D": [], "E": []
             }
         };
 
@@ -384,6 +394,12 @@
                 const info = data.battleInfo || {};
                 return Object.keys(info).length === 0;
             } catch (e) { return true; }
+        }
+
+        // 기믹 패턴은 없지만 특별효과 캐릭 목록만 있는 이벤트 (예: 대난투)
+        function _hasBoostData(eventType) {
+            const data = eventBoostData[eventType] || {};
+            return Object.values(data).some(arr => Array.isArray(arr) && arr.length > 0);
         }
         const patterns = ["선장효과 무효", "데미지 감소", "데미지 격감", "방어력 상승", "방어력 감소 무효", "화상", "마비", "공격력 감소", "필살기 봉쇄", "봉쇄", "위압", "필살기 턴 되돌리기", "데미지 무효", "일정이상 데미지 감소(격감)", "기절", "[방해]슬롯 변환", "[폭탄]슬롯 변환", "[고기]슬롯 변환", "[불리]슬롯 변환", "[공백]슬롯 변환", "[독]슬롯 변환", "[마비]슬롯 변환", "슬롯 고정", "필살기 턴 고정", "선장효과", "날려버리기", "의성어 은폐", "베리어", "남은 체력 1로 버티기", "특정 슬롯 사용 시 공격력 감소", "독"];
 
@@ -457,7 +473,21 @@
         function loadEventGimmicks(eventType) {
             const raw = eventGimmicksData[eventType];
             if (!raw) { alert(`${eventType} 패턴 데이터가 없습니다.`); return; }
+            // 패턴 전환 시 이전 이벤트의 특별효과 캐릭 목록은 초기화
+            boostChars = [];
+            renderBoostList();
             if (_isEventEmpty(eventType)) {
+                if (_hasBoostData(eventType)) {
+                    // 기믹은 없고 특별효과 캐릭만 있는 이벤트 — 선택만 갱신하고 기믹은 비움
+                    currentEventType = eventType;
+                    userPickedEvent = true;
+                    _updateBoostBtnLabel();
+                    _highlightActiveEventButton();
+                    activeGimmicks = { 2: [], 3: [], 4: [], 5: [] };
+                    currentMaxRound = 3;
+                    initRounds();
+                    return;
+                }
                 alert(`${eventType} 이벤트는 아직 패턴이 등록되지 않았습니다.`);
                 return;
             }
@@ -503,44 +533,59 @@
         //   - 활성 이벤트(ACTIVE_EVENT): ⭐ 강조
         //   - 사용자가 클릭한 이벤트: 파란 외곽선
         function _highlightActiveEventButton() {
-            ['궤적', '트맵[보스]', '트맵[난입]', '유대'].forEach(ev => {
+            ['궤적', '트맵[보스]', '트맵[난입]', '유대', '대난투'].forEach(ev => {
                 const btn = document.getElementById(`btn-load-${ev}`);
                 if (!btn) return;
                 const isEmpty = _isEventEmpty(ev);
+                const hasBoost = _hasBoostData(ev);
+                const boostOnly = isEmpty && hasBoost;
                 const isActive = (ev === ACTIVE_EVENT);
                 const isPicked = userPickedEvent && (ev === currentEventType);
 
                 // 텍스트 라벨
                 let label = `${ev} 패턴`;
-                if (isActive) label += ' ⭐';
-                if (isEmpty) label += ' (준비중)';
+                if (isEmpty && !hasBoost) label += ' (준비중)';
                 btn.textContent = label;
 
-                if (isEmpty) {
-                    // 패턴 없음: 비활성화
+                if (isEmpty && !hasBoost) {
+                    // 패턴/캐릭 모두 없음: 비활성화
                     btn.disabled = true;
                     btn.style.opacity = '0.4';
                     btn.style.cursor = 'not-allowed';
                     btn.style.background = '#555';
+                    btn.style.color = '';
                     btn.style.outline = '';
+                    btn.style.boxShadow = '';
+                    btn.style.transform = '';
                     btn.style.fontWeight = '';
                     btn.title = '패턴이 아직 등록되지 않았습니다';
                 } else {
                     btn.disabled = false;
                     btn.style.opacity = '';
                     btn.style.cursor = '';
-                    btn.style.background = '';
                     if (isPicked) {
-                        // 사용자가 선택한 이벤트: 파란 외곽선
-                        btn.style.outline = '3px solid #4dd0e1';
+                        // 사용자가 선택한 이벤트: 강한 주황색 배경 + 글로우 + 살짝 확대
+                        btn.style.background = '#ff9800';
+                        btn.style.color = '#000';
+                        btn.style.outline = '3px solid #fff';
+                        btn.style.boxShadow = '0 0 14px rgba(255,152,0,0.85), 0 0 0 4px rgba(255,152,0,0.25)';
+                        btn.style.transform = 'scale(1.06)';
                         btn.style.fontWeight = 'bold';
                         btn.title = '현재 선택된 이벤트';
                     } else if (isActive) {
                         // 활성 이벤트(소스 설정): 노란 외곽선
+                        btn.style.background = '';
+                        btn.style.color = '';
                         btn.style.outline = '2px solid #ffd54f';
+                        btn.style.boxShadow = '';
+                        btn.style.transform = '';
                         btn.style.fontWeight = 'bold';
                         btn.title = '이번 달 활성 이벤트';
                     } else {
+                        btn.style.background = '';
+                        btn.style.color = '';
+                        btn.style.boxShadow = '';
+                        btn.style.transform = '';
                         btn.style.outline = '';
                         btn.style.fontWeight = '';
                         btn.title = '';
