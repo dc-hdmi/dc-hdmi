@@ -359,6 +359,36 @@
             font-size: 13px;
         }
 
+        .page-loader {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.75);
+            backdrop-filter: blur(3px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 14px;
+            z-index: 99999;
+        }
+        .page-loader.active { display: flex; }
+        .page-loader-spinner {
+            width: 58px;
+            height: 58px;
+            border: 4px solid rgba(0,255,204,0.18);
+            border-top-color: #00ffcc;
+            border-radius: 50%;
+            animation: pageSpin 0.8s linear infinite;
+        }
+        .page-loader-text {
+            color: #00ffcc;
+            font-size: 14px;
+            font-weight: 800;
+            letter-spacing: 1px;
+            text-shadow: 0 0 8px rgba(0,255,204,0.4);
+        }
+        @keyframes pageSpin { to { transform: rotate(360deg); } }
+
         .webstore-fab {
             position: fixed;
             bottom: 20px;
@@ -488,6 +518,11 @@
         <span class="fab-icon">▶</span>
         <span>유튜버</span>
     </button>
+
+    <div class="page-loader" id="page-loader">
+        <div class="page-loader-spinner"></div>
+        <div class="page-loader-text">페이지를 불러오는 중...</div>
+    </div>
 
     <div class="yt-modal-mask" id="yt-modal-mask"></div>
     <div class="yt-modal" id="yt-modal" role="dialog" aria-labelledby="yt-modal-title">
@@ -668,6 +703,13 @@
             document.body.style.overflow = '';
         }
 
+        function showPageLoader() {
+            document.getElementById('page-loader').classList.add('active');
+        }
+        function hidePageLoader() {
+            document.getElementById('page-loader').classList.remove('active');
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             render('');
             document.getElementById('search-input').addEventListener('input', (e) => {
@@ -679,7 +721,19 @@
             document.addEventListener('keydown', (e) => {
                 if (e.key === 'Escape') closeYoutuberModal();
             });
+
+            // 카드 클릭 시 같은 탭 이동인 경우 로딩 표시
+            document.getElementById('tools-grid').addEventListener('click', (e) => {
+                const link = e.target.closest('a.card');
+                if (!link) return;
+                if (link.target === '_blank') return;
+                if (e.ctrlKey || e.metaKey || e.shiftKey || e.button !== 0) return;
+                showPageLoader();
+            });
         });
+
+        // 뒤로가기 / bfcache 복귀 시 로더 숨김
+        window.addEventListener('pageshow', hidePageLoader);
     </script>
 </body>
 </html>
