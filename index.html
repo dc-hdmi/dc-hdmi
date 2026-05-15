@@ -1,50 +1,411 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>트갤 미니 게임</title>
-  <style>
-    body {
-      font-family: sans-serif;
-      text-align: center;
-      padding: 50px 20px; /* 좌우 여백 추가 */
-    }
-  
-    button {
-      display: inline-block;
-      width: 100%;
-      max-width: 280px;     /* 최대 크기 제한 */
-      height: 60px;
-      margin: 10px auto;    /* 수직 여백 + 좌우 중앙 정렬 */
-      font-size: 18px;
-      cursor: pointer;
-      border: none;
-      border-radius: 8px;
-      background-color: #00b894;
-      color: white;
-      transition: background-color 0.2s;
-    }
-  
-    button:hover {
-      background-color: #019874;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <title>트갤 OPTC 도구 모음</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            background: radial-gradient(ellipse at top, #1a1a2e 0%, #0a0a14 50%, #050508 100%);
+            color: #eee;
+            font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+            margin: 0;
+            min-height: 100vh;
+            padding: 24px 16px 48px;
+            line-height: 1.5;
+        }
+
+        .site-header {
+            max-width: 1100px;
+            margin: 0 auto 28px;
+            text-align: center;
+        }
+        .site-title {
+            font-size: 32px;
+            font-weight: 900;
+            margin: 0 0 8px;
+            letter-spacing: 1px;
+            background: linear-gradient(90deg, #00ffcc, #4dd0e1, #ffd54f);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .site-subtitle {
+            color: #888;
+            font-size: 14px;
+            margin: 0;
+        }
+
+        .toolbar {
+            max-width: 1100px;
+            margin: 0 auto 20px;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .search-input {
+            flex: 1;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.15);
+            color: #fff;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.15s, background 0.15s;
+        }
+        .search-input:focus {
+            outline: none;
+            border-color: #00ffcc;
+            background: rgba(0,255,204,0.06);
+        }
+        .search-input::placeholder { color: #666; }
+        .result-count {
+            color: #888;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+        .result-count strong { color: #00ffcc; }
+
+        .grid {
+            max-width: 1100px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+        }
+
+        .card {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 12px;
+            background: linear-gradient(160deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
+            border: 1px solid rgba(255,255,255,0.10);
+            border-radius: 12px;
+            padding: 12px 16px;
+            color: inherit;
+            text-decoration: none;
+            transition: transform 0.18s, border-color 0.18s, box-shadow 0.18s, background 0.18s;
+            position: relative;
+            overflow: hidden;
+        }
+        .card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at top right, rgba(0,255,204,0.10), transparent 60%);
+            opacity: 0;
+            transition: opacity 0.18s;
+            pointer-events: none;
+        }
+        .card:hover {
+            transform: translateY(-3px);
+            border-color: #00ffcc;
+            box-shadow: 0 10px 28px rgba(0,255,204,0.18);
+            background: linear-gradient(160deg, rgba(0,255,204,0.06), rgba(255,255,255,0.02));
+        }
+        .card:hover::before { opacity: 1; }
+
+        .card-icon {
+            font-size: 26px;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0,255,204,0.10);
+            border: 1px solid rgba(0,255,204,0.30);
+            border-radius: 10px;
+            flex-shrink: 0;
+        }
+        .card-title {
+            font-size: 17px;
+            font-weight: 700;
+            color: #fff;
+            margin: 0;
+            letter-spacing: 0.3px;
+            flex: 0 1 auto;
+            min-width: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .card-tags {
+            display: flex;
+            flex-wrap: nowrap;
+            gap: 6px;
+            margin-left: auto;
+            flex-shrink: 0;
+        }
+        .tag {
+            font-size: 11px;
+            color: #80deea;
+            background: rgba(0,255,204,0.08);
+            border: 1px solid rgba(0,255,204,0.25);
+            padding: 2px 8px;
+            border-radius: 999px;
+            letter-spacing: 0.3px;
+        }
+        .card-arrow {
+            color: #555;
+            font-size: 16px;
+            transition: color 0.18s, transform 0.18s;
+            flex-shrink: 0;
+            margin-left: 4px;
+        }
+        .card:hover .card-arrow {
+            color: #00ffcc;
+            transform: translateX(3px);
+        }
+
+        .empty-state {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 60px 20px;
+            color: #555;
+            font-size: 14px;
+        }
+
+        footer {
+            max-width: 1100px;
+            margin: 36px auto 0;
+            text-align: center;
+            color: #444;
+            font-size: 11px;
+        }
+
+        .webstore-fab {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 18px;
+            background: #1f2937;
+            color: #fde047;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 900;
+            border-radius: 999px;
+            border: 2px solid #fde047;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+            transition: transform 0.2s, box-shadow 0.2s, background 0.2s, color 0.2s;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+            animation: webstoreFabPulse 2.5s ease-in-out infinite;
+        }
+        .webstore-fab:hover {
+            transform: translateY(-3px) scale(1.05);
+            background: #fde047;
+            color: #1f2937;
+            box-shadow: 0 10px 28px rgba(253,224,71,0.55);
+        }
+        .webstore-fab .fab-icon { font-size: 18px; line-height: 1; }
+        @keyframes webstoreFabPulse {
+            0%, 100% { box-shadow: 0 6px 20px rgba(0,0,0,0.5), 0 0 0 0 rgba(253,224,71,0.55); }
+            50%      { box-shadow: 0 6px 20px rgba(0,0,0,0.5), 0 0 0 10px rgba(253,224,71,0); }
+        }
+
+        @media (max-width: 600px) {
+            body { padding: 16px 10px 28px; }
+            .site-title { font-size: 22px; }
+            .site-subtitle { font-size: 11px; }
+            .grid { gap: 8px; }
+            .card {
+                padding: 10px 12px;
+                gap: 10px;
+                border-radius: 10px;
+                flex-wrap: wrap;
+                row-gap: 6px;
+            }
+            .card-icon {
+                width: 34px;
+                height: 34px;
+                font-size: 18px;
+                border-radius: 8px;
+                order: 1;
+            }
+            .card-title {
+                font-size: 14px;
+                line-height: 1.3;
+                flex: 1 1 auto;
+                order: 2;
+            }
+            .card-arrow {
+                font-size: 14px;
+                order: 3;
+            }
+            .card-tags {
+                order: 4;
+                flex-basis: 100%;
+                margin-left: 44px;
+                gap: 4px;
+                flex-wrap: wrap;
+            }
+            .tag { font-size: 10px; padding: 1px 6px; }
+
+            .webstore-fab {
+                bottom: 14px;
+                right: 14px;
+                padding: 10px 14px;
+                font-size: 12px;
+                gap: 6px;
+            }
+            .webstore-fab .fab-icon { font-size: 15px; }
+        }
+    </style>
 </head>
 <body>
-  <h1>트갤 미니 게임</h1>
-  <p>원하는 게임을 선택하세요.</p>
+    <header class="site-header">
+        <h1 class="site-title">트갤 OPTC 도구 모음</h1>
+        <p class="site-subtitle">덱 구성 · 캐릭터 정보 · 게임 가이드 한곳에서</p>
+    </header>
 
-  <button onclick="location.href='game/davy.html'">팀트갤 데비 백 파이트</button>
-  <button onclick="location.href='game/roulette.html'">트갤 룰렛 게임</button>
-  <button onclick="location.href='game/shooting.html'">트갤 랜덤 사격 게임</button>
-  <button onclick="location.href='game/obstacleCourse.html'">트갤 써니호 장애물 넘기 게임</button>
-  <button onclick="location.href='game/fallingItems.html'">트갤 메리호 줍줍 게임</button>
-  <button onclick="location.href='game/wreckingBar.html'">트갤 술집 탄막 게임</button>
-  <button onclick="location.href='game/bubblePop.html'">트갤 속성 맞추기 게임</button>
-  <!-- <button onclick="location.href='game/dcRun.html'">트갤런 테스트 중</button> -->
-  <button onclick="location.href='game/defense.html'">트갤 해적선을 막아라</button>
-  <button onclick="location.href='game/cardMatchMaster.html'">트갤 사천성</button>
-  <button onclick="location.href='game/marineford.html'">트갤 라스트워</button>
+    <div class="toolbar">
+        <input type="text" class="search-input" id="search-input"
+               placeholder="도구 검색 (이름, 설명, 태그)">
+        <span class="result-count"><strong id="result-count">0</strong>개</span>
+    </div>
+
+    <div class="grid" id="tools-grid"></div>
+
+    <footer>
+        © OPTC 비공식 도구 모음 · GitHub Pages 호스팅
+    </footer>
+
+    <a href="https://ww.bandainamcoentwebstore.com/onepiece-tc-gl/ko"
+       class="webstore-fab"
+       target="_blank"
+       rel="noopener noreferrer"
+       title="공식 웹스토어로 이동">
+        <span class="fab-icon">🛒</span>
+        <span>웹스토어</span>
+    </a>
+
+    <script>
+        const TOOLS = [
+            {
+                href: 'game/newbie-guide.html',
+                icon: '📚',
+                title: '뉴비 가이드',
+                desc: '입문자를 위한 게임 기본 / 육성 / 추천 캐릭 안내.',
+                tags: ['가이드', '입문', '신규유저']
+            },
+            {
+                href: 'https://hayaden.github.io/optcDB_Ko/characters/#/search/',
+                icon: '🗃️',
+                title: '케릭터 DB',
+                desc: '전체 캐릭터 스탯/능력/필살기 통합 데이터베이스 + 검색.',
+                tags: ['DB', '캐릭정보', '검색']
+            },
+            {
+                href: 'https://hayaden.github.io/optc-ships/',
+                icon: '⛵',
+                title: '선박 DB',
+                desc: '선박별 효과 / 강화 / 추천 사용처 데이터베이스.',
+                tags: ['DB', '선박', '배']
+            },
+            {
+                href: 'game/autoBuilder.html',
+                icon: '🚢',
+                title: '자동 덱 구성',
+                desc: '기믹 패턴과 특별효과 캐릭을 입력하면 자동으로 최적의 덱을 구성해줍니다.',
+                tags: ['덱구성', '시뮬레이터', '이벤트']
+            },
+            {
+                href: 'game/fest-raid.html',
+                icon: '⚔️',
+                title: '토벌 특별효과 케릭 목록',
+                desc: '토벌 페스티벌 특수 능력 보유 캐릭터를 한눈에 확인.',
+                tags: ['캐릭정보', '토벌']
+            },
+            {
+                href: 'game/coop-captains.html',
+                icon: '🤝',
+                title: '공동전투 선장 효과',
+                desc: '6개 역할군별 공투 선장 효과 / 필살기 / 액션을 레벨/속성별로 조회.',
+                tags: ['공동전투', '선장효과', '가이드']
+            },
+            {
+                href: 'game/charCnt.html',
+                icon: '📋',
+                title: '트갤 도감 체크기[수동]',
+                desc: '보유 캐릭터를 수동 체크해 도감 진행도를 관리.',
+                tags: ['도감', '체크리스트', '수동']
+            },
+            {
+                href: 'game/sugo.html',
+                icon: '🎰',
+                title: '스고페스 기록실',
+                desc: '스고페스 뽑기 결과/픽업 기록을 모아두는 공간.',
+                tags: ['스고페스', '기록', '뽑기']
+            },
+            {
+                href: 'game/gameList.html',
+                icon: '🎮',
+                title: '트갤 미니 게임',
+                desc: '잠깐 쉬어가는 트갤표 미니 게임 모음.',
+                tags: ['미니게임', '재미']
+            }
+        ];
+
+        function escapeHtml(s) {
+            return String(s)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function buildCard(t) {
+            const tags = (t.tags || []).map(tag =>
+                `<span class="tag">${escapeHtml(tag)}</span>`
+            ).join('');
+            const isExternal = /^https?:\/\//i.test(t.href || '');
+            const target = isExternal ? ' target="_blank" rel="noopener noreferrer"' : '';
+            const arrow = isExternal ? '↗' : '→';
+            return `
+                <a class="card" href="${escapeHtml(t.href)}"${target}>
+                    <div class="card-icon">${t.icon || '📄'}</div>
+                    <h2 class="card-title">${escapeHtml(t.title)}</h2>
+                    <div class="card-tags">${tags}</div>
+                    <span class="card-arrow">${arrow}</span>
+                </a>
+            `;
+        }
+
+        function render(filter) {
+            const grid = document.getElementById('tools-grid');
+            const q = (filter || '').trim().toLowerCase();
+            const filtered = !q
+                ? TOOLS
+                : TOOLS.filter(t => {
+                    const hay = [
+                        t.title || '',
+                        t.desc || '',
+                        ...(t.tags || [])
+                    ].join(' ').toLowerCase();
+                    return hay.includes(q);
+                });
+
+            if (filtered.length === 0) {
+                grid.innerHTML = `<div class="empty-state">검색 결과가 없습니다.</div>`;
+            } else {
+                grid.innerHTML = filtered.map(buildCard).join('');
+            }
+            document.getElementById('result-count').textContent = filtered.length;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            render('');
+            document.getElementById('search-input').addEventListener('input', (e) => {
+                render(e.target.value);
+            });
+        });
+    </script>
 </body>
 </html>
