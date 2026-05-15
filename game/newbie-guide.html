@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <title>트갤 OPTC 뉴비 가이드</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            background: radial-gradient(ellipse at top, #1a1a2e 0%, #0a0a14 50%, #050508 100%);
+            color: #eee;
+            font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+            margin: 0;
+            min-height: 100vh;
+            padding: 24px 16px 48px;
+            line-height: 1.5;
+        }
+
+        .topbar {
+            max-width: 1100px;
+            margin: 0 auto 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .back-link {
+            color: #00ffcc;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: bold;
+            padding: 6px 12px;
+            border-radius: 6px;
+            background: rgba(0,255,204,0.08);
+            border: 1px solid rgba(0,255,204,0.3);
+            transition: background 0.15s, transform 0.15s;
+        }
+        .back-link:hover { background: rgba(0,255,204,0.2); transform: translateX(-2px); }
+
+        .site-header {
+            max-width: 1100px;
+            margin: 0 auto 20px;
+        }
+        .site-title {
+            font-size: 26px;
+            font-weight: 900;
+            margin: 0 0 6px;
+            letter-spacing: 1px;
+            background: linear-gradient(90deg, #00ffcc, #4dd0e1);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .site-subtitle {
+            color: #888;
+            font-size: 13px;
+            margin: 0;
+        }
+
+        .toolbar {
+            max-width: 1100px;
+            margin: 0 auto 18px;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .search-input {
+            flex: 1;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.15);
+            color: #fff;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.15s, background 0.15s;
+        }
+        .search-input:focus {
+            outline: none;
+            border-color: #00ffcc;
+            background: rgba(0,255,204,0.06);
+        }
+        .search-input::placeholder { color: #666; }
+        .result-count {
+            color: #888;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+        .result-count strong { color: #00ffcc; }
+
+        .grid {
+            max-width: 1100px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 12px;
+        }
+
+        .card {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 12px;
+            background: linear-gradient(160deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
+            border: 1px solid rgba(255,255,255,0.10);
+            border-radius: 12px;
+            padding: 12px 16px;
+            color: inherit;
+            text-decoration: none;
+            transition: transform 0.18s, border-color 0.18s, box-shadow 0.18s, background 0.18s;
+            position: relative;
+        }
+        .card:hover {
+            transform: translateY(-2px);
+            border-color: #00ffcc;
+            box-shadow: 0 8px 22px rgba(0,255,204,0.15);
+            background: linear-gradient(160deg, rgba(0,255,204,0.06), rgba(255,255,255,0.02));
+        }
+        .card.pinned {
+            border-color: rgba(253,224,71,0.5);
+            background: linear-gradient(160deg, rgba(253,224,71,0.06), rgba(255,255,255,0.02));
+        }
+        .card.pinned:hover {
+            border-color: #fde047;
+            box-shadow: 0 8px 22px rgba(253,224,71,0.25);
+        }
+        .pin-icon {
+            display: inline-block;
+            margin-right: 4px;
+            font-size: 12px;
+            vertical-align: middle;
+        }
+
+        .card-icon {
+            font-size: 22px;
+            width: 38px;
+            height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0,255,204,0.10);
+            border: 1px solid rgba(0,255,204,0.30);
+            border-radius: 9px;
+            flex-shrink: 0;
+        }
+        .card-content {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            flex: 0 1 auto;
+            min-width: 0;
+        }
+        .card-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: #fff;
+            margin: 0;
+            letter-spacing: 0.3px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .card-author {
+            display: inline-block;
+            align-self: flex-start;
+            font-size: 11px;
+            color: #ffb74d;
+            background: rgba(255,183,77,0.10);
+            border: 1px solid rgba(255,183,77,0.35);
+            padding: 1px 8px;
+            border-radius: 999px;
+            letter-spacing: 0.3px;
+            white-space: nowrap;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .card-author::before {
+            content: '✍ ';
+            opacity: 0.8;
+        }
+        .card-tags {
+            display: flex;
+            flex-wrap: nowrap;
+            gap: 6px;
+            margin-left: auto;
+            flex-shrink: 0;
+        }
+        .tag {
+            font-size: 11px;
+            color: #80deea;
+            background: rgba(0,255,204,0.08);
+            border: 1px solid rgba(0,255,204,0.25);
+            padding: 2px 8px;
+            border-radius: 999px;
+            letter-spacing: 0.3px;
+            white-space: nowrap;
+        }
+        .card-arrow {
+            color: #555;
+            font-size: 15px;
+            transition: color 0.18s, transform 0.18s;
+            flex-shrink: 0;
+        }
+        .card:hover .card-arrow {
+            color: #00ffcc;
+            transform: translateX(3px);
+        }
+
+        .empty-state {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 60px 20px;
+            color: #555;
+            font-size: 14px;
+        }
+
+        @media (max-width: 600px) {
+            body { padding: 16px 10px 28px; }
+            .site-title { font-size: 20px; }
+            .site-subtitle { font-size: 11px; }
+            .grid { gap: 8px; }
+            .card {
+                padding: 10px 12px;
+                gap: 10px;
+                border-radius: 10px;
+                flex-wrap: wrap;
+                row-gap: 6px;
+            }
+            .card-icon {
+                width: 32px;
+                height: 32px;
+                font-size: 17px;
+                border-radius: 8px;
+                order: 1;
+            }
+            .card-content {
+                flex: 1 1 auto;
+                order: 2;
+                min-width: 0;
+            }
+            .card-title {
+                font-size: 13px;
+                line-height: 1.3;
+            }
+            .card-author { font-size: 10px; padding: 1px 6px; }
+            .card-arrow {
+                font-size: 13px;
+                order: 3;
+            }
+            .card-tags {
+                order: 4;
+                flex-basis: 100%;
+                margin-left: 42px;
+                gap: 4px;
+                flex-wrap: wrap;
+            }
+            .tag { font-size: 10px; padding: 1px 6px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="topbar">
+        <a href="index.html" class="back-link">← 메인으로</a>
+    </div>
+
+    <header class="site-header">
+        <h1 class="site-title">📚 뉴비 가이드</h1>
+        <p class="site-subtitle">디시인사이드 트레저크루즈 갤러리 핵심 글 모음</p>
+    </header>
+
+    <div class="toolbar">
+        <input type="text" class="search-input" id="search-input"
+               placeholder="제목 또는 태그로 검색">
+        <span class="result-count"><strong id="result-count">0</strong>개</span>
+    </div>
+
+    <div class="grid" id="articles-grid"></div>
+
+    <script>
+        const ARTICLES = [
+            {
+                href: 'https://gall.dcinside.com/mgallery/board/view/?id=onepiecetc&no=412115',
+                title: '12주년 유입 가이드',
+                author: '컵라면돼지',
+                tags: []
+            },
+            {
+                href: 'https://gall.dcinside.com/mgallery/board/view/?id=onepiecetc&no=412031',
+                title: '12주년 초스고페스/가챠 가이드',
+                author: '무지개보석',
+                tags: []
+            },
+            {
+                href: 'https://gall.dcinside.com/mgallery/board/view/?id=onepiecetc&no=412030',
+                title: '12주년 기념 선물 캐릭터 선택 가이드',
+                author: '무지개보석',
+                tags: []
+            },
+            {
+                href: 'https://m.dcinside.com/board/onepiecetc/412556',
+                title: '뉴비들이 자주하는 질문',
+                author: '컵라면돼지',
+                tags: []
+            },
+            {
+                href: 'https://gall.dcinside.com/mgallery/board/view/?id=onepiecetc&no=411344',
+                title: '수련드링크 파밍처 정리',
+                author: '컵라면돼지',
+                tags: []
+            },
+            {
+                href: 'https://m.dcinside.com/board/onepiecetc/397695',
+                title: '팀트갤 동맹 현황',
+                author: '히켄',
+                tags: [],
+                pinned: true
+            },
+            {
+                href: 'https://m.dcinside.com/board/onepiecetc/408844',
+                title: '매인 스토리 무보 보상',
+                author: '흐드미',
+                tags: []
+            },
+        ];
+
+        function escapeHtml(s) {
+            return String(s)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function buildCard(a) {
+            const tags = (a.tags || []).map(tag =>
+                `<span class="tag">${escapeHtml(tag)}</span>`
+            ).join('');
+            const author = a.author
+                ? `<span class="card-author">${escapeHtml(a.author)}</span>`
+                : '';
+            const pinIcon = a.pinned ? '<span class="pin-icon" title="고정 글">📌</span>' : '';
+            const isExternal = /^https?:\/\//i.test(a.href || '');
+            const target = isExternal ? ' target="_blank" rel="noopener noreferrer"' : '';
+            const arrow = isExternal ? '↗' : '→';
+            return `
+                <a class="card${a.pinned ? ' pinned' : ''}" href="${escapeHtml(a.href)}"${target}>
+                    <div class="card-icon">${a.icon || '📖'}</div>
+                    <div class="card-content">
+                        <h2 class="card-title">${pinIcon}${escapeHtml(a.title)}</h2>
+                        ${author}
+                    </div>
+                    <div class="card-tags">${tags}</div>
+                    <span class="card-arrow">${arrow}</span>
+                </a>
+            `;
+        }
+
+        function render(filter) {
+            const grid = document.getElementById('articles-grid');
+            const q = (filter || '').trim().toLowerCase();
+            const matched = !q
+                ? ARTICLES.slice()
+                : ARTICLES.filter(a => {
+                    const hay = [
+                        a.title || '',
+                        a.author || '',
+                        ...(a.tags || [])
+                    ].join(' ').toLowerCase();
+                    return hay.includes(q);
+                });
+            // 고정 글 우선
+            const filtered = matched.slice().sort((a, b) =>
+                (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0)
+            );
+
+            if (filtered.length === 0) {
+                grid.innerHTML = ARTICLES.length === 0
+                    ? `<div class="empty-state">아직 등록된 글이 없습니다.<br>곧 추가 예정입니다.</div>`
+                    : `<div class="empty-state">검색 결과가 없습니다.</div>`;
+            } else {
+                grid.innerHTML = filtered.map(buildCard).join('');
+            }
+            document.getElementById('result-count').textContent = filtered.length;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            render('');
+            document.getElementById('search-input').addEventListener('input', (e) => {
+                render(e.target.value);
+            });
+        });
+    </script>
+</body>
+</html>
