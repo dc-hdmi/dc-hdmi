@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>트갤 미니 게임</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      padding: 50px 20px; /* 좌우 여백 추가 */
+    }
+  
+    button {
+      display: inline-block;
+      width: 100%;
+      max-width: 280px;     /* 최대 크기 제한 */
+      height: 60px;
+      margin: 10px auto;    /* 수직 여백 + 좌우 중앙 정렬 */
+      font-size: 18px;
+      cursor: pointer;
+      border: none;
+      border-radius: 8px;
+      background-color: #00b894;
+      color: white;
+      transition: background-color 0.2s;
+    }
+  
+    button:hover {
+      background-color: #019874;
+    }
+  </style>
+</head>
+<body>
+  <h1>트갤 미니 게임</h1>
+  <p>원하는 게임을 선택하세요.</p>
+
+  <button onclick="location.href='game/davy.html'">팀트갤 데비 백 파이트</button>
+  <button onclick="location.href='game/roulette.html'">트갤 룰렛 게임</button>
+  <button onclick="location.href='game/shooting.html'">트갤 랜덤 사격 게임</button>
+  <button onclick="location.href='game/obstacleCourse.html'">트갤 써니호 장애물 넘기 게임</button>
+  <button onclick="location.href='game/fallingItems.html'">트갤 메리호 줍줍 게임</button>
+  <button onclick="location.href='game/wreckingBar.html'">트갤 술집 탄막 게임</button>
+  <button onclick="location.href='game/bubblePop.html'">트갤 속성 맞추기 게임</button>
+  <!-- <button onclick="location.href='game/dcRun.html'">트갤런 테스트 중</button> -->
+  <button onclick="location.href='game/defense.html'">트갤 해적선을 막아라</button>
+  <button onclick="location.href='game/cardMatchMaster.html'">트갤 사천성</button>
+  <button onclick="location.href='game/marineford.html'">트갤 라스트워</button>
+</body>
+</html>
