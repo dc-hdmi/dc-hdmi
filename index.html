@@ -138,6 +138,32 @@
             margin-left: auto;
             flex-shrink: 0;
         }
+        .card-creator {
+            display: inline-block;
+            font-size: 11px;
+            color: #fde047;
+            background: rgba(253,224,71,0.08);
+            border: 1px solid rgba(253,224,71,0.35);
+            padding: 2px 8px;
+            border-radius: 999px;
+            white-space: nowrap;
+            flex-shrink: 0;
+            font-style: italic;
+            letter-spacing: 0.3px;
+        }
+        .card-status {
+            display: inline-block;
+            font-size: 11px;
+            color: #ff5252;
+            background: rgba(255,82,82,0.10);
+            border: 1px solid rgba(255,82,82,0.5);
+            padding: 2px 8px;
+            border-radius: 999px;
+            white-space: nowrap;
+            flex-shrink: 0;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
         .tag {
             font-size: 11px;
             color: #80deea;
@@ -403,6 +429,13 @@
                 gap: 4px;
                 flex-wrap: wrap;
             }
+            .card-creator,
+            .card-status {
+                order: 2;
+                margin-left: auto;
+                font-size: 10px;
+                padding: 1px 6px;
+            }
             .tag { font-size: 10px; padding: 1px 6px; }
 
             .webstore-fab {
@@ -481,21 +514,24 @@
                 icon: '🗃️',
                 title: '케릭터 DB',
                 desc: '전체 캐릭터 스탯/능력/필살기 통합 데이터베이스 + 검색.',
-                tags: ['DB', '캐릭정보', '검색']
+                tags: ['DB', '캐릭정보', '검색'],
+                creator: '하야덴'
             },
             {
                 href: 'https://hayaden.github.io/optc-ships/',
                 icon: '⛵',
                 title: '선박 DB',
                 desc: '선박별 효과 / 강화 / 추천 사용처 데이터베이스.',
-                tags: ['DB', '선박', '배']
+                tags: ['DB', '선박', '배'],
+                creator: '하야덴'
             },
             {
                 href: 'game/autoBuilder.html',
                 icon: '🚢',
                 title: '자동 덱 구성',
                 desc: '기믹 패턴과 특별효과 캐릭을 입력하면 자동으로 최적의 덱을 구성해줍니다.',
-                tags: ['덱구성', '시뮬레이터', '이벤트']
+                tags: ['덱구성', '시뮬레이터', '이벤트'],
+                status: '미완성'
             },
             {
                 href: 'game/fest-raid.html',
@@ -550,11 +586,19 @@
             const isExternal = /^https?:\/\//i.test(t.href || '');
             const target = isExternal ? ' target="_blank" rel="noopener noreferrer"' : '';
             const arrow = isExternal ? '↗' : '→';
+            const creator = t.creator
+                ? `<span class="card-creator">created by ${escapeHtml(t.creator)}</span>`
+                : '';
+            const status = t.status
+                ? `<span class="card-status">${escapeHtml(t.status)}</span>`
+                : '';
             return `
                 <a class="card" href="${escapeHtml(t.href)}"${target}>
                     <div class="card-icon">${t.icon || '📄'}</div>
                     <h2 class="card-title">${escapeHtml(t.title)}</h2>
                     <div class="card-tags">${tags}</div>
+                    ${status}
+                    ${creator}
                     <span class="card-arrow">${arrow}</span>
                 </a>
             `;
