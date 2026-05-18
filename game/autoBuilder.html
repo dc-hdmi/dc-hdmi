@@ -147,9 +147,29 @@
             /* 컨트롤 영역 — 2칸 grid (이벤트 버튼 그룹은 한 행 전체 차지) */
             .round-ctrl-area { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
             .round-ctrl-area > button { padding: 7px 4px; font-size: 12px; width: 100%; }
-            /* 이벤트 패턴 버튼 4개 — 한 줄에 균등 배치 (전체 너비 차지) */
-            .event-btn-group { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 4px; width: 100%; grid-column: 1 / -1; }
-            .event-btn-group button { width: 100%; padding: 8px 2px; font-size: 11px; }
+            /* 이벤트 패턴 버튼 — 가로 슬라이드(스크롤) + 동일 크기 */
+            .event-btn-group {
+                display: flex;
+                gap: 6px;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                scroll-snap-type: x proximity;
+                width: 100%;
+                grid-column: 1 / -1;
+                padding-bottom: 4px;
+                scrollbar-width: thin;
+            }
+            .event-btn-group::-webkit-scrollbar { height: 4px; }
+            .event-btn-group::-webkit-scrollbar-thumb { background: #555; border-radius: 2px; }
+            .event-btn-group button {
+                flex: 0 0 auto;
+                min-width: 110px;
+                width: auto;
+                padding: 8px 6px;
+                font-size: 12px;
+                white-space: nowrap;
+                scroll-snap-align: start;
+            }
 
             /* 패턴 설정 select/button — 한 줄에 안 맞으면 줄바꿈 */
             .round-box select, .round-box button { font-size: 13px; padding: 5px; }
@@ -350,8 +370,8 @@
         // 이벤트별 기믹 패턴 (활성 이벤트만 데이터 보유, 나머지는 빈 패턴)
         const eventGimmicksData = {
             '궤적': `{"battleInfo": {"3": [{"name": "[폭탄]슬롯 변환", "turn": 0}, {"name": "공격력 감소", "turn": 7}, {"name": "선장효과 무효", "turn": 8}, {"name": "슬롯 고정", "turn": 1}],"4": [{"name": "일정이상 데미지 감소(격감)", "turn": 7}, {"name": "남은 체력 1로 버티기", "turn": 7}],"5": [{"name": "선장효과 무효", "turn": 10}, {"name": "방어력 상승", "turn": 6}, {"name": "방어력 감소 무효", "turn": 98}, {"name": "[독]슬롯 변환", "turn": 0}, {"name": "[방해]슬롯 변환", "turn": 0}, {"name": "[마비]슬롯 변환", "turn": 0}, {"name": "필살기 봉쇄", "turn": 7}, {"name": "봉쇄", "turn": 9, "scope": {"row": ["middle","bottom"], "col": "left"}}, {"name": "필살기 턴 되돌리기", "turn": 2, "scope": {"row": ["middle","bottom"], "col": "right"}}]}}`,
-            '트맵[보스]': `{"battleInfo": {}}`,
-            '트맵[난입]': `{"battleInfo": {}}`,
+            '트맵[보스]': `{"battleInfo": {"2": [{"name": "체인 계수 4.0 이하 공격력 감소", "turn": 3}, {"name": "필살기 턴 되돌리기", "turn": 4, "scope": {"row": "top", "col": "all"}}, {"name": "방어력 상승", "turn": 1}, {"name": "일정이상 데미지 감소(격감)", "turn": 1}, {"name": "데미지 감소", "turn": 1}, {"name": "필살기 봉쇄", "turn": 5}], "3": [{"name": "선장효과 무효", "turn": 13}, {"name": "봉쇄", "turn": 13, "scope": {"row": "top", "col": "all"}}, {"name": "필살기 봉쇄", "turn": 10}]}}`,
+            '트맵[난입]': `{"battleInfo": {"2": [{"name": "데미지 무효", "turn": 1}, {"name": "필살기 턴 되돌리기", "turn": 2, "scope": {"row": "top", "col": "all"}}, {"name": "공격력 감소", "turn": 10}, {"name": "[힘]슬롯 변환", "turn": 0, "scope": {"row": "top", "col": "all"}}, {"name": "[속]슬롯 변환", "turn": 0, "scope": {"row": "middle", "col": "all"}}, {"name": "[기]슬롯 변환", "turn": 0, "scope": {"row": "bottom", "col": "all"}}], "3": [{"name": "마비", "turn": 12, "scope": {"row": "top", "col": "all"}}, {"name": "필살기 턴 되돌리기", "turn": 4}, {"name": "특정 슬롯으로 공격 시 데미지 감소", "turn": 2}, {"name": "일당 공격 시 적의 최대 HP의 50% 데미지 제한", "turn": 2}, {"name": "필살기 턴 99턴 단축", "turn": 99, "scope": {"row": "top", "col": "all"}}]}}`,
             '유대': `{"battleInfo": {}}`,
             '대난투': `{"battleInfo": {}}`
         };
@@ -367,18 +387,20 @@
                 "E": ["4511", "4497", "4481", "4464", "4448", "4430", "4414", "4399", "4385", "4358", "4342", "4327", "4312", "4298", "4280", "4261", "4246", "4225", "4206", "4191", "4177", "4147", "4128", "4108", "4089", "4074", "4053", "4033", "3886"]
             },
             '트맵[보스]': {
-                "A": [], "B": [], "C": [], "D": [], "E": []
+                "A": ["4571", "4557", "4560", "4563", "4561"],
+                "B": ["4565", "4566", "4569", "4570"],
+                "C": [], "D": [], "E": []
             },
             '트맵[난입]': {
-                "A": [], "B": [], "C": [], "D": [], "E": []
+                "A": ["4571", "4557", "4560", "4563", "4561"],
+                "B": ["4565", "4566", "4569", "4570"],
+                "C": [], "D": [], "E": []
             },
             '유대': {
                 "A": [], "B": [], "C": [], "D": [], "E": []
             },
             '대난투': {
-                "A": ["4571", "4557", "4560", "4563", "4561"],
-                "B": ["4567", "4565", "4568"],
-                "C": [], "D": [], "E": []
+                "A": [], "B": [], "C": [], "D": [], "E": []
             }
         };
 
@@ -386,6 +408,9 @@
         let currentEventType = ACTIVE_EVENT;
         // 사용자가 패턴 버튼을 한 번이라도 클릭했는지 추적 (특별효과 불러오기 가드용)
         let userPickedEvent = false;
+
+        // 강제 비활성화 이벤트 (데이터가 있어도 버튼 비활성화)
+        const DISABLED_EVENTS = new Set(['대난투']);
 
         // 해당 이벤트의 패턴이 비어있는지 (배틀 정보 없음)
         function _isEventEmpty(eventType) {
@@ -401,7 +426,120 @@
             const data = eventBoostData[eventType] || {};
             return Object.values(data).some(arr => Array.isArray(arr) && arr.length > 0);
         }
-        const patterns = ["선장효과 무효", "데미지 감소", "데미지 격감", "방어력 상승", "방어력 감소 무효", "화상", "마비", "공격력 감소", "필살기 봉쇄", "봉쇄", "위압", "필살기 턴 되돌리기", "데미지 무효", "일정이상 데미지 감소(격감)", "기절", "[방해]슬롯 변환", "[폭탄]슬롯 변환", "[고기]슬롯 변환", "[불리]슬롯 변환", "[공백]슬롯 변환", "[독]슬롯 변환", "[마비]슬롯 변환", "슬롯 고정", "필살기 턴 고정", "선장효과", "날려버리기", "의성어 은폐", "베리어", "남은 체력 1로 버티기", "특정 슬롯 사용 시 공격력 감소", "독"];
+        const patterns = ["선장효과 무효", "데미지 감소", "데미지 격감", "방어력 상승", "방어력 감소 무효", "화상", "마비", "공격력 감소", "필살기 봉쇄", "봉쇄", "위압", "필살기 턴 되돌리기", "데미지 무효", "일정이상 데미지 감소(격감)", "기절", "[방해]슬롯 변환", "[폭탄]슬롯 변환", "[고기]슬롯 변환", "[불리]슬롯 변환", "[공백]슬롯 변환", "[독]슬롯 변환", "[마비]슬롯 변환", "[힘]슬롯 변환", "[기]슬롯 변환", "[속]슬롯 변환", "[심]슬롯 변환", "[지]슬롯 변환", "슬롯 고정", "필살기 턴 고정", "선장효과", "날려버리기", "의성어 은폐", "베리어", "남은 체력 1로 버티기", "특정 슬롯 사용 시 공격력 감소", "특정 슬롯으로 공격 시 데미지 감소", "필살기 턴 99턴 단축", "독"];
+
+        // 일당에게 유리한 적 선제 효과 — 자동 해결 처리, 방해 X
+        const PLAYER_FAVORABLE_GIMMICKS = new Set([
+            "필살기 턴 99턴 단축"
+        ]);
+
+        // 속성 슬롯 변환: 매칭 타입 캐릭이 슬롯에 있으면 해결 (텍스트 매칭 X, 타입 매칭만 사용)
+        const TYPE_SLOT_MAP = {
+            "[힘]슬롯 변환": "STR",
+            "[기]슬롯 변환": "DEX",
+            "[속]슬롯 변환": "QCK",
+            "[심]슬롯 변환": "PSY",
+            "[지]슬롯 변환": "INT"
+        };
+        function _typeSlotMatchTurns(id, gimmickName) {
+            const targetType = TYPE_SLOT_MAP[gimmickName];
+            if (!targetType || id == null) return 0;
+            const u = window.units?.[id];
+            if (!u) return 0;
+            const matches = u.type === targetType ||
+                (Array.isArray(u.type) && u.type.includes(targetType));
+            return matches ? 99 : 0;
+        }
+
+        // 필살기 텍스트의 (0)/(1) 상태 분기 영역 추출
+        //   - state0Text: (0) 영역 모든 segment 합 (1회 사용으로 접근 가능)
+        //   - state1Text: (1) 영역 모든 segment 합 (초월 또는 2회 사용 필요)
+        //   - markers 없으면 state0Text = 전체, state1Text = ''
+        function _splitStateRegions(text) {
+            if (!text || !/\(0\)|\(1\)/.test(text)) {
+                return { state0Text: text || '', state1Text: '' };
+            }
+            const markers = [];
+            const re = /\((0|1)\)/g;
+            let m;
+            while ((m = re.exec(text)) !== null) {
+                markers.push({ pos: m.index, state: m[1], length: m[0].length });
+            }
+            if (markers.length === 0) return { state0Text: text, state1Text: '' };
+            const preCommon = text.substring(0, markers[0].pos);
+            let state0Text = preCommon, state1Text = preCommon;
+            for (let i = 0; i < markers.length; i++) {
+                const start = markers[i].pos + markers[i].length;
+                const end = (i + 1 < markers.length) ? markers[i + 1].pos : text.length;
+                const seg = text.substring(start, end);
+                if (markers[i].state === '0') state0Text += seg;
+                else state1Text += seg;
+            }
+            return { state0Text, state1Text };
+        }
+
+        // (1) 상태로 진입할 수 있는 경로 보유 여부 (role 고려)
+        //   - 초월(superSpecial) 의 "(1)로 변경": 캐릭이 선장이거나, 초월 텍스트에 "자신이 선원일 때도 발동 가능" 이 있어야만 선원 위치에서도 사용 가능
+        //   - 자기 필살기 재충전: role 무관 사용 가능
+        function _hasState1Access(data, role) {
+            if (!data) return false;
+            const ss = data.superSpecial;
+            if (ss) {
+                const ssText = typeof ss === 'object' ? JSON.stringify(ss) : String(ss);
+                const hasState1Transition = /\(1\)\s*로\s*변경/.test(ssText) ||
+                                             /필살기\s*발동\s*상태[^()]{0,20}\(1\)/.test(ssText);
+                if (hasState1Transition) {
+                    const usableAsMember = ssText.includes('자신이 선원일 때도 발동 가능');
+                    if (role === 'captain' || usableAsMember) return true;
+                }
+            }
+            const sp = data.special;
+            if (sp) {
+                const spText = typeof sp === 'object' ? JSON.stringify(sp) : String(sp);
+                if (/자신의\s*필살기[^.]{0,30}재충전/.test(spText)) return true;
+            }
+            return false;
+        }
+
+        // role 무관 — 솔버 풀 빌드용 (선장 또는 선원 어느 위치든 (1) 진입 가능하면 true)
+        function _hasState1AccessPotential(data) {
+            return _hasState1Access(data, 'captain'); // captain 가정 = 가장 관대한 케이스
+        }
+
+        // special 텍스트에 대해 상태 분기를 고려한 솔버 매칭
+        //   1) (0)/(1) 마커가 없으면 표준 매칭
+        //   2) 마커 있으면:
+        //      - (0) 영역에서 매칭되면 1회 사용으로 OK → max 반환
+        //      - (1) 영역만 매칭되면 _hasState1Access 검증; 통과해야 max 반환
+        function _getSpecialReductionWithState(data, gimmickName, opts = {}) {
+            const sp = data?.special;
+            if (!sp) return 0;
+            const spText = typeof sp === 'object' ? JSON.stringify(sp) : String(sp);
+
+            // 캡틴-전용 전제조건: "필살기 발동 시 자신이 선장, 친구 선장, 조력자 선장일 때" 가
+            //   special 시작부에 있으면 그 special 효과 전체는 캡틴 위치(f1/c1)에서만 발동됨.
+            //   선원 위치에서는 effective 0
+            const captainOnlyPrefix = /필살기\s*발동\s*시\s*자신이\s*선장/.test(spText.substring(0, 150));
+            if (captainOnlyPrefix && opts.role && opts.role !== 'captain') {
+                return 0;
+            }
+
+            if (!/\(0\)|\(1\)/.test(spText)) {
+                return getReductionTurns(spText, gimmickName, opts);
+            }
+            const { state0Text, state1Text } = _splitStateRegions(spText);
+            const t0 = getReductionTurns(state0Text, gimmickName, opts);
+            if (t0 > 0) return t0;
+            const t1 = getReductionTurns(state1Text, gimmickName, opts);
+            if (t1 > 0) {
+                // opts.role 가 주어지면 strict, 없으면 풀 빌드용 (관대)
+                const accessOK = opts.role
+                    ? _hasState1Access(data, opts.role)
+                    : _hasState1AccessPotential(data);
+                if (accessOK) return t1;
+            }
+            return 0;
+        }
 
         // 기믹 별칭: UI에 표시되는 이름 → 캐릭터 텍스트에서 검색할 정식 표현
         // 값은 (1) 문자열 (substring + 턴 수 추출) 또는
@@ -433,6 +571,34 @@
                 "남은 체력 1로 버티는 효과",
                 // 턴 종료 시 추가 데미지 — 매 턴 발동되어 endure를 즉시 격파 → 99턴 처리
                 { regex: /턴 종료 시[^"\.]{0,60}공격력[^"\.]{0,40}추가 데미지/, turns: 99 }
+            ],
+            // 데미지 무효: 직접 해제 ("데미지 무효 N턴 줄이기") + 우회 ("모든 방어 효과를 무시하고 데미지")
+            "데미지 무효": [
+                "데미지 무효",
+                { regex: /모든\s*방어\s*효과[^"\.\!\?]{0,100}무시[^"\.\!\?]{0,60}데미지/, turns: 99 }
+            ],
+            // 필살기 턴 되돌리기: 직접 회복("필살기 턴 되돌리기를 N턴 회복") + 단축("일당의 필살기 턴을 N턴 단축") 으로도 상쇄 가능
+            "필살기 턴 되돌리기": [
+                "필살기 턴 되돌리기",
+                "일당의 필살기 턴을"
+            ],
+            // 체인 계수 N 이하 공격력 감소: "체인 계수 (의) 초기 수치" 를 올리는 필살기로 해결
+            "체인 계수 4.0 이하 공격력 감소": [
+                { regex: /체인\s*계수[^"\.\!\?]{0,10}초기\s*수치/, turns: 99 }
+            ],
+            // 특정 슬롯 사용 시 공격력 감소: "슬롯에 의한 공격력 감소를 무효화" 효과로만 해결 (일반 공격력 감소 회복은 X)
+            "특정 슬롯 사용 시 공격력 감소": [
+                { regex: /슬롯에\s*의한\s*공격력\s*감소[를을]?\s*무효화/, turns: 99 }
+            ],
+            // 특정 슬롯으로 공격 시 데미지 감소: "슬롯에 의한 데미지 감소 상태를 N턴 줄이다" 또는 "슬롯에 의한 데미지를 0으로 만든다"
+            "특정 슬롯으로 공격 시 데미지 감소": [
+                "슬롯에 의한 데미지 감소",
+                { regex: /슬롯에\s*의한\s*데미지[를을]?\s*0\s*으로\s*만든/, turns: 99 }
+            ],
+            // 일당 공격 시 데미지 제한(예: 최대 HP의 50% 제한): 우회 ("모든 방어 효과를 무시하고 데미지") 만 alias 로
+            //  직접 해제 ("적에게 걸려 있는 모든 유리 효과를 N턴 줄이...") 는 ENEMY_BUFF_GIMMICKS 의 universal fallback 으로 N턴 자동 캡쳐
+            "일당 공격 시 적의 최대 HP의 50% 데미지 제한": [
+                { regex: /모든\s*방어\s*효과[^"\.\!\?]{0,100}무시[^"\.\!\?]{0,60}데미지/, turns: 99 }
             ]
         };
 
@@ -471,6 +637,10 @@
         }
 
         function loadEventGimmicks(eventType) {
+            if (DISABLED_EVENTS.has(eventType)) {
+                alert(`${eventType} 패턴은 현재 준비중입니다.`);
+                return;
+            }
             const raw = eventGimmicksData[eventType];
             if (!raw) { alert(`${eventType} 패턴 데이터가 없습니다.`); return; }
             // 패턴 전환 시 이전 이벤트의 특별효과 캐릭 목록은 초기화
@@ -542,13 +712,17 @@
                 const isActive = (ev === ACTIVE_EVENT);
                 const isPicked = userPickedEvent && (ev === currentEventType);
 
+                // 강제 비활성화 이벤트
+                const isForceDisabled = DISABLED_EVENTS.has(ev);
+
                 // 텍스트 라벨
                 let label = `${ev} 패턴`;
-                if (isEmpty && !hasBoost) label += ' (준비중)';
+                if (isForceDisabled) label += ' (준비중)';
+                else if (isEmpty && !hasBoost) label += ' (준비중)';
                 btn.textContent = label;
 
-                if (isEmpty && !hasBoost) {
-                    // 패턴/캐릭 모두 없음: 비활성화
+                if (isForceDisabled || (isEmpty && !hasBoost)) {
+                    // 패턴/캐릭 모두 없음 또는 강제 비활성화: 회색 비활성화
                     btn.disabled = true;
                     btn.style.opacity = '0.4';
                     btn.style.cursor = 'not-allowed';
@@ -558,29 +732,30 @@
                     btn.style.boxShadow = '';
                     btn.style.transform = '';
                     btn.style.fontWeight = '';
-                    btn.title = '패턴이 아직 등록되지 않았습니다';
+                    btn.title = isForceDisabled
+                        ? '준비중입니다'
+                        : '패턴이 아직 등록되지 않았습니다';
                 } else {
                     btn.disabled = false;
                     btn.style.opacity = '';
                     btn.style.cursor = '';
                     if (isPicked) {
-                        // 사용자가 선택한 이벤트: 강한 주황색 배경 + 글로우 + 살짝 확대
+                        // 사용자가 선택한 이벤트: 강한 주황색 배경 + 강조
+                        // (모바일은 가로 스크롤 컨테이너가 외곽 글로우/scale을 잘라내므로 inset 효과만)
+                        const isMobile = window.matchMedia('(max-width: 768px)').matches;
                         btn.style.background = '#ff9800';
                         btn.style.color = '#000';
-                        btn.style.outline = '3px solid #fff';
-                        btn.style.boxShadow = '0 0 14px rgba(255,152,0,0.85), 0 0 0 4px rgba(255,152,0,0.25)';
-                        btn.style.transform = 'scale(1.06)';
                         btn.style.fontWeight = 'bold';
+                        if (isMobile) {
+                            btn.style.outline = '';
+                            btn.style.boxShadow = 'inset 0 0 0 2px #fff, inset 0 0 0 4px #ff9800';
+                            btn.style.transform = '';
+                        } else {
+                            btn.style.outline = '3px solid #fff';
+                            btn.style.boxShadow = '0 0 14px rgba(255,152,0,0.85), 0 0 0 4px rgba(255,152,0,0.25)';
+                            btn.style.transform = 'scale(1.06)';
+                        }
                         btn.title = '현재 선택된 이벤트';
-                    } else if (isActive) {
-                        // 활성 이벤트(소스 설정): 노란 외곽선
-                        btn.style.background = '';
-                        btn.style.color = '';
-                        btn.style.outline = '2px solid #ffd54f';
-                        btn.style.boxShadow = '';
-                        btn.style.transform = '';
-                        btn.style.fontWeight = 'bold';
-                        btn.title = '이번 달 활성 이벤트';
                     } else {
                         btn.style.background = '';
                         btn.style.color = '';
@@ -1188,29 +1363,106 @@
         // 한 캐릭터의 모든 효과 소스에서 기믹 해제 효과 평가
         //   role: 'captain' | 'member'
         //   반환: { max: 최대 회복 턴, sources: [{type, turns}, ...] }
+        // 초월 발동 조건 검증: superSpecialCriteria 텍스트 + 현재 deck 조합으로 충족 가능 여부
+        //   1) [공격력 상승] 또는 [슬롯영향증폭] N배 이상 → deck 내 필살기 텍스트에 N배 이상의 효과 명시 있는지
+        //   2) 특정 태그 N명 이상 → deck 멤버에서 해당 태그 보유 캐릭 카운트
+        //   둘 다 OR 조건이므로 어느 하나라도 충족이면 true
+        function _verifyTransCriteria(criteriaText, deck) {
+            if (!criteriaText) return true;
+            if (!deck) return true; // deck 정보 없으면 관대하게 통과 (풀 빌드 단계 등)
+
+            // 1) [효과] N배 이상 검사 — deck 의 필살기/선장효과/체인지/sailor 텍스트 검사
+            const effectRegex = /\[(공격력\s*상승|슬롯영향증폭)\][^"\.\!\?]{0,40}(\d+(?:\.\d+)?)\s*배\s*이상/g;
+            const effectReqs = [];
+            let em;
+            while ((em = effectRegex.exec(criteriaText)) !== null) {
+                effectReqs.push({ effect: em[1].replace(/\s/g, ''), value: parseFloat(em[2]) });
+            }
+            for (const req of effectReqs) {
+                for (const slotId of Object.values(deck)) {
+                    if (!slotId) continue;
+                    const d = window.details_kor[slotId];
+                    if (!d) continue;
+                    const texts = [d.special, d.captain, d.crewman,
+                        d.sailor ? Object.values(d.sailor).join('. ') : '',
+                        d.swap ? Object.values(d.swap).join('. ') : '',
+                        d.superSpecial];
+                    for (const t of texts) {
+                        if (!t) continue;
+                        const txt = typeof t === 'object' ? JSON.stringify(t) : String(t);
+                        const re = new RegExp(`\\[${req.effect.replace(/\s/g, '\\s*')}\\][^"\\.\\!\\?]{0,40}(\\d+(?:\\.\\d+)?)\\s*배`, 'g');
+                        let m;
+                        while ((m = re.exec(txt)) !== null) {
+                            if (parseFloat(m[1]) >= req.value) return true;
+                        }
+                    }
+                }
+            }
+
+            // 2) 태그 N명 이상 검사 — "[태그] ... N명 이상" 또는 "오로성... 2명 이상" 류
+            const tagCountRegex = /([가-힣]+)\s*(?:중\s*)?(\d+)\s*명\s*이상/g;
+            const tagReqs = [];
+            let tm;
+            while ((tm = tagCountRegex.exec(criteriaText)) !== null) {
+                tagReqs.push({ tag: tm[1], count: parseInt(tm[2]) });
+            }
+            for (const req of tagReqs) {
+                let cnt = 0;
+                for (const [slot, slotId] of Object.entries(deck)) {
+                    if (!slotId) continue;
+                    if (slot.startsWith('s')) continue; // 서포트 제외
+                    const d = window.details_kor[slotId];
+                    if (!d) continue;
+                    const allText = [d.captain, d.special, d.crewman,
+                        d.sailor ? Object.values(d.sailor).join('. ') : ''].join(' ');
+                    if (allText.includes(`[${req.tag}]`)) cnt++;
+                }
+                if (cnt >= req.count) return true;
+            }
+
+            return false;
+        }
+
         function evaluateCharReductionSources(data, gimmickName, role, opts = {}) {
             const sources = [];
             if (!data) return { max: 0, sources };
 
+            // 속성 슬롯 변환: opts.id 가 주어졌고 캐릭 타입이 매치되면 99턴 처리
+            //   단, 캐릭이 기믹 scope 밖이면 (opts.inScope === false) 매칭 인정 안 함
+            if (opts.id != null && TYPE_SLOT_MAP[gimmickName]) {
+                const inScopeCheck = opts.inScope !== false; // 기본 true (scope 안 넘긴 호출자는 후보 풀 빌드용)
+                if (inScopeCheck) {
+                    const tt = _typeSlotMatchTurns(opts.id, gimmickName);
+                    if (tt > 0) {
+                        sources.push({ type: '속성 일치', turns: tt });
+                        return { max: tt, sources };
+                    }
+                }
+            }
+
             // suppressSpecial: 필살기 턴 되돌리기로 인해 이 캐릭의 special 사용 불가
             if (!opts.suppressSpecial) {
-                const sp = getReductionTurns(data.special, gimmickName, opts);
+                // (0)/(1) 상태 분기 고려: (1) 영역 매칭은 초월/재충전 경로 보유 시만 인정 (role 검증 포함)
+                const sp = _getSpecialReductionWithState(data, gimmickName, { ...opts, role });
                 if (sp > 0) sources.push({ type: '필살기', turns: sp });
             }
 
             if (role === 'captain') {
-                const cp = getReductionTurns(data.captain, gimmickName, opts);
-                if (cp > 0) sources.push({ type: '선장효과', turns: cp });
+                // 친구선장이 자기선장과 동일 ID일 때: 선장효과 중복 카운트 방지 (호출자가 suppressCaptainEffect: true 전달)
+                if (!opts.suppressCaptainEffect) {
+                    const cp = getReductionTurns(data.captain, gimmickName, opts);
+                    if (cp > 0) sources.push({ type: '선장효과', turns: cp });
+                }
             } else {
                 const cm = getReductionTurns(data.crewman, gimmickName, opts);
                 if (cm > 0) sources.push({ type: '선원효과', turns: cm });
             }
 
-            // 선원효과(sailor) — 모든 메인 슬롯 캐릭터에 적용
-            if (data.sailor) {
+            // 패시브(sailor) — 선원(member) 위치에서만 적용 (선장 위치에선 작동 X)
+            if (data.sailor && role !== 'captain') {
                 const txt = typeof data.sailor === 'object' ? Object.values(data.sailor).join('. ') : String(data.sailor);
                 const sl = getReductionTurns(txt, gimmickName, opts);
-                if (sl > 0) sources.push({ type: '선원효과', turns: sl });
+                if (sl > 0) sources.push({ type: '패시브', turns: sl });
             }
 
             // 체인지(swap)
@@ -1220,14 +1472,21 @@
                 if (sw > 0) sources.push({ type: '체인지', turns: sw });
             }
 
-            // 초월진화(superSpecial) — 선장일 때만 (또는 "자신이 선원일 때도" 명시 시 선원도)
+            // 초월진화(superSpecial) — 선장일 때만 (또는 "자신이 선원일 때도 발동 가능" 명시 시 선원도)
+            //   추가로 data.superSpecialCriteria 가 있다면 deck 필살기 텍스트로 충족 가능한지 검증
             if (data.superSpecial) {
                 const ssRaw = typeof data.superSpecial === 'object' ? JSON.stringify(data.superSpecial) : String(data.superSpecial);
-                const usableAsMember = ssRaw.includes('자신이 선원일 때도');
+                const usableAsMember = ssRaw.includes('자신이 선원일 때도 발동 가능');
                 const canUseHere = (role === 'captain') || usableAsMember;
                 if (canUseHere) {
-                    const ss = getReductionTurns(data.superSpecial, gimmickName, opts);
-                    if (ss > 0) sources.push({ type: '초월', turns: ss });
+                    const criteria = data.superSpecialCriteria
+                        ? (typeof data.superSpecialCriteria === 'object' ? JSON.stringify(data.superSpecialCriteria) : String(data.superSpecialCriteria))
+                        : '';
+                    const criteriaOK = !criteria || _verifyTransCriteria(criteria, opts.currentDeck);
+                    if (criteriaOK) {
+                        const ss = getReductionTurns(data.superSpecial, gimmickName, opts);
+                        if (ss > 0) sources.push({ type: '초월', turns: ss });
+                    }
                 }
             }
 
@@ -1467,8 +1726,14 @@
         //   pairedMainAffected: 짝지어진 메인 슬롯이 기믹 영향 범위 안인지
         //   isPartyWideGimmick: 기믹이 일당 전체 영향인지 (true면 대상캐 효과는 1명만 풀려서 카운트 안 함)
         //   반환: { turns: 회복 턴, label: '일당'/'대상캐'/'자신'/'' (출력용) }
-        function evaluateSupportContribution(effectText, gimmickName, pairedMainAffected, isPartyWideGimmick) {
+        function evaluateSupportContribution(effectText, gimmickName, pairedMainAffected, isPartyWideGimmick, pairedMainRole) {
             if (!effectText) return { turns: 0, label: '' };
+            // 서포트 효과의 "서포트 대상이 선장/선원일 때" 조건 검사 — paired main 의 role 과 일치해야 함
+            //   captain-only / crew-only 조건이 명시되어 있으면 해당 위치 아닐 시 효과 0
+            const captainOnly = /서포트\s*대상[^"\.\!\?]{0,15}선장(이?라면|이?면|이?고|일\s*때)/.test(effectText);
+            const crewOnly = /서포트\s*대상[^"\.\!\?]{0,15}선원(이?라면|이?면|이?고|일\s*때)/.test(effectText);
+            if (captainOnly && !crewOnly && pairedMainRole && pairedMainRole !== 'captain') return { turns: 0, label: '' };
+            if (crewOnly && !captainOnly && pairedMainRole && pairedMainRole !== 'member') return { turns: 0, label: '' };
             const aliases = GIMMICK_ALIASES[gimmickName];
             const targetNames = [];
             if (aliases === undefined) targetNames.push(gimmickName);
@@ -1549,10 +1814,16 @@
                 const v = parseInt(m[1]);
                 if (v > max) max = v;
             }
-            // fallback: gimmick name이 있는데 숫자가 인접 안 한 경우 1턴 처리
+            // fallback: gimmick name이 있는데 숫자가 인접 안 한 경우
+            //   - "완전히 회복/회피" 가 같은 문장(30자 이내) 안에 있으면 99턴 처리 (다른 문장의 효과까지 매칭하지 않도록 좁힘)
+            //   - 그 외는 기본 1턴 처리
             if (max === 0 && targetText.includes(name)) {
                 const idx = targetText.indexOf(name);
-                if (includeSelfOnly || !_isSelfOnlyContext(targetText, idx)) return 1;
+                if (includeSelfOnly || !_isSelfOnlyContext(targetText, idx)) {
+                    const nearby = targetText.substring(idx, Math.min(idx + 30, targetText.length));
+                    if (/완전히\s*(회복|회피)/.test(nearby)) return 99;
+                    return 1;
+                }
             }
             return max;
         }
@@ -1583,17 +1854,26 @@
             }
 
             const aliases = GIMMICK_ALIASES[gimmickName];
-            if (aliases === undefined) {
-                return _findTurnsByName(targetText, gimmickName, opts);
-            }
-            // 별칭이 배열/객체/문자열 어떤 형태든 처리
-            const items = Array.isArray(aliases) ? aliases : [aliases];
             let max = 0;
-            for (const a of items) {
-                if (typeof a === 'string') {
-                    max = Math.max(max, _findTurnsByName(targetText, a, opts));
-                } else if (a && a.regex && a.regex.test(targetText)) {
-                    max = Math.max(max, a.turns || 1);
+            if (aliases === undefined) {
+                max = _findTurnsByName(targetText, gimmickName, opts);
+            } else {
+                // 별칭이 배열/객체/문자열 어떤 형태든 처리
+                const items = Array.isArray(aliases) ? aliases : [aliases];
+                for (const a of items) {
+                    if (typeof a === 'string') {
+                        max = Math.max(max, _findTurnsByName(targetText, a, opts));
+                    } else if (a && a.regex && a.regex.test(targetText)) {
+                        max = Math.max(max, a.turns || 1);
+                    }
+                }
+            }
+            // Universal fallback: 적 버프 계열 기믹은 "적에게 걸려 있는 모든 유리 효과를 N턴 줄이..." 텍스트도 N턴 솔버로 인정
+            if (ENEMY_BUFF_GIMMICKS.has(gimmickName)) {
+                const uMatch = UNIVERSAL_DEBUFF_CAPTURE_REGEX.exec(targetText);
+                if (uMatch) {
+                    const uTurns = parseInt(uMatch[1]);
+                    if (uTurns > max) max = uTurns;
                 }
             }
             return max;
@@ -1604,31 +1884,104 @@
         //   _buildDeckSingle이 여러 번 호출돼도 1회만 계산
         //   activeGimmicks/round 변경 시 무효화 필요 → 빌드 시작 시 reset
         window.__gimmickSolverCache = window.__gimmickSolverCache || {};
-        function _resetGimmickSolverCache() { window.__gimmickSolverCache = {}; }
-        function _getGimmickSolvers(gimmickName) {
-            if (window.__gimmickSolverCache[gimmickName]) return window.__gimmickSolverCache[gimmickName];
-            const solvers = new Set();
+        window.__gimmickSolverCacheTiered = window.__gimmickSolverCacheTiered || {};
+        function _resetGimmickSolverCache() {
+            window.__gimmickSolverCache = {};
+            window.__gimmickSolverCacheTiered = {};
+        }
+
+        // "적에게 걸려 있는 모든 유리 효과를 N턴 줄이..." — 만능 적 버프 해제기 (tier 2 솔버)
+        const UNIVERSAL_DEBUFF_REGEX = /적에게\s*걸려\s*있는\s*모든\s*유리\s*효과[를을]?\s*\d+\s*턴/;
+        // 위와 동일하나 턴 수 캡쳐용 (실제 turn-reduction 계산에 사용)
+        const UNIVERSAL_DEBUFF_CAPTURE_REGEX = /적에게\s*걸려\s*있는\s*모든\s*유리\s*효과[를을]?\s*(\d+)\s*턴/;
+
+        // 적 측 버프 계열 기믹: 만능 해제기(tier 2)가 fallback 으로 솔버에 추가될 수 있는 기믹들
+        const ENEMY_BUFF_GIMMICKS = new Set([
+            "방어력 상승",
+            "데미지 감소",
+            "데미지 격감",
+            "일정이상 데미지 감소(격감)",
+            "데미지 무효",
+            "일당 공격 시 적의 최대 HP의 50% 데미지 제한",
+            "베리어",
+            "특정 슬롯으로 공격 시 데미지 감소",
+            "남은 체력 1로 버티기"
+        ]);
+
+        function _hasUniversalDebuff(data) {
+            if (!data) return false;
+            const candidates = [data.special, data.superSpecial, data.captain, data.crewman];
+            for (const txt of candidates) {
+                if (typeof txt === 'string' && UNIVERSAL_DEBUFF_REGEX.test(txt)) return true;
+            }
+            return false;
+        }
+
+        // 솔버를 tier 별로 분리해서 반환:
+        //   specific: 기믹 전용 매칭(alias)으로 해결 가능한 캐릭 (tier 1, 우선)
+        //   universal: "모든 유리 효과" 텍스트만 보유한 캐릭 (tier 2, fallback — ENEMY_BUFF_GIMMICKS 에 한함)
+        function _getGimmickSolversTiered(gimmickName) {
+            if (window.__gimmickSolverCacheTiered[gimmickName]) {
+                return window.__gimmickSolverCacheTiered[gimmickName];
+            }
+
+            // 속성 슬롯 변환: 매칭 타입 캐릭이 솔버 (텍스트 매칭 X)
+            const targetType = TYPE_SLOT_MAP[gimmickName];
+            if (targetType) {
+                const specific = new Set();
+                for (const id in window.units) {
+                    if (id.includes('-')) continue; // sub-char skip
+                    const u = window.units[id];
+                    if (!u) continue;
+                    const matches = u.type === targetType ||
+                        (Array.isArray(u.type) && u.type.includes(targetType));
+                    if (matches) specific.add(id);
+                }
+                const result = { specific, universal: new Set() };
+                window.__gimmickSolverCacheTiered[gimmickName] = result;
+                return result;
+            }
+
+            const specific = new Set();
             for (const id in window.details_kor) {
                 const data = window.details_kor[id];
                 if (!data) continue;
-                // 어떤 source라도 turn > 0이면 솔버 가능성
-                if (getReductionTurns(data.captain, gimmickName) > 0) { solvers.add(id); continue; }
-                if (getReductionTurns(data.special, gimmickName) > 0) { solvers.add(id); continue; }
-                if (getReductionTurns(data.crewman, gimmickName) > 0) { solvers.add(id); continue; }
+                if (getReductionTurns(data.captain, gimmickName) > 0) { specific.add(id); continue; }
+                if (_getSpecialReductionWithState(data, gimmickName) > 0) { specific.add(id); continue; }
+                if (getReductionTurns(data.crewman, gimmickName) > 0) { specific.add(id); continue; }
                 if (data.sailor) {
                     const txt = typeof data.sailor === 'object' ? Object.values(data.sailor).join('. ') : String(data.sailor);
-                    if (getReductionTurns(txt, gimmickName) > 0) { solvers.add(id); continue; }
+                    if (getReductionTurns(txt, gimmickName) > 0) { specific.add(id); continue; }
                 }
                 if (data.swap) {
                     const txt = typeof data.swap === 'object' ? Object.values(data.swap).join('. ') : String(data.swap);
-                    if (getReductionTurns(txt, gimmickName) > 0) { solvers.add(id); continue; }
+                    if (getReductionTurns(txt, gimmickName) > 0) { specific.add(id); continue; }
                 }
                 if (data.superSpecial && getReductionTurns(data.superSpecial, gimmickName) > 0) {
-                    solvers.add(id); continue;
+                    specific.add(id); continue;
                 }
             }
-            window.__gimmickSolverCache[gimmickName] = solvers;
-            return solvers;
+
+            const universal = new Set();
+            if (ENEMY_BUFF_GIMMICKS.has(gimmickName)) {
+                for (const id in window.details_kor) {
+                    if (specific.has(id)) continue;
+                    if (_hasUniversalDebuff(window.details_kor[id])) universal.add(id);
+                }
+            }
+
+            const result = { specific, universal };
+            window.__gimmickSolverCacheTiered[gimmickName] = result;
+            return result;
+        }
+
+        // 백워드 호환: tier 무관 합쳐서 반환 (기존 호출처 유지용)
+        function _getGimmickSolvers(gimmickName) {
+            if (window.__gimmickSolverCache[gimmickName]) return window.__gimmickSolverCache[gimmickName];
+            const tiered = _getGimmickSolversTiered(gimmickName);
+            const combined = new Set([...tiered.specific, ...tiered.universal]);
+            window.__gimmickSolverCache[gimmickName] = combined;
+            return combined;
         }
 
         // 덱 + 기믹 리스트로부터 currentTurns/solved 정확히 재계산
@@ -1643,6 +1996,9 @@
                 // 방어력 감소 무효: 보스 선제 (해제 불가, 평가에 영향만 줌) → 자동 solved
                 if (rg.name === "방어력 감소 무효") {
                     rg.solved = true;
+                } else if (PLAYER_FAVORABLE_GIMMICKS.has(rg.name)) {
+                    // 일당 유리 효과 (예: 상단 필살기 턴 99턴 단축) — 해결 불필요, 자동 solved
+                    rg.solved = true;
                 } else if (rg.turn === 0) {
                     // 즉발 기믹(원래 turn=0, 슬롯 변환 등)은 회복 효과 commit이 실제로 필요 → unsolved로 시작
                     rg.solved = false;
@@ -1652,11 +2008,20 @@
                 }
             }
 
+            // 선장효과 무효 가 활성(unsolved)인 라운드 식별 → 그 라운드의 다른 기믹들은 선장효과로 해결 불가
+            const captainDisabledRounds = new Set();
+            for (const rg of remainingGimmicks) {
+                if (rg.name === "선장효과 무효" && !rg.solved) {
+                    captainDisabledRounds.add(rg.round);
+                }
+            }
+
             // 1단계: non-special 효과를 모든 기믹에 적용
             for (const [slot, id] of Object.entries(deck)) {
                 if (!id) continue;
                 if (slot.startsWith('s')) continue;
-                if (slot === 'f1' && String(deck.c1) === String(id)) continue;
+                // f1 가 c1 과 동일 캐릭이면 선장효과 중복 카운트 방지 (필살기/다른 source 는 별개 카운트)
+                const isFriendCaptainDup = (slot === 'f1' && String(deck.c1) === String(id));
                 const data = window.details_kor[id];
                 const role = (slot === 'c1' || slot === 'f1') ? 'captain' : 'member';
                 for (const rg of remainingGimmicks) {
@@ -1672,7 +2037,10 @@
                     const sailorTxt = data?.sailor ? Object.values(data.sailor).join('. ') : '';
                     const hasSelfRewindRecov = sailorTxt.includes('필살기 턴 되돌리기') && /자신/.test(sailorTxt);
                     const suppressSpecial = rg.name !== '필살기 턴 되돌리기' && rewindHere && !hasSelfRewindRecov;
-                    const { sources } = evaluateCharReductionSources(data, rg.name, role, { includeSelfOnly, suppressSpecial, round: rg.round });
+                    // 선장효과 무효 활성 라운드 → 다른 기믹에 대해 선장효과 source 차단 (단 선장효과 무효 자체 평가는 정상)
+                    const captainDisabledHere = captainDisabledRounds.has(rg.round) && rg.name !== "선장효과 무효";
+                    const suppressCaptainEffect = isFriendCaptainDup || captainDisabledHere;
+                    const { sources } = evaluateCharReductionSources(data, rg.name, role, { id, inScope, includeSelfOnly, suppressSpecial, suppressCaptainEffect, round: rg.round, currentDeck: deck });
                     const nonSpecialMax = sources.filter(s => s.type !== '필살기').reduce((m, s) => Math.max(m, s.turns), 0);
                     rg.currentTurns -= nonSpecialMax;
                     if (rg.currentTurns <= 0) rg.solved = true;
@@ -1701,17 +2069,20 @@
                     const isPartyWide = !g.scope || (g.scope.row === 'all' && g.scope.col === 'all');
 
                     // 이미 같은 라운드에 commit된 special의 추가 기여 + 미커밋 후보 수집
+                    //   f1=c1 동일 캐릭이어도 필살기는 슬롯별 별개 사용 가능 → skip 안 함 (선장효과만 중복 차단)
                     const candidates = [];
                     for (const [slot, id] of Object.entries(deck)) {
                         if (!id) continue;
                         if (slot.startsWith('s')) continue;
-                        if (slot === 'f1' && String(deck.c1) === String(id)) continue;
+                        const isFriendCaptainDup = (slot === 'f1' && String(deck.c1) === String(id));
                         const data = window.details_kor[id];
                         const role = (slot === 'c1' || slot === 'f1') ? 'captain' : 'member';
                         const inScope = isSlotAffected(slot, g.scope);
                         const includeSelfOnly = !isPartyWide && inScope;
                         const suppressSpecial = g.name !== '필살기 턴 되돌리기' && isSlotRewound(slot) && !hasSelfRewindRecov(id);
-                        const { sources } = evaluateCharReductionSources(data, g.name, role, { includeSelfOnly, suppressSpecial, round });
+                        const captainDisabledHere2 = captainDisabledRounds.has(round) && g.name !== "선장효과 무효";
+                        const suppressCaptainEffect2 = isFriendCaptainDup || captainDisabledHere2;
+                        const { sources } = evaluateCharReductionSources(data, g.name, role, { id, inScope, includeSelfOnly, suppressSpecial, suppressCaptainEffect: suppressCaptainEffect2, round, currentDeck: deck });
                         const specialSrc = sources.find(s => s.type === '필살기');
                         if (!specialSrc || specialSrc.turns <= 0) continue;
                         if (specialUsedTracker[slot] === round) {
@@ -1758,28 +2129,53 @@
                 return true;
             };
             const scoreState = () => {
-                const unsolved = remainingGimmicks.filter(rg => !rg.solved).length;
-                const totalRed = remainingGimmicks.reduce((s, rg) =>
-                    s + Math.max(0, rg.turn - Math.max(0, rg.currentTurns)), 0);
-                return { unsolved, totalRed };
+                // 강한 패널티 (unsolved): party-wide 미해결 + 즉발(turn=0) 부분scope 미해결 (위치배치로만 해결 가능)
+                // 약한 패널티 (partialUnsolved): turn 기반 부분scope 미해결 (위치/자체 회피 + 선장효과 등 대안 있음)
+                let unsolved = 0, partialUnsolved = 0, totalRed = 0;
+                for (const rg of remainingGimmicks) {
+                    if (!rg.solved) {
+                        const isPartyWide = !rg.scope || (rg.scope.row === 'all' && rg.scope.col === 'all');
+                        const isInstant = rg.turn === 0;
+                        // 즉발 부분scope (슬롯변환 등) 은 위치배치로만 해결 → 강한 우선순위 유지
+                        if (isPartyWide || isInstant) unsolved++;
+                        else partialUnsolved++;
+                    }
+                    totalRed += Math.max(0, rg.turn - Math.max(0, rg.currentTurns));
+                }
+                return { unsolved, partialUnsolved, totalRed };
             };
             const isBetter = (a, b) => {
+                // 1) 강한 미해결(party-wide + 즉발 partial) 적은 게 최우선
                 if (a.unsolved < b.unsolved) return true;
                 if (a.unsolved > b.unsolved) return false;
-                return a.totalRed > b.totalRed;
+                // 2) totalRed 큰 게 우선
+                if (a.totalRed > b.totalRed) return true;
+                if (a.totalRed < b.totalRed) return false;
+                // 3) 약한 미해결(turn 기반 partial) 적은 게 마지막 tiebreak
+                return a.partialUnsolved < b.partialUnsolved;
             };
 
             const candidatePoolSet = new Set();
+            const tier1IdSet = new Set();
             for (const rg of remainingGimmicks) {
-                const solverIds = _getGimmickSolvers(rg.name);
-                for (const id of solverIds) candidatePoolSet.add(String(id));
+                const tiered = _getGimmickSolversTiered(rg.name);
+                for (const id of tiered.specific) {
+                    tier1IdSet.add(String(id));
+                    candidatePoolSet.add(String(id));
+                }
+                for (const id of tiered.universal) candidatePoolSet.add(String(id));
             }
             for (const b of (boostChars || [])) candidatePoolSet.add(String(b.id));
-            // 제외 캐릭 필터링
+            // 제외 캐릭 필터링 — tier1(전용 솔버) 먼저, tier2(만능 솔버) 나중에
             const excludedSet = new Set((excludedCharIds || []).map(String));
             const candidatePool = [...candidatePoolSet]
                 .filter(id => !excludedSet.has(id))
-                .sort((a, b) => (parseInt(b) || 0) - (parseInt(a) || 0));
+                .sort((a, b) => {
+                    const aT1 = tier1IdSet.has(a) ? 0 : 1;
+                    const bT1 = tier1IdSet.has(b) ? 0 : 1;
+                    if (aT1 !== bT1) return aT1 - bT1;
+                    return (parseInt(b) || 0) - (parseInt(a) || 0);
+                });
 
             let iter = 0;
             let slotIdx = 0;
@@ -1890,26 +2286,51 @@
                 return true;
             };
             const scoreState = () => {
-                const unsolved = remainingGimmicks.filter(rg => !rg.solved).length;
-                const totalRed = remainingGimmicks.reduce((s, rg) =>
-                    s + Math.max(0, rg.turn - Math.max(0, rg.currentTurns)), 0);
-                return { unsolved, totalRed };
+                // 강한 패널티 (unsolved): party-wide 미해결 + 즉발(turn=0) 부분scope 미해결 (위치배치로만 해결 가능)
+                // 약한 패널티 (partialUnsolved): turn 기반 부분scope 미해결 (위치/자체 회피 + 선장효과 등 대안 있음)
+                let unsolved = 0, partialUnsolved = 0, totalRed = 0;
+                for (const rg of remainingGimmicks) {
+                    if (!rg.solved) {
+                        const isPartyWide = !rg.scope || (rg.scope.row === 'all' && rg.scope.col === 'all');
+                        const isInstant = rg.turn === 0;
+                        // 즉발 부분scope (슬롯변환 등) 은 위치배치로만 해결 → 강한 우선순위 유지
+                        if (isPartyWide || isInstant) unsolved++;
+                        else partialUnsolved++;
+                    }
+                    totalRed += Math.max(0, rg.turn - Math.max(0, rg.currentTurns));
+                }
+                return { unsolved, partialUnsolved, totalRed };
             };
             const isBetter = (a, b) => {
+                // 1) 강한 미해결(party-wide + 즉발 partial) 적은 게 최우선
                 if (a.unsolved < b.unsolved) return true;
                 if (a.unsolved > b.unsolved) return false;
-                return a.totalRed > b.totalRed;
+                // 2) totalRed 큰 게 우선
+                if (a.totalRed > b.totalRed) return true;
+                if (a.totalRed < b.totalRed) return false;
+                // 3) 약한 미해결(turn 기반 partial) 적은 게 마지막 tiebreak
+                return a.partialUnsolved < b.partialUnsolved;
             };
 
             // 후보 풀: 모든 기믹의 솔버 + 모든 boost (필러)
-            //   ID 내림차순 정렬 (신규 캐릭부터 시도) — 일반적으로 신규일수록 강함
+            //   tier1 (전용 솔버) 먼저 → tier2 (만능 "모든 유리 효과" 솔버) 나중 → 그 안에서 ID 내림차순
             const candidatePoolSet = new Set();
+            const tier1IdSet = new Set();
             for (const rg of remainingGimmicks) {
-                const solverIds = _getGimmickSolvers(rg.name);
-                for (const id of solverIds) candidatePoolSet.add(String(id));
+                const tiered = _getGimmickSolversTiered(rg.name);
+                for (const id of tiered.specific) {
+                    tier1IdSet.add(String(id));
+                    candidatePoolSet.add(String(id));
+                }
+                for (const id of tiered.universal) candidatePoolSet.add(String(id));
             }
             for (const b of (boostChars || [])) candidatePoolSet.add(String(b.id));
-            const candidatePool = [...candidatePoolSet].sort((a, b) => (parseInt(b) || 0) - (parseInt(a) || 0));
+            const candidatePool = [...candidatePoolSet].sort((a, b) => {
+                const aT1 = tier1IdSet.has(a) ? 0 : 1;
+                const bT1 = tier1IdSet.has(b) ? 0 : 1;
+                if (aT1 !== bT1) return aT1 - bT1;
+                return (parseInt(b) || 0) - (parseInt(a) || 0);
+            });
 
             for (let iter = 0; iter < MAX_ITER; iter++) {
                 let improved = false;
@@ -2006,9 +2427,11 @@
                         const u = getUnitMeta(did);
                         if (u?.name) deckNames.add(u.name);
                     }
-                    let bestCand = null, bestRed = 0, bestCandNum = -1, bestIsBoost = false, bestRankScore = 99;
-                    // 사전 필터링된 솔버 후보 사용 (성능 최적화: 5000+ → 수십~수백)
-                    const solverIds = _getGimmickSolvers(rg.name);
+                    let bestCand = null, bestRed = 0, bestCandNum = -1, bestIsBoost = false, bestRankScore = 99, bestIsTier1 = false;
+                    // 사전 필터링된 솔버 후보 사용 (tier1=전용 솔버, tier2=만능 솔버 fallback)
+                    const tiered = _getGimmickSolversTiered(rg.name);
+                    const tier1Set = tiered.specific;
+                    const solverIds = new Set([...tiered.specific, ...tiered.universal]);
                     for (const id of solverIds) {
                         if (excludedSet.has(String(id))) continue; // 제외 캐릭 차단
                         if (deckIds.has(String(id))) continue;
@@ -2023,20 +2446,22 @@
                         }
                         const data = window.details_kor[id];
                         // swap 후 어느 슬롯에 들어갈지 모르므로 includeSelfOnly는 보수적으로 false (party-wide 효과 위주)
-                        const red = evaluateCharReductionSources(data, rg.name, 'member', { includeSelfOnly: false, round: rg.round }).max;
+                        const red = evaluateCharReductionSources(data, rg.name, 'member', { id, includeSelfOnly: false, round: rg.round }).max;
                         if (red <= 0) continue;
                         if (!isCompatBoth(id)) continue;
                         const idNum = parseInt(id) || 0;
                         const isBoost = boostIdSet.has(String(id));
                         const cRankScore = isBoost ? rankScore(boostRankMap.get(String(id))) : 99;
-                        // 우선순위: 1) boost > 비-boost, 2) 등급 (A>B>C>D>E), 3) red 큰 것, 4) ID 큰 것
+                        const cIsTier1 = tier1Set.has(id);
+                        // 우선순위: 1) boost > 비-boost, 2) 등급 (A>B>C>D>E), 3) tier1 > tier2, 4) red 큰 것, 5) ID 큰 것
                         const better =
                             (isBoost && !bestIsBoost) ||
                             (isBoost === bestIsBoost && cRankScore < bestRankScore) ||
-                            (isBoost === bestIsBoost && cRankScore === bestRankScore && red > bestRed) ||
-                            (isBoost === bestIsBoost && cRankScore === bestRankScore && red === bestRed && idNum > bestCandNum);
+                            (isBoost === bestIsBoost && cRankScore === bestRankScore && cIsTier1 && !bestIsTier1) ||
+                            (isBoost === bestIsBoost && cRankScore === bestRankScore && cIsTier1 === bestIsTier1 && red > bestRed) ||
+                            (isBoost === bestIsBoost && cRankScore === bestRankScore && cIsTier1 === bestIsTier1 && red === bestRed && idNum > bestCandNum);
                         if (better) {
-                            bestCand = id; bestRed = red; bestCandNum = idNum; bestIsBoost = isBoost; bestRankScore = cRankScore;
+                            bestCand = id; bestRed = red; bestCandNum = idNum; bestIsBoost = isBoost; bestRankScore = cRankScore; bestIsTier1 = cIsTier1;
                         }
                     }
                     if (!bestCand) continue;
@@ -2366,7 +2791,27 @@
                     // f1(친구선장)은 1-aa에서 effectiveFriendId 기준으로 단일 설정
                 }
                 else {
-                    const slot = ['m1', 'm2', 'm3', 'm4'].find(s => !deck[s]);
+                    const memberSlots = ['m1', 'm2', 'm3', 'm4'];
+                    // 속성 슬롯 변환 기믹과 캐릭 타입 매칭 시: scope 안의 빈 슬롯 우선
+                    const u = window.units?.[id];
+                    const charType = u?.type;
+                    let preferred = [];
+                    if (charType) {
+                        for (const rg of remainingGimmicks) {
+                            if (rg.solved) continue;
+                            const targetType = TYPE_SLOT_MAP[rg.name];
+                            if (!targetType) continue;
+                            const matches = charType === targetType ||
+                                (Array.isArray(charType) && charType.includes(targetType));
+                            if (!matches) continue;
+                            for (const s of memberSlots) {
+                                if (!deck[s] && isSlotAffected(s, rg.scope) && !preferred.includes(s)) {
+                                    preferred.push(s);
+                                }
+                            }
+                        }
+                    }
+                    const slot = preferred[0] || memberSlots.find(s => !deck[s]);
                     if (slot) { deck[slot] = id; assignedSlot = slot; }
                     else return false;
                 }
@@ -2610,7 +3055,7 @@
                         let cov = 0;
                         for (const rg of remainingGimmicks) {
                             if (rg.solved) continue;
-                            const red = evaluateCharReductionSources(data, rg.name, 'member', { round: rg.round }).max;
+                            const red = evaluateCharReductionSources(data, rg.name, 'member', { id: c.id, round: rg.round }).max;
                             if (red > 0) cov++;
                         }
                         if (requireSolver && cov === 0) continue;
@@ -2713,33 +3158,38 @@
             remainingGimmicks.forEach(rg => {
                 if (rg.solved) return;
                 if (!memberSlots.some(s => !deck[s])) return; // 빈 선원 슬롯 없음
-                let bestCompat = null, bestCompatRed = 0, bestCompatMult = -1, bestCompatNum = -1;
-                let bestAny = null, bestAnyRed = 0, bestAnyMult = -1, bestAnyNum = -1;
+                let bestCompat = null, bestCompatRed = 0, bestCompatMult = -1, bestCompatNum = -1, bestCompatTier1 = false;
+                let bestAny = null, bestAnyRed = 0, bestAnyMult = -1, bestAnyNum = -1, bestAnyTier1 = false;
 
-                // 사전 필터링된 솔버 후보 사용 (성능 최적화)
-                //   비-boost 폴백 — ID 큰(신규) 캐릭 우선, 동률 시 red 큰 것 → mult 큰 것
-                const solverIds = _getGimmickSolvers(rg.name);
+                // 사전 필터링된 솔버 후보 사용 (tier1=전용 솔버, tier2=만능 솔버 fallback)
+                //   비-boost 폴백 — tier1 우선 → ID 큰 → red 큰 → mult 큰 것
+                const tiered = _getGimmickSolversTiered(rg.name);
+                const tier1Set = tiered.specific;
+                const solverIds = new Set([...tiered.specific, ...tiered.universal]);
                 for (const id of solverIds) {
                     if (boostIdSet.has(String(id))) continue;
                     if (isDuplicate(id)) continue;
                     const data = window.details_kor[id];
-                    const evalRes = evaluateCharReductionSources(data, rg.name, 'member', { round: rg.round });
+                    const evalRes = evaluateCharReductionSources(data, rg.name, 'member', { id, round: rg.round });
                     if (evalRes.max <= 0) continue;
                     const mult = getAttackMultiplier(data.captain || '');
                     const compat = isMemberCompatibleWithCaptain(id, captainReqsForFallback);
                     const idNum = parseInt(id) || 0;
-                    // ID 큰(신규) 우선 → red 큰 것 → mult 큰 것
-                    const compatBetter = idNum > bestCompatNum
-                        || (idNum === bestCompatNum && evalRes.max > bestCompatRed)
-                        || (idNum === bestCompatNum && evalRes.max === bestCompatRed && mult > bestCompatMult);
+                    const cIsTier1 = tier1Set.has(id);
+                    // tier1 > tier2, 그 안에서 ID 큰(신규) 우선 → red 큰 것 → mult 큰 것
+                    const compatBetter = (cIsTier1 && !bestCompatTier1)
+                        || (cIsTier1 === bestCompatTier1 && idNum > bestCompatNum)
+                        || (cIsTier1 === bestCompatTier1 && idNum === bestCompatNum && evalRes.max > bestCompatRed)
+                        || (cIsTier1 === bestCompatTier1 && idNum === bestCompatNum && evalRes.max === bestCompatRed && mult > bestCompatMult);
                     if (compat && compatBetter) {
-                        bestCompat = id; bestCompatRed = evalRes.max; bestCompatMult = mult; bestCompatNum = idNum;
+                        bestCompat = id; bestCompatRed = evalRes.max; bestCompatMult = mult; bestCompatNum = idNum; bestCompatTier1 = cIsTier1;
                     }
-                    const anyBetter = idNum > bestAnyNum
-                        || (idNum === bestAnyNum && evalRes.max > bestAnyRed)
-                        || (idNum === bestAnyNum && evalRes.max === bestAnyRed && mult > bestAnyMult);
+                    const anyBetter = (cIsTier1 && !bestAnyTier1)
+                        || (cIsTier1 === bestAnyTier1 && idNum > bestAnyNum)
+                        || (cIsTier1 === bestAnyTier1 && idNum === bestAnyNum && evalRes.max > bestAnyRed)
+                        || (cIsTier1 === bestAnyTier1 && idNum === bestAnyNum && evalRes.max === bestAnyRed && mult > bestAnyMult);
                     if (anyBetter) {
-                        bestAny = id; bestAnyRed = evalRes.max; bestAnyMult = mult; bestAnyNum = idNum;
+                        bestAny = id; bestAnyRed = evalRes.max; bestAnyMult = mult; bestAnyNum = idNum; bestAnyTier1 = cIsTier1;
                     }
                 }
                 const pick = bestCompat || bestAny;
@@ -2747,6 +3197,49 @@
                     fillSlot(pick, false);
                 }
             });
+
+            // 1-d.5. 타입 슬롯 변환 자체 정렬 패스 — 덱 내 멤버 슬롯 간 swap 으로 타입에 맞는 위치 정렬
+            //   예: [속]슬롯 변환 [중단] 미해결인데 QCK 캐릭이 m3(하단) 있다면, m1/m2(중단) 슬롯의 비-QCK 캐릭과 swap
+            (function _alignTypeSlots() {
+                const typeSlotGimmicks = remainingGimmicks.filter(rg =>
+                    !rg.solved && TYPE_SLOT_MAP[rg.name]
+                );
+                if (typeSlotGimmicks.length === 0) return;
+                const memberSlots = ['m1', 'm2', 'm3', 'm4'];
+                const getType = (id) => {
+                    const u = window.units?.[id];
+                    return u?.type;
+                };
+                const typeMatches = (id, targetType) => {
+                    const t = getType(id);
+                    return t === targetType ||
+                        (Array.isArray(t) && t.includes(targetType));
+                };
+                for (const rg of typeSlotGimmicks) {
+                    const targetType = TYPE_SLOT_MAP[rg.name];
+                    // 이미 in-scope 매칭 캐릭이 있으면 skip
+                    const inScopeMatched = memberSlots.some(s =>
+                        deck[s] && isSlotAffected(s, rg.scope) && typeMatches(deck[s], targetType)
+                    );
+                    if (inScopeMatched) continue;
+                    // out-of-scope 슬롯에서 매칭 타입 캐릭 찾기
+                    const sourceSlot = memberSlots.find(s =>
+                        deck[s] && !isSlotAffected(s, rg.scope) && typeMatches(deck[s], targetType)
+                    );
+                    if (!sourceSlot) continue;
+                    // in-scope 슬롯 (대상) 선택: 비어있거나, 타입-슬롯 무관 캐릭이 있는 곳
+                    const targetSlot = memberSlots.find(s =>
+                        isSlotAffected(s, rg.scope) && (!deck[s] || !typeMatches(deck[s], targetType))
+                    );
+                    if (!targetSlot) continue;
+                    // 두 슬롯의 캐릭을 swap (대상이 비어있으면 단순 이동)
+                    const sourceId = deck[sourceSlot];
+                    const targetId = deck[targetSlot];
+                    deck[targetSlot] = sourceId;
+                    deck[sourceSlot] = targetId; // null 이면 sourceSlot 비워짐
+                    _recomputeGimmickStates(deck, remainingGimmicks);
+                }
+            })();
 
             // 1-e. Swap pass: 미해결 기믹이 남고 멤버 슬롯이 모두 차있으면
             //      잉여 멤버(제거해도 다른 기믹이 모두 그대로 solved 유지되는 멤버)를 미해결 기믹 솔버로 교체
@@ -2804,7 +3297,8 @@
                             const fit = checkSupportFit(e.target, mainId);
                             if (fit === 'reject') continue;
                             const pairedMainAffected = isSlotAffected(baseSlotKeys[i], rg.scope);
-                            const r = evaluateSupportContribution(e.effect, rg.name, pairedMainAffected, isPartyWide);
+                            const pairedMainRole = (baseSlotKeys[i] === 'c1' || baseSlotKeys[i] === 'f1') ? 'captain' : 'member';
+                            const r = evaluateSupportContribution(e.effect, rg.name, pairedMainAffected, isPartyWide, pairedMainRole);
                             if (r.turns <= 0) continue;
                             const cand = { red: r.turns, slotIdx: i, target: e.target };
                             if (fit === 'strict') {
@@ -2883,7 +3377,15 @@
                     return txt.includes('필살기 턴 되돌리기') && /자신/.test(txt);
                 };
 
+                // 이 라운드에 선장효과 무효 활성 여부 (능력해방 -3 후에도 잔여 턴 > 0)
+                const captainEffectDisabledThisRound = roundGimmicks.some(g =>
+                    g.name === '선장효과 무효' && Math.max(0, g.turn - 3) > 0
+                );
+
                 html += `<div class="solution-round"><h3>BATTLE ${round} 해결 분석</h3>`;
+                // 이번 라운드에 필살기 / 초월 사용된 캐릭터 추적 (slot → {name, uses})
+                const usedSpecialSlotsThisRound = new Map();
+                const usedTransSlotsThisRound = new Map();
                 roundGimmicks.forEach(g => {
                     let solvers = [];
                     let totalReduced = 0;
@@ -2905,7 +3407,8 @@
 
                     for (const [slot, id] of Object.entries(deck)) {
                         if (!id) continue;
-                        if (slot === 'f1' && String(deck.c1) === String(id)) continue;
+                        // f1 가 c1 과 동일 캐릭이어도 필살기는 슬롯별 별개 사용 가능 → skip 안 함 (선장효과만 중복 차단)
+                        const isFriendCaptainDup = (slot === 'f1' && String(deck.c1) === String(id));
 
                         const data = window.details_kor[id];
                         const charName = getUnitMeta(id)?.name || `ID${id}`;
@@ -2918,10 +3421,11 @@
                             const supportIdx = parseInt(slot.slice(1)) - 1;
                             const pairedMainSlot = ['c1','m1','m2','m3','m4'][supportIdx];
                             const pairedMainAffected = isSlotAffected(pairedMainSlot, g.scope);
+                            const pairedMainRole = (pairedMainSlot === 'c1' || pairedMainSlot === 'f1') ? 'captain' : 'member';
                             let baseRed = 0;
                             let supportScopeLabel = '';
                             for (const e of entries) {
-                                const r = evaluateSupportContribution(e.effect, g.name, pairedMainAffected, isPartyWide);
+                                const r = evaluateSupportContribution(e.effect, g.name, pairedMainAffected, isPartyWide, pairedMainRole);
                                 if (r.turns > baseRed) { baseRed = r.turns; supportScopeLabel = r.label; }
                             }
                             if (baseRed > 0 && (!supportUsedTracker[id] || supportUsedTracker[id] === round)) {
@@ -2933,7 +3437,9 @@
                             const suppressSpecial = g.name !== '필살기 턴 되돌리기' &&
                                                     isSlotRewound(slot) &&
                                                     !hasSelfRewindRecov(id);
-                            const { sources } = evaluateCharReductionSources(data, g.name, role, { includeSelfOnly, suppressSpecial, round });
+                            const captainDisabledHere = captainEffectDisabledThisRound && g.name !== '선장효과 무효';
+                            const suppressCaptainEffectDisplay = isFriendCaptainDup || captainDisabledHere;
+                            const { sources } = evaluateCharReductionSources(data, g.name, role, { id, inScope, includeSelfOnly, suppressSpecial, suppressCaptainEffect: suppressCaptainEffectDisplay, round, currentDeck: deck });
                             const nonSpecialSrcs = sources.filter(s => s.type !== '필살기');
                             const specialSrc = sources.find(s => s.type === '필살기');
                             const bestNonSpecial = nonSpecialSrcs.reduce((b, s) => s.turns > (b?.turns ?? 0) ? s : b, null);
@@ -2942,6 +3448,10 @@
                             if (bestNonSpecial && bestNonSpecial.turns > 0) {
                                 renderItems.push({ slot, id, charName, isSupportSlot: false, type: bestNonSpecial.type, turns: bestNonSpecial.turns });
                                 totalReduced += bestNonSpecial.turns;
+                                // 초월 사용 트래커 (이번 라운드 기준)
+                                if (bestNonSpecial.type === '초월' && !usedTransSlotsThisRound.has(slot)) {
+                                    usedTransSlotsThisRound.set(slot, { name: charName, slot });
+                                }
                             }
                             // 필살기 처리: 같은 라운드에 이미 이 슬롯이 commit됐으면 추가 contribution
                             if (specialSrc && specialSrc.turns > 0 && specialUsedTracker[slot] === round) {
@@ -2977,6 +3487,10 @@
                             // commit (슬롯 단위 추적)
                             specialUsedCount[c.slot] = (specialUsedCount[c.slot] || 0) + 1;
                             specialUsedTracker[c.slot] = round;
+                            // 이번 라운드 필살기 사용 트래커
+                            const usedEntry = usedSpecialSlotsThisRound.get(c.slot) || { name: c.charName, slot: c.slot, uses: 0 };
+                            usedEntry.uses++;
+                            usedSpecialSlotsThisRound.set(c.slot, usedEntry);
                             let typeLabel = '필살기';
                             if (_hasSpecialRefillEffect(c.id) && specialUsedCount[c.slot] === 2) typeLabel = '필살기(재충전)';
                             renderItems.push({ slot: c.slot, id: c.id, charName: c.charName, isSupportSlot: false, type: typeLabel, turns: c.turns });
@@ -3009,7 +3523,10 @@
                     const scopeText = scopeLabel(g.scope);
 
                     let statusText, statusColor;
-                    if (slotLockedImmune) {
+                    if (PLAYER_FAVORABLE_GIMMICKS.has(g.name)) {
+                        statusText = '보스 선제 — 일당 유리 효과 (해결 불필요)';
+                        statusColor = '#4dd0e1';
+                    } else if (slotLockedImmune) {
                         statusText = '변환 불가 슬롯 + 고정으로 면역';
                         statusColor = '#00ffcc';
                     } else if (isInstant) {
