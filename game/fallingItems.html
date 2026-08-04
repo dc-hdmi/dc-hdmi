@@ -2,38 +2,47 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <script src="jquery.min.js"></script>
 <title>메리호 줍줍 게임</title>
 <style>
+    html, body {
+        height: 100%;
+    }
     body {
         margin: 0;
         background: #222;
         color: white;
         font-family: sans-serif;
         overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+        min-height: 100dvh;
     }
     #game {
-	    position: relative;
-	    margin: 0 auto;
-	    background: #333;
-	    width: 100vw;
-	    height: calc(100vh - 120px); /* 상단 점수, 버튼 높이 고려 */
-	    border: 2px solid #555;
-	    touch-action: none;
-	}
+        position: relative;
+        margin: 0 auto;
+        background: #333;
+        width: 100vw;
+        flex: 1 1 auto;
+        min-height: 0;
+        border: 2px solid #555;
+        box-sizing: border-box;
+        touch-action: none;
+    }
     .player {
-	    position: absolute;
-	    bottom: 90px; /* 기존 10px → 드래그 영역 위로 이동 */
-	    left: 230px;
-	    width: 60px;
-	    height: 60px;
-	    background-image: url('ship.png');
-	    background-size: cover;
-	    background-position: center;
-	    border-radius: 5px;
-	    z-index: 2; /* 드래그 영역보다 위에 보이게 */
-	}
+        position: absolute;
+        bottom: 90px;
+        left: 230px;
+        width: 60px;
+        height: 60px;
+        background-image: url('ship.png');
+        background-size: cover;
+        background-position: center;
+        border-radius: 5px;
+        z-index: 2;
+    }
     .item {
         position: absolute;
         width: 45px;
@@ -61,126 +70,126 @@
         background-position: center;
     }
 
-    .item-p1 { 
-    	width: 45px; /* 원래의 절반 */
-	  	height: 45px;
-	  	background-image: url('item.png');
-	  	background-position: -141.75px -159px;
-	  	background-repeat: no-repeat;
-	  	background-size: 256px 256px;
-	}
-	.item-p2 { 
-		width: 45px; /* 원래의 절반 */
-	  	height: 45px;
-	  	background-image: url('item.png');
-	  	background-position: 0px 2px;
-	  	background-repeat: no-repeat;
-	  	background-size: 256px 256px;
-	}
-	.item-p3 { 
-		width: 45px; /* 원래의 절반 */
-	  	height: 45px;
-	  	background-image: url('item.png');
-	  	background-position: -112.50px -40px;
-	  	background-repeat: no-repeat;
-	  	background-size: 256px 256px;
-	}
-	.item-p4 { 
-		width: 45px; /* 원래의 절반 */
-	  	height: 45px;
-	  	background-image: url('item.png');
-	  	background-position: -95.75px -180px;
-	  	background-repeat: no-repeat;
-	  	background-size: 256px 256px;
-	}
-	.item-p5 { 
-		width: 45px; /* 원래의 절반 */
-	  	height: 45px;
-	  	background-image: url('item.png');
-	  	background-position: -35.75px -90px;
-	  	background-repeat: no-repeat;
-	  	background-size: 256px 256px;
-	}
-	.item-n1 { 
-		width: 45px; /* 원래의 절반 */
-	  	height: 45px;
-	  	background-image: url('item.png');
-	  	background-position: -49.75px 2px;
-	  	background-repeat: no-repeat;
-	  	background-size: 256px 256px;
-	}
-	.item-n2 { 
-		width: 45px; /* 원래의 절반 */
-	  	height: 45px;
-	  	background-image: url('item.png');
-	  	background-position: 6px -90px;
-	  	background-repeat: no-repeat;
-	  	background-size: 256px 256px;
-	}
-	
-	.item-reset { 
-	    width: 45px;
-	    height: 45px;
-	    background-image: url('popuptext_slot_megabomb.png'); 
-	    background-repeat: no-repeat;
-	}
-	
-    .item-tp1 { 
-    	width: 45px; /* 원래의 절반 */
-	  	height: 45px;
-	  	background-image: url('item.png');
-	  	background-position: -141.75px -159px;
-	  	background-repeat: no-repeat;
-	  	background-size: 256px 256px;
-	}
-	.item-tp2 { 
-		width: 45px; /* 원래의 절반 */
-	  	height: 45px;
-	  	background-image: url('item.png');
-	  	background-position: 0px 2px;
-	  	background-repeat: no-repeat;
-	  	background-size: 256px 256px;
-	}
-	.item-tp3 { 
-		width: 45px; /* 원래의 절반 */
-	  	height: 45px;
-	  	background-image: url('item.png');
-	  	background-position: -112.50px -40px;
-	  	background-repeat: no-repeat;
-	  	background-size: 256px 256px;
-	}
-	.item-tp4 { 
-		width: 45px; /* 원래의 절반 */
-	  	height: 45px;
-	  	background-image: url('item.png');
-	  	background-position: -95.75px -180px;
-	  	background-repeat: no-repeat;
-	  	background-size: 256px 256px;
-	}
-	.item-tp5 { 
-		width: 45px; /* 원래의 절반 */
-	  	height: 45px;
-	  	background-image: url('item.png');
-	  	background-position: -35.75px -90px;
-	  	background-repeat: no-repeat;
-	  	background-size: 256px 256px;
-	}
-	.item-tn1 { 
-		width: 45px; /* 원래의 절반 */
-	  	height: 45px;
-	  	background-image: url('item.png');
-	  	background-position: -49.75px 2px;
-	  	background-repeat: no-repeat;
-	  	background-size: 256px 256px;
-	}
-	.item-tn2 { 
-		width: 45px; /* 원래의 절반 */
-	  	height: 45px;
-	  	background-image: url('item.png');
-	  	background-position: 6px -90px;
-	  	background-repeat: no-repeat;
-	  	background-size: 256px 256px;
-	}
+    .item-p1 {
+        width: 45px;
+        height: 45px;
+        background-image: url('item.png');
+        background-position: -141.75px -159px;
+        background-repeat: no-repeat;
+        background-size: 256px 256px;
+    }
+    .item-p2 {
+        width: 45px;
+        height: 45px;
+        background-image: url('item.png');
+        background-position: 0px 2px;
+        background-repeat: no-repeat;
+        background-size: 256px 256px;
+    }
+    .item-p3 {
+        width: 45px;
+        height: 45px;
+        background-image: url('item.png');
+        background-position: -112.50px -40px;
+        background-repeat: no-repeat;
+        background-size: 256px 256px;
+    }
+    .item-p4 {
+        width: 45px;
+        height: 45px;
+        background-image: url('item.png');
+        background-position: -95.75px -180px;
+        background-repeat: no-repeat;
+        background-size: 256px 256px;
+    }
+    .item-p5 {
+        width: 45px;
+        height: 45px;
+        background-image: url('item.png');
+        background-position: -35.75px -90px;
+        background-repeat: no-repeat;
+        background-size: 256px 256px;
+    }
+    .item-n1 {
+        width: 45px;
+        height: 45px;
+        background-image: url('item.png');
+        background-position: -49.75px 2px;
+        background-repeat: no-repeat;
+        background-size: 256px 256px;
+    }
+    .item-n2 {
+        width: 45px;
+        height: 45px;
+        background-image: url('item.png');
+        background-position: 6px -90px;
+        background-repeat: no-repeat;
+        background-size: 256px 256px;
+    }
+
+    .item-reset {
+        width: 45px;
+        height: 45px;
+        background-image: url('popuptext_slot_megabomb.png');
+        background-repeat: no-repeat;
+    }
+
+    .item-tp1 {
+        width: 45px;
+        height: 45px;
+        background-image: url('item.png');
+        background-position: -141.75px -159px;
+        background-repeat: no-repeat;
+        background-size: 256px 256px;
+    }
+    .item-tp2 {
+        width: 45px;
+        height: 45px;
+        background-image: url('item.png');
+        background-position: 0px 2px;
+        background-repeat: no-repeat;
+        background-size: 256px 256px;
+    }
+    .item-tp3 {
+        width: 45px;
+        height: 45px;
+        background-image: url('item.png');
+        background-position: -112.50px -40px;
+        background-repeat: no-repeat;
+        background-size: 256px 256px;
+    }
+    .item-tp4 {
+        width: 45px;
+        height: 45px;
+        background-image: url('item.png');
+        background-position: -95.75px -180px;
+        background-repeat: no-repeat;
+        background-size: 256px 256px;
+    }
+    .item-tp5 {
+        width: 45px;
+        height: 45px;
+        background-image: url('item.png');
+        background-position: -35.75px -90px;
+        background-repeat: no-repeat;
+        background-size: 256px 256px;
+    }
+    .item-tn1 {
+        width: 45px;
+        height: 45px;
+        background-image: url('item.png');
+        background-position: -49.75px 2px;
+        background-repeat: no-repeat;
+        background-size: 256px 256px;
+    }
+    .item-tn2 {
+        width: 45px;
+        height: 45px;
+        background-image: url('item.png');
+        background-position: 6px -90px;
+        background-repeat: no-repeat;
+        background-size: 256px 256px;
+    }
 
     #score, #timer, #current-time {
         text-align: center;
@@ -200,66 +209,67 @@
     }
     #startBtn { background: green; color: white; }
     #drag-area {
-	    position: absolute;
-	    bottom: 0;
-	    left: 0;
-	    width: 100%;
-	    height: 80px;
-	    background: rgba(255, 255, 255, 0.07);
-	    z-index: 1; 
-	    display: flex;
-	    justify-content: center;
-	    align-items: center;
-	    font-size: 18px;
-	    color: #ccc;
-	    user-select: none;
-	    touch-action: none;
-	    border-top: 1px solid rgba(255, 255, 255, 0.1);
-	}
-	#item-preview {
-	  position: absolute;
-	  top: 50%;
-	  left: 50%;
-	  transform: translate(-50%, -50%);
-	  border-collapse: collapse;
-	  z-index: 999;
-	  width: 335px;
-	  height: 110px;
-	  text-align: center;
-	  background: rgba(0, 0, 0, 0.5); /* 배경 살짝 투명하게 보기 좋게 */
-	  padding: 10px;
-	  border-radius: 10px;
-	}
-	#item-preview td {
-	  padding: 2px;
-	}
-	.hidden {
-	  display: none !important;
-	}
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 80px;
+        background: rgba(255, 255, 255, 0.07);
+        z-index: 1;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 18px;
+        color: #ccc;
+        user-select: none;
+        touch-action: none;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    #drag-area * { touch-action: none; }
+    #item-preview {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        border-collapse: collapse;
+        z-index: 999;
+        width: 335px;
+        height: 110px;
+        text-align: center;
+        background: rgba(0, 0, 0, 0.5);
+        padding: 10px;
+        border-radius: 10px;
+    }
+    #item-preview td {
+        padding: 2px;
+    }
+    .hidden {
+        display: none !important;
+    }
 </style>
 </head>
 <body>
 <div id="preview">
-	<table id="item-preview">
-	  <tr>
-	    <td><div class="item item-p1"></div></td>
-	    <td><div class="item item-tp2"></div></td>
-	    <td><div class="item item-tp3"></div></td>
-	    <td><div class="item item-tp4"></div></td>
-	    <td><div class="item item-tp5"></div></td>
-	    <td><div class="item item-tn1"></div></td>
-	    <td><div class="item item-tn2"></div></td>
-	  </tr>
-	  <tr>
-	    <td>1점</td>
-	    <td>2점</td>
-	    <td>3점</td>
-	    <td>4점</td>
-	    <td>5점</td>
-	    <td><span style="margin-left: -5px;">-5점</span></td>
-	    <td><span style="margin-left: -5px;">-10점</span></td>
-	  </tr>
-	</table>
+    <table id="item-preview">
+      <tr>
+        <td><div class="item item-p1"></div></td>
+        <td><div class="item item-tp2"></div></td>
+        <td><div class="item item-tp3"></div></td>
+        <td><div class="item item-tp4"></div></td>
+        <td><div class="item item-tp5"></div></td>
+        <td><div class="item item-tn1"></div></td>
+        <td><div class="item item-tn2"></div></td>
+      </tr>
+      <tr>
+        <td>1점</td>
+        <td>2점</td>
+        <td>3점</td>
+        <td>4점</td>
+        <td>5점</td>
+        <td><span style="margin-left: -5px;">-5점</span></td>
+        <td><span style="margin-left: -5px;">-10점</span></td>
+      </tr>
+    </table>
 </div>
 <div id="current-time"></div>
 <div style="display: flex; justify-content: center; margin-top: 10px;">
@@ -272,8 +282,8 @@
 <div id="game">
     <div class="player" id="player"></div>
     <div id="drag-area">
-	  <span>← 드래그 →</span>
-	</div>
+      <span>← 드래그 →</span>
+    </div>
 </div>
 
 <script>
@@ -312,17 +322,14 @@ function centerPlayer() {
     player.style.left = playerX + "px";
 }
 
-// 아이템 생성
 function createItem() {
     let itemData;
-    
-    // 확률적으로 2번만 reset 아이템 등장
+
     if (resetItemCount < 2 && Math.random() < 0.01) {
         itemData = { value: "reset", class: "item-reset" };
         resetItemCount++;
     } else {
-        // 기존 아이템 중 하나 선택
-        itemData = items[Math.floor(Math.random() * (items.length - 1))]; // reset 제외
+        itemData = items[Math.floor(Math.random() * (items.length - 1))];
     }
 
     const item = document.createElement("div");
@@ -341,7 +348,6 @@ function drawScore(value) {
     scoreCtx.fillText("점수: " + value, 10, 28);
 }
 
-// 게임 루프
 function gameLoop() {
     if (!gameRunning) return;
 
@@ -349,9 +355,8 @@ function gameLoop() {
 
     const allItems = game.querySelectorAll(".game-item");
     allItems.forEach(item => {
-    	
-    	if (item.closest("#item-preview")) return;
-    	
+        if (item.closest("#item-preview")) return;
+
         let y = parseFloat(item.style.top);
         y += fallSpeed;
         item.style.top = y + "px";
@@ -361,31 +366,30 @@ function gameLoop() {
         const ix = parseFloat(item.style.left);
         const iy = y;
         if (
-        	    ix < px + player.clientWidth &&
-        	    ix + 30 > px &&
-        	    iy < py + player.clientHeight &&
-        	    iy + 30 > py
-        	) {
-        	    const val = item.dataset.value;
-        	    if (val === "reset") {
-        	        score = 0; // 점수 리셋
-        	    } else {
-        	        score += parseInt(val);
-        	    }
-        	    drawScore(score);
-        	    item.remove();
+                ix < px + player.clientWidth &&
+                ix + 30 > px &&
+                iy < py + player.clientHeight &&
+                iy + 30 > py
+            ) {
+                const val = item.dataset.value;
+                if (val === "reset") {
+                    score = 0;
+                } else {
+                    score += parseInt(val);
+                }
+                drawScore(score);
+                item.remove();
 
-        	    if (score < 0) {
-        	        endGame(false, true);
-        	    }
-        	}
+                if (score < 0) {
+                    endGame(false, true);
+                }
+            }
         if (y > game.clientHeight) item.remove();
     });
 
     requestAnimationFrame(gameLoop);
 }
 
-// 타이머 시작
 function startTimer() {
     timerInterval = setInterval(() => {
         if (!gameRunning) return;
@@ -397,7 +401,6 @@ function startTimer() {
     }, 1000);
 }
 
-// 속도 증가 타이머
 function startSpeedUp() {
     speedUpInterval = setInterval(() => {
         if (!gameRunning) return;
@@ -405,14 +408,12 @@ function startSpeedUp() {
     }, 10000);
 }
 
-// 게임 시작
 function startGame() {
-	centerPlayer();
+    centerPlayer();
     score = 0;
     drawScore(score);
     timeLeft = 60;
     timerEl.textContent = `남은 시간: ${timeLeft}초`;
-    //document.querySelectorAll(".item").forEach(el => el.remove());
     game.querySelectorAll(".game-item").forEach(el => el.remove());
     fallSpeed = 3;
 
@@ -425,7 +426,6 @@ function startGame() {
     gameLoop();
 }
 
-// 게임 종료
 function endGame(timeOver = false, negativeScore = false) {
     gameRunning = false;
     clearInterval(timerInterval);
@@ -443,11 +443,11 @@ function endGame(timeOver = false, negativeScore = false) {
     $("#preview").show();
 }
 
-// 마우스 드래그 이동
 let isDragging = false;
 
 dragArea.addEventListener("pointerdown", (e) => {
     isDragging = true;
+    dragArea.setPointerCapture(e.pointerId);
     movePlayer(e.clientX);
 });
 dragArea.addEventListener("pointermove", (e) => {
@@ -455,7 +455,11 @@ dragArea.addEventListener("pointermove", (e) => {
         movePlayer(e.clientX);
     }
 });
-document.addEventListener("pointerup", () => {
+dragArea.addEventListener("pointerup", (e) => {
+    isDragging = false;
+    try { dragArea.releasePointerCapture(e.pointerId); } catch (_) {}
+});
+dragArea.addEventListener("pointercancel", (e) => {
     isDragging = false;
 });
 
@@ -467,17 +471,7 @@ function movePlayer(clientX) {
     player.style.left = playerX + "px";
 }
 
-// 버튼 이벤트
 startBtn.addEventListener("click", () => startGame());
-
-//터치로 인한 움직임 막기
-game.addEventListener("touchstart", e => {
-    e.preventDefault(); // 터치 시작 시 아무것도 하지 않음
-}, { passive: false });
-
-game.addEventListener("touchmove", e => {
-    e.preventDefault(); // 드래그처럼 따라오는 것도 막음
-}, { passive: false });
 
 function updateTime() {
     const now = new Date();
@@ -494,6 +488,12 @@ function updateTime() {
 
 updateTime();
 setInterval(updateTime, 1000);
+
+window.addEventListener("resize", () => {
+    if (!gameRunning) return;
+    playerX = Math.min(playerX, game.clientWidth - player.clientWidth);
+    player.style.left = playerX + "px";
+});
 </script>
 </body>
 </html>
