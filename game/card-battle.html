@@ -23,7 +23,11 @@
     --PSY: #d872c0; --INT: #d9b64a;
   }
   html, body {
-    margin: 0; padding: 0; height: 100vh; overflow: hidden;
+    margin: 0; padding: 0;
+    height: 100vh;                        /* fallback */
+    height: 100svh;                       /* 모바일 UI 포함 안정 */
+    height: var(--app-h, 100svh);         /* JS 로 정확히 설정 */
+    overflow: hidden;
     background: var(--bg); color: var(--text);
     font-family: -apple-system, "Segoe UI", "Noto Sans KR", sans-serif;
     user-select: none;
@@ -35,12 +39,13 @@
     max-width: 480px;
     margin: 0 auto;
     position: relative;
+    overflow: hidden;
   }
 
   /* ───── Zones ───── */
   .zone {
     flex: 0 0 auto;
-    padding: 6px 10px;
+    padding: 4px 8px;
     border-bottom: 1px solid var(--border);
     position: relative;
   }
@@ -50,7 +55,9 @@
     flex-direction: column;
     gap: 4px;
     justify-content: center;
-    min-height: 110px;
+    min-height: 100px;
+    max-height: 150px;
+    padding: 2px 6px;
     background: linear-gradient(180deg, rgba(255,255,255,0.015), transparent);
   }
   .zone.player-field { background: linear-gradient(0deg, rgba(100,220,180,0.05), transparent); }
@@ -75,12 +82,15 @@
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 6px;
-    min-height: 92px;
+    min-height: 90px;
+    justify-items: center;
   }
   .slot {
     border: 1px dashed rgba(255,255,255,0.08);
     border-radius: 8px;
     min-height: 90px;
+    width: 100%;
+    max-width: 110px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -100,6 +110,9 @@
     cursor: pointer;
     aspect-ratio: 3 / 4;
     min-height: 0;
+    width: 100%;
+    max-width: 110px;
+    max-height: 140px;
   }
   .card.STR { border-color: var(--STR); box-shadow: 0 0 10px rgba(227,91,91,0.35); }
   .card.DEX { border-color: var(--DEX); box-shadow: 0 0 10px rgba(75,191,118,0.35); }
@@ -107,7 +120,17 @@
   .card.PSY { border-color: var(--PSY); box-shadow: 0 0 10px rgba(216,114,192,0.35); }
   .card.INT { border-color: var(--INT); box-shadow: 0 0 10px rgba(217,182,74,0.35); }
   .card.selected { transform: translateY(-6px); border-width: 3px; box-shadow: 0 6px 16px rgba(255,215,122,0.6); }
-  .card.exhausted { opacity: 0.5; filter: grayscale(60%); }
+  /* 비활성 카드 — 속성 뱃지와 코스트는 선명하게 유지 */
+  .card.exhausted .thumb,
+  .card.exhausted .name {
+    opacity: 0.4;
+    filter: grayscale(70%);
+  }
+  .card.exhausted .stats {
+    opacity: 0.75;
+    filter: grayscale(40%);
+  }
+  .card.exhausted { opacity: 0.95; }
   .card.hand { cursor: pointer; }
 
   /* 상단: 캐릭터 이미지 영역 (카드의 ~60%) */
@@ -184,11 +207,11 @@
     display: flex;
     gap: 4px;
     justify-content: center;
-    padding-top: 4px;
-    min-height: 42px;
+    padding-top: 2px;
+    min-height: 32px;
   }
   .opp-hand-row .card-back {
-    width: 32px; height: 42px;
+    width: 26px; height: 34px;
     border-radius: 5px;
     border: 1.5px solid #3a1818;
     background:
@@ -209,7 +232,7 @@
   .zone.hand {
     border-top: 2px solid var(--border);
     border-bottom: none;
-    padding: 8px 6px;
+    padding: 5px 6px;
     background: linear-gradient(0deg, var(--bg2), transparent);
   }
   .hand-row {
@@ -218,20 +241,26 @@
     gap: 6px;
     max-width: 360px;
     margin: 0 auto;
+    justify-items: center;
+  }
+  .hand .card {
+    max-width: 110px;
+    max-height: 150px;
   }
   .card.unaffordable { opacity: 0.5; }
   .card.unaffordable .cost-badge { background: #555; }
 
   /* ───── Controls ───── */
   .controls {
-    display: flex; gap: 6px; padding: 6px 10px;
+    display: flex; gap: 6px; padding: 5px 8px;
     background: var(--bg2); border-top: 1px solid var(--border);
+    padding-bottom: calc(5px + env(safe-area-inset-bottom));
   }
   button {
     flex: 1;
     background: linear-gradient(180deg, #f2c15b, #c98f2a);
     color: #1a1207;
-    border: none; padding: 10px;
+    border: none; padding: 8px;
     font-size: 14px; font-weight: 700;
     border-radius: 6px;
     cursor: pointer;
@@ -346,24 +375,6 @@
   @keyframes hint-bounce {
     0% { transform: translate(-50%, -50%) scale(1); }
     100% { transform: translate(-50%, -50%) scale(1.08); }
-  }
-
-  /* ───── 타겟 카드에 🎯 아이콘 (중앙 희미하게) ───── */
-  .targeting .card.targetable::after {
-    content: '🎯';
-    position: absolute;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 28px;
-    z-index: 5;
-    pointer-events: none;
-    opacity: 0.6;
-    animation: target-bounce 0.6s ease-in-out infinite alternate;
-    filter: drop-shadow(0 0 6px rgba(0,0,0,0.9));
-  }
-  @keyframes target-bounce {
-    0% { transform: translate(-50%, -50%) scale(1); opacity: 0.5; }
-    100% { transform: translate(-50%, -50%) scale(1.2); opacity: 0.8; }
   }
 
   /* ───── 예상 데미지 뱃지 (타겟 위에) ───── */
@@ -578,7 +589,7 @@
       </div>
     </div>
     <div class="opp-hand-row" id="opp-hand"></div>
-    <div class="attack-hint">🎯 리더 공격<span class="lead-dmg" id="lead-dmg">−?</span></div>
+    <div class="attack-hint">리더 공격<span class="lead-dmg" id="lead-dmg">−?</span></div>
   </div>
   <div class="zone opp-field">
     <div class="field-row" id="opp-field"></div>
@@ -1246,7 +1257,16 @@ document.getElementById('btn-restart').addEventListener('click', () => {
   newGame();
 });
 
+// 모바일 뷰포트 높이 정확히 설정 (주소창/하단바 포함)
+function setViewportHeight() {
+  document.documentElement.style.setProperty('--app-h', window.innerHeight + 'px');
+}
+setViewportHeight();
+window.addEventListener('resize', setViewportHeight);
+window.addEventListener('orientationchange', setViewportHeight);
+
 window.addEventListener('load', () => {
+  setViewportHeight();
   if (!window.units) {
     log('units.js 로드 실패');
     return;
