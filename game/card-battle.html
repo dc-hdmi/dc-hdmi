@@ -1246,9 +1246,10 @@ function cardPool() {
     if (!cost || !maxHp || !maxAtk) return;
     // 스케일 다운
     const atk = Math.max(1, Math.floor(maxAtk / 400));
-    const hp = Math.max(1, Math.floor(maxHp / 800));
-    // 마나 = 전투력(ATK+HP) 기반 — 비싼 카드일수록 확실히 강하게
-    const mana = Math.min(7, Math.max(1, Math.round((atk + hp) / 2.5)));
+    const baseHp = Math.max(1, Math.floor(maxHp / 800));
+    const hp = baseHp * 2;  // 실제 전투 HP — 2배로 (카드 생존력↑)
+    // 마나 = 전투력(ATK+원래 HP) 기반 — 밸런스 유지
+    const mana = Math.min(7, Math.max(1, Math.round((atk + baseHp) / 2.5)));
     pool.push({
       id: logbook, name, attr, cls,
       mana, atk, hp, maxHp: hp,
