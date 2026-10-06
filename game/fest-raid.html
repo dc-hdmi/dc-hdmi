@@ -185,9 +185,19 @@
                 .replace(/'/g, '&#39;');
         }
 
+        // [STR] / [DEX] / [QCK] / [PSY] / [INT] → 한글 속성명 치환
+        const ATTR_KO = {
+            STR: '힘속성', DEX: '기속성', QCK: '속속성',
+            PSY: '심속성', INT: '지속성'
+        };
+        function localizeAttrs(text) {
+            if (!text) return text;
+            return text.replace(/\[(STR|DEX|QCK|PSY|INT)\]/g, (_, k) => ATTR_KO[k]);
+        }
+
         function highlight(text) {
             if (!text) return '';
-            const safe = escapeHtml(text);
+            const safe = escapeHtml(localizeAttrs(text));
             const escPhrase = HIGHLIGHT_PHRASE.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             return safe.replace(new RegExp(escPhrase, 'g'),
                 `<span class="fest-highlight">${HIGHLIGHT_PHRASE}</span>`);
