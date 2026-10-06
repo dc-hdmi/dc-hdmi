@@ -623,6 +623,101 @@
     padding: 8px 0;
   }
 
+  /* ───── 도움말 ? FAB ───── */
+  .help-fab {
+    position: absolute;
+    bottom: calc(68px + env(safe-area-inset-bottom));
+    right: 10px;
+    width: 42px; height: 42px;
+    border-radius: 50%;
+    background: linear-gradient(180deg, #3a5042, #1f3028);
+    color: var(--gold);
+    font-size: 20px;
+    font-weight: 900;
+    border: 2px solid var(--gold);
+    cursor: pointer;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.6), inset 0 1px 1px rgba(255,255,255,0.1);
+    padding: 0;
+  }
+  .help-fab:active { transform: scale(0.92); }
+
+  /* ───── 도움말 모달 ───── */
+  .help-modal {
+    position: absolute;
+    inset: 0;
+    background: rgba(5, 10, 8, 0.97);
+    z-index: 260;
+    display: flex;
+    flex-direction: column;
+    padding: 12px 16px;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom));
+  }
+  .help-modal.hidden { display: none; }
+  .help-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 10px;
+  }
+  .help-header h3 { color: var(--gold); margin: 0; font-size: 17px; }
+  .help-content {
+    flex: 1;
+    overflow-y: auto;
+    color: var(--text);
+    font-size: 13px;
+    line-height: 1.55;
+    padding-right: 4px;
+  }
+  .help-content h4 {
+    color: var(--gold);
+    margin: 16px 0 6px;
+    font-size: 14px;
+    border-left: 3px solid var(--gold);
+    padding-left: 8px;
+  }
+  .help-content h4:first-child { margin-top: 0; }
+  .help-content p { margin: 4px 0 8px; }
+  .help-content ul, .help-content ol {
+    padding-left: 18px;
+    margin: 4px 0 8px;
+  }
+  .help-content li { margin: 3px 0; }
+  .help-content strong { color: #ffd57a; font-weight: 700; }
+  .help-content table {
+    width: 100%;
+    margin: 6px 0 10px;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  .help-content th, .help-content td {
+    border: 1px solid var(--border);
+    padding: 5px 7px;
+    text-align: left;
+    vertical-align: top;
+  }
+  .help-content th {
+    background: rgba(255,215,122,0.08);
+    color: var(--gold);
+    font-weight: 700;
+  }
+  .help-content hr {
+    margin: 14px 0;
+    border: none;
+    border-top: 1px solid var(--border);
+  }
+  .help-tip {
+    background: rgba(75,191,118,0.08);
+    border-left: 3px solid var(--green);
+    padding: 8px 10px;
+    margin: 6px 0;
+    border-radius: 4px;
+    font-size: 12px;
+  }
+
   /* ───── 공격 중 input 잠금 ───── */
   body.locked .card.hand,
   body.locked .card { pointer-events: none; }
@@ -719,6 +814,115 @@
       <button class="log-close" id="log-close">✕ 닫기</button>
     </div>
     <div class="log-list" id="log-list"></div>
+  </div>
+
+  <!-- 도움말 FAB 버튼 -->
+  <button class="help-fab" id="btn-help" title="게임 설명">?</button>
+
+  <!-- 도움말 모달 -->
+  <div class="help-modal hidden" id="help-modal">
+    <div class="help-header">
+      <h3>게임 설명</h3>
+      <button class="log-close" id="help-close">✕ 닫기</button>
+    </div>
+    <div class="help-content">
+      <h4>① 목표</h4>
+      <p>상대 리더 HP를 25 → 0 만들면 승리.</p>
+
+      <h4>② 화면 구성</h4>
+      <ul>
+        <li><strong>위쪽</strong>: 상대 리더 / 상대 필드 / 상대 뒷면 카드(손패 장수)</li>
+        <li><strong>아래쪽</strong>: 내 리더 / 내 필드 / 내 손패</li>
+      </ul>
+
+      <h4>③ 내 턴 자동 효과</h4>
+      <p>턴 시작 시 자동으로:</p>
+      <ul>
+        <li>마나 +1 (최대 7, 매 턴 가득 리필)</li>
+        <li>카드 1장 뽑기</li>
+        <li>내 필드 카드 노란 빛 = 공격 가능</li>
+      </ul>
+
+      <h4>④ 카드 소환</h4>
+      <p>손패 카드 클릭 → 필드로 (마나 ≥ 좌상단 코스트)</p>
+      <ul>
+        <li>필드 최대 3자리</li>
+        <li>소환한 턴에는 공격 불가 (다음 턴부터)</li>
+      </ul>
+
+      <h4>⑤ 공격 방법 (2단계)</h4>
+      <ol>
+        <li>내 필드 카드 클릭 → 선택 (더 밝은 테두리)</li>
+        <li>타겟 클릭:
+          <ul>
+            <li>적 카드 → 그 카드와 전투</li>
+            <li>상단 "상대 리더" 영역 → 리더 직접 공격</li>
+          </ul>
+        </li>
+        <li>취소: 선택 카드 다시 클릭 또는 하단 "공격 취소"</li>
+      </ol>
+
+      <h4>⑥ 데미지 규칙</h4>
+      <ul>
+        <li><strong>카드 vs 카드</strong> = 서로 데미지 (공격자/수비자 모두 다침)</li>
+        <li><strong>카드 vs 리더</strong> = 공격자 안 다침 (리더 직접 공격은 안전)</li>
+        <li>HP 0 → 카드 파괴</li>
+      </ul>
+
+      <h4>⑦ 속성 상성 (양방향 적용)</h4>
+      <ul>
+        <li>삼각: 힘 → 기 → 속 → 힘</li>
+        <li>양방향: 심 ↔ 지</li>
+      </ul>
+      <table>
+        <tr><th>상황</th><th>내가 입히는 데미지</th><th>내가 받는 반격</th></tr>
+        <tr><td>상성 유리</td><td>×1.25 (최소 +1)</td><td>×0.75 (최소 −1)</td></tr>
+        <tr><td>상성 불리</td><td>×0.75 (최소 −1)</td><td>×1.25 (최소 +1)</td></tr>
+        <tr><td>중립</td><td>×1.0</td><td>×1.0</td></tr>
+      </table>
+      <p>유리 상성 공격은 두 배로 이득 — 더 때리고 덜 맞음.<br>
+      공격 모드에서 적 카드 위 뱃지로 공격/반격 데미지 미리 확인 가능.</p>
+
+      <h4>⑧ 클래스 효과</h4>
+      <table>
+        <tr><th>클래스</th><th>효과</th></tr>
+        <tr><td>격투형 (Fighter)</td><td>소환 시 랜덤 적 1 데미지</td></tr>
+        <tr><td>사격형 (Shooter)</td><td>소환 시 적 전체 1 데미지</td></tr>
+        <tr><td>박식형 (Cerebral)</td><td>소환 시 카드 1장 뽑기</td></tr>
+        <tr><td>타격형 (Striker)</td><td>턴 시작 ATK +1 (영구)</td></tr>
+        <tr><td>자유형 (Free Spirit)</td><td>턴 시작 내 리더 HP +1</td></tr>
+        <tr><td>강인형 (Powerhouse)</td><td>소환 시 자신 HP +2</td></tr>
+        <tr><td>참격형 (Slasher)</td><td>공격 시 +1 데미지</td></tr>
+      </table>
+
+      <h4>⑨ 턴 종료</h4>
+      <ul>
+        <li>아무 때나 "턴 종료" 버튼 (의무 없음, 마나 남겨도 됨)</li>
+        <li>할 액션 없으면 버튼 금색 깜빡 → 1.5초 뒤 자동 종료</li>
+      </ul>
+
+      <h4>⑩ 배틀 로그</h4>
+      <ul>
+        <li>하단 로그 버튼 → 지난 60개 액션 전부 확인</li>
+        <li>턴 구분선 / 내 액션 / 상대 액션 색상 구분</li>
+      </ul>
+
+      <h4>⑪ 승리 / 패배</h4>
+      <ul>
+        <li>상대 리더 HP = 0 → <strong>승리</strong></li>
+        <li>내 리더 HP = 0 → <strong>패배</strong></li>
+      </ul>
+
+      <hr>
+
+      <h4>초보 꿀팁</h4>
+      <div class="help-tip">1. <strong>반격 포함 수치 체크</strong> — 공격 −5 해도 반격 −6 이면 손해</div>
+      <div class="help-tip">2. <strong>상성 유리할 때 적극 공격</strong> — 양방향 보너스로 거의 무상 트레이드</div>
+      <div class="help-tip">3. <strong>상대 필드 비면 리더 몰빵</strong> — 리더 공격은 안전</div>
+      <div class="help-tip">4. <strong>마나는 안 쓰면 사라짐</strong> — 가능하면 쓰기</div>
+      <div class="help-tip">5. <strong>소환한 카드는 그 턴에 공격 못 함</strong> — 다음 턴에 쓰려면 미리 소환해두기</div>
+      <div class="help-tip">6. <strong>상대가 사격형 소환하면 전체 −1</strong> — 체력 1인 내 카드들 조심</div>
+    </div>
   </div>
 
   <!-- Game over modal -->
@@ -1459,6 +1663,12 @@ document.getElementById('btn-restart').addEventListener('click', () => {
 });
 document.getElementById('btn-log').addEventListener('click', openLogPanel);
 document.getElementById('log-close').addEventListener('click', closeLogPanel);
+document.getElementById('btn-help').addEventListener('click', () => {
+  document.getElementById('help-modal').classList.remove('hidden');
+});
+document.getElementById('help-close').addEventListener('click', () => {
+  document.getElementById('help-modal').classList.add('hidden');
+});
 
 // 모바일 뷰포트 높이 정확히 설정 (주소창/하단바 포함)
 function setViewportHeight() {
