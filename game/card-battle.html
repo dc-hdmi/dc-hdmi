@@ -532,6 +532,35 @@
     30% { filter: brightness(2) saturate(0) drop-shadow(0 0 8px #ff0); }
   }
 
+  /* ───── 죽음 직전 흔들림 ───── */
+  .card.dying {
+    animation: death-shake 0.75s ease-in-out;
+    z-index: 20;
+  }
+  @keyframes death-shake {
+    0%   { transform: translate(0, 0) rotate(0); filter: none; }
+    10%  { transform: translate(-4px, -1px) rotate(-3deg); filter: brightness(1.4) drop-shadow(0 0 4px #f55); }
+    20%  { transform: translate(4px, 1px) rotate(3deg); filter: brightness(0.7); }
+    30%  { transform: translate(-5px, 0) rotate(-4deg); filter: brightness(1.7) hue-rotate(-15deg) drop-shadow(0 0 6px #f00); }
+    40%  { transform: translate(5px, -2px) rotate(4deg); filter: brightness(0.5); }
+    50%  { transform: translate(-6px, 1px) rotate(-3deg); filter: brightness(2) hue-rotate(-25deg) drop-shadow(0 0 10px #f22); }
+    60%  { transform: translate(6px, 0) rotate(3deg); filter: brightness(0.4) grayscale(0.5); }
+    70%  { transform: translate(-4px, -1px) rotate(-2deg); filter: brightness(1.6); }
+    80%  { transform: translate(4px, 1px) rotate(2deg); filter: brightness(0.6) grayscale(0.3); }
+    90%  { transform: translate(-2px, 0) rotate(-1deg); filter: brightness(1.3); }
+    100% { transform: translate(0, 0) rotate(0); filter: brightness(0.5) grayscale(0.8); }
+  }
+
+  /* ───── Shooter / Fighter 전체 효과 (화면 플래시) ───── */
+  .zone.opp-field.aoe-flash,
+  .zone.player-field.aoe-flash {
+    animation: aoe-flash 0.5s;
+  }
+  @keyframes aoe-flash {
+    0%, 100% { box-shadow: inset 0 0 0 rgba(255,80,80,0); }
+    40%      { box-shadow: inset 0 0 30px rgba(255,80,80,0.8); }
+  }
+
   /* ───── 턴 배너 ───── */
   .turn-banner {
     position: absolute;
@@ -1118,29 +1147,52 @@ function startTurn(side) {
   s.field.forEach(c => applyEffect(c, 'onTurn', side));
 }
 
-function applyEffect(card, trigger, side) {
+async function applyEffect(card, trigger, side) {
   const eff = card.effect || {};
   const my = state[side];
   const opp = state[side === 'player' ? 'opp' : 'player'];
+  const oppSide = side === 'player' ? 'opp' : 'player';
   if (trigger === 'onPlay') {
     if (eff.onPlay === 'deal1' && opp.field.length) {
       const target = opp.field[Math.floor(Math.random() * opp.field.length)];
-      target.hp -= 1;
-      setTimeout(() => {
-        const el = findCardEl(target.instanceId);
-        if (el) { showFloatDmg(el, '-1', '#ff5555'); flashCard(el); }
-      }, 50);
       log(`${card.name}: 소환 효과 — ${target.name} 에 1 데미지`, side);
+      showMiniBanner(`<b>${card.name}</b> 효과 — ${target.name} −1`);
+      await sleep(500);
+      const el = findCardEl(target.instanceId);
+      if (el) { showFloatDmg(el, '-1', '#ff5555'); flashCard(el); }
+      target.hp -= 1;
+      await sleep(400);
+      if (target.hp <= 0 && el) await destroyCard(el);
+      cleanupDead(oppSide);
+      render();
     }
     if (eff.onPlay === 'dealAll1') {
-      opp.field.forEach(t => { t.hp -= 1; });
-      setTimeout(() => {
-        opp.field.forEach(t => {
-          const el = findCardEl(t.instanceId);
-          if (el) { showFloatDmg(el, '-1', '#ff5555'); flashCard(el); }
-        });
-      }, 50);
       log(`${card.name}: 적 전체에 1 데미지`, side);
+      showMiniBanner(`<b>${card.name}</b> 사격 — 적 전체 −1!`);
+      await sleep(600);
+      // AOE 플래시 (상대 필드 전체 번쩍)
+      const zoneEl = document.querySelector(side === 'player' ? '.opp-field' : '.player-field');
+      if (zoneEl) {
+        zoneEl.classList.remove('aoe-flash');
+        void zoneEl.offsetWidth;
+        zoneEl.classList.add('aoe-flash');
+      }
+      // 각 타겟 피격 + 데미지 숫자
+      opp.field.forEach(t => {
+        const el = findCardEl(t.instanceId);
+        if (el) { showFloatDmg(el, '-1', '#ff5555'); flashCard(el); }
+      });
+      await sleep(100);
+      opp.field.forEach(t => { t.hp -= 1; });
+      await sleep(500);
+      // 죽는 카드들 흔들림 → 파괴 (병렬)
+      const dyingTargets = opp.field.filter(t => t.hp <= 0);
+      await Promise.all(dyingTargets.map(t => {
+        const el = findCardEl(t.instanceId);
+        return el ? destroyCard(el) : Promise.resolve();
+      }));
+      cleanupDead(oppSide);
+      render();
     }
     if (eff.onPlay === 'draw1') {
       drawCard(side, side === 'player');
@@ -1260,12 +1312,13 @@ async function summonCard(card, side) {
   card._justSummoned = true;
   s.field.push(card);
   s.mana -= card.mana;
-  applyEffect(card, 'onPlay', side);
   log(`${side === 'player' ? '내' : '상대'} ${card.name} 소환 (💧${card.mana})`, side);
   cleanupDead('player');
   cleanupDead('opp');
   render();
   await sleep(550);
+  // 소환 애니메이션 끝난 뒤 효과 발동 (가시성↑)
+  await applyEffect(card, 'onPlay', side);
   return true;
 }
 
@@ -1295,11 +1348,11 @@ async function performAttack(attacker, atkSide, target, defSide) {
 
   await sleep(500);
 
-  // 죽은 카드 샤터
-  const shatterP = [];
-  if (target.hp <= 0 && tgtEl) shatterP.push(shatterCard(tgtEl));
-  if (attacker.hp <= 0 && atkEl) shatterP.push(shatterCard(atkEl));
-  await Promise.all(shatterP);
+  // 죽은 카드 흔들림 → 샤터
+  const dyingP = [];
+  if (target.hp <= 0 && tgtEl) dyingP.push(destroyCard(tgtEl));
+  if (attacker.hp <= 0 && atkEl) dyingP.push(destroyCard(atkEl));
+  await Promise.all(dyingP);
 
   cleanupDead('player');
   cleanupDead('opp');
@@ -1390,6 +1443,13 @@ function shakeHp(side) {
   void el.offsetWidth;
   el.classList.add('hp-shake');
   setTimeout(() => el.classList.remove('hp-shake'), 600);
+}
+
+async function destroyCard(el) {
+  if (!el) return;
+  el.classList.add('dying');
+  await sleep(750);  // 흔들흔들
+  await shatterCard(el);  // 파괴
 }
 
 async function shatterCard(el) {
