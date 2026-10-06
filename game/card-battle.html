@@ -286,7 +286,7 @@
   .zone.hand {
     border-top: 2px solid var(--border);
     border-bottom: none;
-    padding: 14px 6px 4px;  /* 상단 여유: 카드 위로 떠올라도 안 짤림 */
+    padding: 32px 6px 4px;  /* 상단 여유: 활성 카드 위로 쑥 올라와도 안 짤림 */
     background: linear-gradient(0deg, var(--bg2), transparent);
     overflow: visible;
   }
@@ -296,7 +296,7 @@
     align-items: flex-end;
     max-width: 480px;
     margin: 0 auto;
-    min-height: 100px;
+    min-height: 110px;
   }
   .hand .card {
     flex: 0 0 auto;
@@ -304,21 +304,22 @@
     aspect-ratio: 3 / 4;
     max-width: 72px;
     max-height: 96px;
-    margin: 0 -14px;  /* 카드 겹치기 */
+    margin: 0 -10px;  /* 겹침 축소 — 스텟 가림 완화 */
     transform: rotate(var(--rot, 0deg)) translateY(var(--y, 0px));
     transform-origin: 50% 110%;
     z-index: var(--z, 1);
   }
   .hand .card.playable {
-    transform: rotate(var(--rot, 0deg)) translateY(calc(var(--y, 0px) - 14px));
-    filter: drop-shadow(0 2px 10px rgba(255,215,122,0.75));
-    z-index: 50;
+    /* 활성 카드는 크게 상승 + 확대 → 다른 카드 위로 쑥 올라와 전체가 보임 */
+    transform: rotate(0deg) translateY(calc(var(--y, 0px) - 26px)) scale(1.15);
+    filter: drop-shadow(0 6px 18px rgba(255,215,122,0.9));
+    z-index: 100 !important;
   }
   .hand .card.playable::before {
     content: '';
     position: absolute;
     inset: -3px;
-    border: 2px solid rgba(255,215,122,0.6);
+    border: 2px solid rgba(255,215,122,0.75);
     border-radius: 12px;
     pointer-events: none;
     animation: playable-glow 1.4s ease-in-out infinite;
@@ -1115,7 +1116,8 @@ function cardPool() {
   window.units.forEach((u, i) => {
     if (!u || !u[0]) return;
     const logbook = i + 1;
-    const name = u[0];
+    // 부제 제거: "루피 – 고무고무 총" → "루피"
+    const name = u[0].split(/\s+[-–—]\s+/)[0];
     const attr = u[1];
     const cls = Array.isArray(u[2]) ? u[2][0] : u[2];
     const rarityRaw = u[3];
