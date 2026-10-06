@@ -740,7 +740,11 @@ function previewDmg(attacker, target) {
   let mult = 1.0;
   if (ATTR_COUNTER[attacker.attr] === target.attr) mult = 1.25;
   else if (ATTR_COUNTER[target.attr] === attacker.attr) mult = 0.75;
-  let dmg = Math.max(1, Math.floor(attacker.atk * mult));
+  let dmg = Math.round(attacker.atk * mult);
+  // 유리 시 최소 +1 보장, 불리 시 최소 −1 보장
+  if (mult > 1) dmg = Math.max(dmg, attacker.atk + 1);
+  if (mult < 1) dmg = Math.min(dmg, attacker.atk - 1);
+  dmg = Math.max(1, dmg);
   if (attacker.effect && attacker.effect.onAttack === 'bonus1') dmg += 1;
   return { dmg, mult };
 }
@@ -893,13 +897,9 @@ async function performAttack(attacker, atkSide, target, defSide) {
   const atkEl = findCardEl(attacker.instanceId);
   const tgtEl = findCardEl(target.instanceId);
 
-  // 데미지 계산 (속성 상성)
-  let bonusMult = 1.0;
-  if (ATTR_COUNTER[attacker.attr] === target.attr) bonusMult = 1.25;
-  else if (ATTR_COUNTER[target.attr] === attacker.attr) bonusMult = 0.75;
-  let dmgT = Math.max(1, Math.floor(attacker.atk * bonusMult));
+  // 데미지 계산 (속성 상성) — previewDmg 와 동일 공식
+  const { dmg: dmgT } = previewDmg(attacker, target);
   const dmgA = target.atk;
-  if (attacker.effect && attacker.effect.onAttack === 'bonus1') dmgT += 1;
 
   log(`${attacker.name} ⚔️ ${target.name} (${dmgT} / ${dmgA})`);
   await animateSlash(atkEl, tgtEl);
