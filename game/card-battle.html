@@ -237,15 +237,31 @@
   }
   .hand-row {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 6px;
-    max-width: 360px;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 4px;
+    max-width: 480px;
     margin: 0 auto;
     justify-items: center;
   }
   .hand .card {
-    max-width: 110px;
-    max-height: 150px;
+    max-width: 86px;
+    max-height: 120px;
+  }
+  .hand .card .cost-badge {
+    width: 20px; height: 20px;
+    font-size: 11px;
+  }
+  .hand .card .attr-tag {
+    font-size: 8px;
+    padding: 1px 4px;
+  }
+  .hand .card .name {
+    font-size: 9px;
+    padding: 2px 3px;
+  }
+  .hand .card .stats {
+    font-size: 11px;
+    padding: 3px 0;
   }
   .card.unaffordable { opacity: 0.5; }
   .card.unaffordable .cost-badge { background: #555; }
@@ -1023,8 +1039,8 @@ function newGame() {
     _locked: false,
     _autoEndTimer: null,
   };
-  for (let i = 0; i < 3; i++) drawCard('player');
-  for (let i = 0; i < 3; i++) drawCard('opp');
+  for (let i = 0; i < 5; i++) drawCard('player');
+  for (let i = 0; i < 5; i++) drawCard('opp');
   setLocked(false);
   render();
   showBanner('내 턴', '#4bbf76');
@@ -1085,7 +1101,7 @@ function updateEndButton() {
 
 function drawCard(side, markAnim = false) {
   const s = state[side];
-  if (s.deck.length === 0 || s.hand.length >= 3) return null;
+  if (s.deck.length === 0 || s.hand.length >= 5) return null;
   const card = s.deck.shift();
   card.instanceId = Math.random().toString(36).slice(2, 8);
   if (markAnim) card._justDrawn = true;
