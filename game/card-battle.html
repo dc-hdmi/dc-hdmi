@@ -20,7 +20,7 @@
     --purple: #d872c0;
     --yellow: #d9b64a;
     --STR: #e35b5b; --DEX: #4bbf76; --QCK: #4aa3d9;
-    --PSY: #d872c0; --INT: #d9b64a;
+    --PSY: #d9b64a; --INT: #d872c0;
   }
   html, body {
     margin: 0; padding: 0;
@@ -147,8 +147,8 @@
   .card.STR { border-color: var(--STR); box-shadow: 0 0 10px rgba(227,91,91,0.35); }
   .card.DEX { border-color: var(--DEX); box-shadow: 0 0 10px rgba(75,191,118,0.35); }
   .card.QCK { border-color: var(--QCK); box-shadow: 0 0 10px rgba(74,163,217,0.35); }
-  .card.PSY { border-color: var(--PSY); box-shadow: 0 0 10px rgba(216,114,192,0.35); }
-  .card.INT { border-color: var(--INT); box-shadow: 0 0 10px rgba(217,182,74,0.35); }
+  .card.PSY { border-color: var(--PSY); box-shadow: 0 0 10px rgba(217,182,74,0.35); }
+  .card.INT { border-color: var(--INT); box-shadow: 0 0 10px rgba(216,114,192,0.35); }
   .card.selected { transform: translateY(-6px); border-width: 3px; box-shadow: 0 6px 16px rgba(255,215,122,0.6); }
   /* 비활성 카드 — 속성 뱃지와 코스트는 선명하게 유지 */
   .card.exhausted .thumb,
@@ -763,6 +763,109 @@
     padding: 8px 0;
   }
 
+  /* ───── 카드 교체 FAB (1회 한정) ───── */
+  .swap-fab {
+    position: absolute;
+    top: 2px;
+    left: 8px;
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    background: linear-gradient(180deg, #3a5042, #1f3028);
+    border: 2px solid var(--gold);
+    cursor: pointer;
+    z-index: 110;
+    padding: 0;
+    display: block;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.6), inset 0 1px 1px rgba(255,255,255,0.1);
+  }
+  .swap-fab:active { transform: scale(0.92); }
+  .swap-fab.used { display: none; }
+  .swap-fab::before,
+  .swap-fab::after {
+    content: '';
+    position: absolute;
+    width: 12px; height: 18px;
+    border: 1px solid rgba(0,0,0,0.7);
+    border-radius: 2px;
+    top: 50%;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  }
+  .swap-fab::before {
+    left: 4px;
+    transform: translateY(-50%) rotate(-18deg);
+    background: linear-gradient(180deg, #d9b64a, #8a6f1a);
+  }
+  .swap-fab::after {
+    right: 4px;
+    transform: translateY(-50%) rotate(18deg);
+    background: linear-gradient(180deg, #4aa3d9, #205c80);
+  }
+  .swap-fab .arrows {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--gold);
+    font-size: 16px;
+    font-weight: 900;
+    text-shadow: 0 0 3px #000, 0 0 2px #000;
+    z-index: 2;
+    line-height: 1;
+  }
+
+  /* ───── 교체 모달 ───── */
+  .swap-modal {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.95);
+    z-index: 265;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  .swap-modal.hidden { display: none; }
+  .swap-modal-box {
+    background: var(--bg2);
+    border: 2px solid var(--gold);
+    border-radius: 12px;
+    padding: 16px;
+    max-width: 420px;
+    width: 100%;
+    max-height: 85%;
+    overflow-y: auto;
+  }
+  .swap-modal-box h3 {
+    margin: 0 0 6px;
+    color: var(--gold);
+    text-align: center;
+    font-size: 15px;
+  }
+  .swap-modal-box p {
+    color: var(--muted);
+    font-size: 12px;
+    text-align: center;
+    margin: 0 0 14px;
+    line-height: 1.4;
+  }
+  .swap-hand {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    margin-bottom: 14px;
+  }
+  .swap-hand .card {
+    width: 78px;
+    max-width: 78px;
+    max-height: 104px;
+    cursor: pointer;
+    transition: transform 0.15s, filter 0.15s;
+  }
+  .swap-hand .card:active {
+    transform: scale(0.95);
+  }
+
   /* ───── 도움말 ? FAB ───── */
   .help-fab {
     position: absolute;
@@ -932,6 +1035,9 @@
 
   <!-- Hand -->
   <div class="zone hand">
+    <button class="swap-fab" id="btn-swap" title="카드 교체 (1회 한정)">
+      <span class="arrows">⇅</span>
+    </button>
     <div class="hand-row" id="player-hand"></div>
   </div>
 
@@ -954,6 +1060,16 @@
       <button class="log-close" id="log-close">✕ 닫기</button>
     </div>
     <div class="log-list" id="log-list"></div>
+  </div>
+
+  <!-- 교체 모달 -->
+  <div class="swap-modal hidden" id="swap-modal">
+    <div class="swap-modal-box">
+      <h3>카드 교체 (1회 한정)</h3>
+      <p>교체할 카드를 선택하세요.<br>선택한 카드보다 <b>더 높은 마나</b>의 카드로 바뀝니다.</p>
+      <div class="swap-hand" id="swap-hand"></div>
+      <button class="log-close" id="swap-cancel" style="width:100%">취소</button>
+    </div>
   </div>
 
   <!-- 도움말 FAB 버튼 -->
@@ -986,7 +1102,7 @@
       <h4>④ 카드 소환</h4>
       <p>손패 카드 클릭 → 필드로 (마나 ≥ 좌상단 코스트)</p>
       <ul>
-        <li>필드 최대 3자리</li>
+        <li>필드 최대 4자리</li>
         <li>소환한 턴에는 공격 불가 (다음 턴부터)</li>
       </ul>
 
@@ -1184,6 +1300,7 @@ function newGame() {
     turnNo: 1,
     history: [],
     _coinUsed: false,
+    _swapUsed: false,
     _gameOver: false,
     _locked: false,
     _autoEndTimer: null,
@@ -1192,6 +1309,7 @@ function newGame() {
   for (let i = 0; i < 5; i++) drawCard('opp');
   setLocked(false);
   logTurn(`─── 게임 시작 · ${firstPlayer === 'player' ? '내가 선공' : '상대가 선공'} ───`);
+  document.getElementById('btn-swap').classList.remove('used');
   render();
   if (firstPlayer === 'player') {
     showBanner('내 턴 (선공)', '#4bbf76');
@@ -1233,7 +1351,7 @@ function previewDmg(attacker, target) {
 function canAct(side) {
   const s = state[side];
   // 소환 가능한 손패 1장이라도?
-  if (s.field.length < 3 && s.hand.some(c => c.mana <= s.mana)) return true;
+  if (s.field.length < 4 && s.hand.some(c => c.mana <= s.mana)) return true;
   // 공격 가능한 필드 카드 1장이라도?
   if (s.field.some(c => !c.exhausted)) return true;
   return false;
@@ -1395,7 +1513,7 @@ async function oppTurn() {
   await sleep(500);
 
   // 소환 루프 (비싼 카드부터)
-  while (state.opp.field.length < 3) {
+  while (state.opp.field.length < 4) {
     const affordable = state.opp.hand
       .filter(c => c.mana <= state.opp.mana)
       .sort((a, b) => b.mana - a.mana);
@@ -1442,7 +1560,7 @@ async function oppTurn() {
 async function summonCard(card, side) {
   const s = state[side];
   if (s.mana < card.mana) return false;
-  if (s.field.length >= 3) return false;
+  if (s.field.length >= 4) return false;
   // 손패 → 필드로 이동 + 애니메이션 플래그
   s.hand = s.hand.filter(c => c.instanceId !== card.instanceId);
   card.exhausted = true;
@@ -1702,7 +1820,7 @@ function render() {
 function renderField(elId, field, side) {
   const el = document.getElementById(elId);
   el.innerHTML = '';
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < 4; i++) {
     const c = field[i];
     if (!c) {
       const slot = document.createElement('div');
@@ -1766,7 +1884,7 @@ function renderHand(elId, hand) {
     card.style.zIndex = z;
 
     const canPlay = c.mana <= state.player.mana
-      && state.player.field.length < 3
+      && state.player.field.length < 4
       && state.turn === 'player'
       && !state._locked;
     card.classList.add(canPlay ? 'playable' : 'unaffordable');
@@ -1926,6 +2044,55 @@ document.getElementById('btn-help').addEventListener('click', () => {
 document.getElementById('help-close').addEventListener('click', () => {
   document.getElementById('help-modal').classList.add('hidden');
 });
+
+// ─────────── 카드 교체 (1회 한정) ───────────
+function openSwapModal() {
+  if (!state || state._swapUsed || state.turn !== 'player' || state._locked) return;
+  if (!state.player.hand.length) { log('손패가 비어있습니다'); return; }
+  const container = document.getElementById('swap-hand');
+  container.innerHTML = '';
+  state.player.hand.forEach(c => {
+    const card = cardEl(c, 'swap');
+    card.style.transform = 'none';
+    card.style.margin = '0';
+    card.classList.remove('ready', 'playable', 'unaffordable');
+    card.addEventListener('click', (e) => {
+      e.stopPropagation();
+      swapCard(c);
+    }, { once: true });
+    container.appendChild(card);
+  });
+  document.getElementById('swap-modal').classList.remove('hidden');
+}
+
+function closeSwapModal() {
+  document.getElementById('swap-modal').classList.add('hidden');
+}
+
+function swapCard(target) {
+  if (state._swapUsed) return;
+  const pool = cardPool();
+  const higher = pool.filter(c => c.mana > target.mana);
+  if (!higher.length) {
+    showMiniBanner(`더 높은 마나 카드 없음<br>(${target.name} 마나 ${target.mana} 는 최대치)`);
+    closeSwapModal();
+    return;
+  }
+  const picked = higher[Math.floor(Math.random() * higher.length)];
+  const newCard = { ...picked, instanceId: Math.random().toString(36).slice(2, 8), _justDrawn: true };
+  const idx = state.player.hand.findIndex(c => c.instanceId === target.instanceId);
+  if (idx < 0) { closeSwapModal(); return; }
+  state.player.hand[idx] = newCard;
+  state._swapUsed = true;
+  document.getElementById('btn-swap').classList.add('used');
+  log(`카드 교체: ${target.name} (💧${target.mana}) → ${newCard.name} (💧${newCard.mana})`, 'player');
+  showMiniBanner(`교체 성공!<br><b>${target.name}</b> → <b>${newCard.name}</b> (💧${newCard.mana})`);
+  closeSwapModal();
+  render();
+}
+
+document.getElementById('btn-swap').addEventListener('click', openSwapModal);
+document.getElementById('swap-cancel').addEventListener('click', closeSwapModal);
 
 // 모바일 뷰포트 높이 정확히 설정 (주소창/하단바 포함)
 function setViewportHeight() {
