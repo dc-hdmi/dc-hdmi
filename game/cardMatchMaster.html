@@ -2,2417 +2,297 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>OPTC 카드 대전</title>
-<script src="units.js?v=20261006"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>트갤 사천성 게임</title>
 <style>
-  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  :root {
-    --bg: #0a1612;
-    --bg2: #0e1f1a;
-    --border: #1f3028;
-    --gold: #ffd57a;
-    --text: #e8f1ec;
-    --muted: #789084;
-    --red: #e35b5b;
-    --green: #4bbf76;
-    --blue: #4aa3d9;
-    --purple: #d872c0;
-    --yellow: #d9b64a;
-    --STR: #e35b5b; --DEX: #4bbf76; --QCK: #4aa3d9;
-    --PSY: #d9b64a; --INT: #d872c0;
-  }
-  html, body {
-    margin: 0; padding: 0;
-    height: 100vh;                        /* fallback */
-    height: 100svh;                       /* 모바일 UI 포함 안정 */
-    height: var(--app-h, 100svh);         /* JS 로 정확히 설정 */
-    overflow: hidden;
-    background: var(--bg); color: var(--text);
-    font-family: -apple-system, "Segoe UI", "Noto Sans KR", sans-serif;
-    user-select: none;
-  }
-  #app {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    max-width: 480px;
-    margin: 0 auto;
-    position: relative;
-    overflow: hidden;
-  }
-
-  /* ───── Zones ───── */
-  .zone {
-    flex: 0 0 auto;
-    padding: 4px 8px;
-    border-bottom: 1px solid var(--border);
-    position: relative;
-  }
-  /* 공통 아레나 — 짙은 녹색 포커 테이블 + 금색 테두리 (손패와 완전 다른 톤) */
-  .zone.player-field, .zone.opp-field {
-    flex: 1 1 auto;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    justify-content: center;
-    min-height: 100px;
-    max-height: 150px;
-    padding: 4px 6px;
-    position: relative;
-    background:
-      repeating-linear-gradient(45deg, rgba(255,255,255,0.025) 0 14px, transparent 14px 28px),
-      radial-gradient(ellipse at center, rgba(60,135,90,0.4), rgba(15,45,30,0.65)),
-      linear-gradient(180deg, #0d2a1e, #082018);
-    border-top: 2px solid rgba(255,215,122,0.4);
-    border-bottom: 2px solid rgba(255,215,122,0.4);
-    box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
-  }
-  .zone.opp-field { border-bottom: 1px dashed rgba(255,215,122,0.25); }
-  .zone.player-field { border-top: none; }
-  .zone-label {
-    font-size: 10px; color: var(--muted); letter-spacing: 0.5px;
-    display: flex; justify-content: space-between; align-items: center;
-    padding-bottom: 2px;
-  }
-  .hp-bar {
-    display: flex; align-items: center; gap: 6px;
-    font-size: 13px; font-weight: 700;
-  }
-  .hp-bar .heart { color: var(--red); }
-  .mana {
-    display: inline-flex; align-items: center; gap: 4px;
-    color: var(--blue); font-weight: 700; font-size: 13px;
-  }
-
-  /* ───── Cards ───── */
-  .field-row {
-    display: flex;
-    justify-content: center;
-    gap: 5px;
-    min-height: 80px;
-  }
-  .slot {
-    border: 1px dashed rgba(255,255,255,0.08);
-    border-radius: 8px;
-    min-height: 80px;
-    width: 100%;
-    max-width: 72px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: rgba(255,255,255,0.1);
-    font-size: 10px;
-    position: relative;
-  }
-  .card {
-    border: 2px solid var(--border);
-    border-radius: 10px;
-    background: linear-gradient(180deg, #1a2a24, #0e1812);
-    display: flex;
-    flex-direction: column;
-    position: relative;
-    overflow: hidden;
-    transition: transform 0.2s, filter 0.2s, border-color 0.12s, box-shadow 0.12s;
-    cursor: pointer;
-    aspect-ratio: 3 / 4;
-    min-height: 0;
-    width: 100%;
-    max-width: 110px;
-    max-height: 140px;
-  }
-  /* 필드 카드 — 축소해서 여유롭게 */
-  .field-row .card {
-    max-width: 72px;
-    max-height: 96px;
-  }
-  .field-row .card .cost-badge {
-    width: 18px; height: 18px;
-    font-size: 10px;
-    top: 2px; left: 2px;
-  }
-  .field-row .card .attr-tag {
-    font-size: 8px;
-    padding: 1px 3px;
-    top: 2px; right: 2px;
-  }
-  .field-row .card .name {
-    font-size: 8px;
-    padding: 2px 3px;
-  }
-  .field-row .card .stats {
-    font-size: 10px;
-    padding: 2px 0;
-  }
-  .card.STR { border-color: var(--STR); box-shadow: 0 0 10px rgba(227,91,91,0.35); }
-  .card.DEX { border-color: var(--DEX); box-shadow: 0 0 10px rgba(75,191,118,0.35); }
-  .card.QCK { border-color: var(--QCK); box-shadow: 0 0 10px rgba(74,163,217,0.35); }
-  .card.PSY { border-color: var(--PSY); box-shadow: 0 0 10px rgba(217,182,74,0.35); }
-  .card.INT { border-color: var(--INT); box-shadow: 0 0 10px rgba(216,114,192,0.35); }
-  .card.selected { transform: translateY(-6px); border-width: 3px; box-shadow: 0 6px 16px rgba(255,215,122,0.6); }
-  /* 비활성 카드 — 속성 뱃지와 코스트는 선명하게 유지 */
-  .card.exhausted .thumb,
-  .card.exhausted .name {
-    opacity: 0.4;
-    filter: grayscale(70%);
-  }
-  .card.exhausted .stats {
-    opacity: 0.75;
-    filter: grayscale(40%);
-  }
-  .card.exhausted { opacity: 0.95; }
-  .card.hand { cursor: pointer; }
-
-  /* 상단: 캐릭터 이미지 영역 (카드의 ~60%) */
-  .card .thumb {
-    flex: 1 1 60%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: radial-gradient(circle at 50% 30%, #203028, #000);
-    overflow: hidden;
-    position: relative;
-    border-bottom: 2px solid rgba(255,255,255,0.08);
-  }
-  .card .thumb img {
-    width: 100%; height: 100%; object-fit: cover;
-    display: block;
-  }
-  .card .thumb .placeholder {
-    color: var(--muted); font-size: 11px; text-align: center;
-    padding: 0 4px; word-break: keep-all;
-  }
-
-  /* 중단: 이름 바 */
-  .card .name {
-    font-size: 10px; font-weight: 700; text-align: center;
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-    padding: 3px 4px;
-    background: rgba(0,0,0,0.4);
-    border-bottom: 1px solid rgba(255,255,255,0.05);
-    color: var(--text);
-  }
-
-  /* 하단: 스텟 바 (클래스 | ATK | HP) */
-  .card .stats {
-    display: grid;
-    grid-template-columns: 22px 1fr 1fr;
-    align-items: center;
-    font-size: 13px; font-weight: 800;
-    background: linear-gradient(180deg, #0a1510, #000);
-    padding: 3px 2px;
-    gap: 2px;
-  }
-  .card .stats > span {
-    display: flex; align-items: center; justify-content: center;
-    gap: 2px;
-  }
-  .card .class-badge {
-    width: 18px; height: 18px;
-    border-radius: 50%;
-    color: #fff; font-size: 10px; font-weight: 900;
-    display: inline-flex; align-items: center; justify-content: center;
-    box-shadow: inset 0 1px 1px rgba(255,255,255,0.3), 0 1px 2px rgba(0,0,0,0.6);
-    border: 1px solid rgba(0,0,0,0.4);
-    flex-shrink: 0;
-  }
-  .card .atk { color: var(--yellow); border-right: 1px solid rgba(255,255,255,0.08); }
-  .card .hp { color: var(--red); }
-
-  /* 필드/손패 작은 카드용 — 뱃지 축소 */
-  .field-row .card .stats,
-  .hand .card .stats {
-    grid-template-columns: 16px 1fr 1fr;
-    padding: 2px 1px;
-    gap: 1px;
-  }
-  .field-row .card .class-badge,
-  .hand .card .class-badge {
-    width: 13px; height: 13px;
-    font-size: 8px;
-  }
-
-  /* 좌상단 코스트 (원형 뱃지) */
-  .card .cost-badge {
-    position: absolute; top: 4px; left: 4px;
-    background: linear-gradient(180deg, #6abfe6, #2a7ab5);
-    color: #fff; font-weight: 900;
-    font-size: 13px; width: 24px; height: 24px;
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    z-index: 3;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.7), inset 0 1px 1px rgba(255,255,255,0.3);
-    border: 2px solid rgba(255,255,255,0.4);
-  }
-
-  /* 우상단 속성 뱃지 */
-  .card .attr-tag {
-    position: absolute; top: 4px; right: 4px;
-    font-size: 9px; font-weight: 800;
-    padding: 2px 5px; border-radius: 4px;
-    background: rgba(0,0,0,0.75);
-    z-index: 3;
-    border: 1px solid currentColor;
-    letter-spacing: 0.3px;
-  }
-
-  /* ───── Opponent hand (face-down) ───── */
-  .opp-hand-row {
-    display: flex;
-    gap: 4px;
-    justify-content: center;
-    padding-top: 2px;
-    min-height: 32px;
-  }
-  .opp-hand-row .card-back {
-    width: 26px; height: 34px;
-    border-radius: 5px;
-    border: 1.5px solid #3a1818;
-    background:
-      repeating-linear-gradient(45deg, #4a1515 0 4px, #2a0e0e 4px 8px),
-      #1a0808;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(255,100,100,0.2);
-    position: relative;
-  }
-  .opp-hand-row .card-back::before {
-    content: '?';
-    position: absolute; inset: 0;
-    display: flex; align-items: center; justify-content: center;
-    color: rgba(255,180,180,0.4);
-    font-weight: 900; font-size: 14px;
-  }
-
-  /* ───── Hand (부채꼴) ───── */
-  .zone.hand {
-    border-top: 2px solid var(--border);
-    border-bottom: none;
-    padding: 32px 6px 4px;  /* 상단 여유: 활성 카드 위로 쑥 올라와도 안 짤림 */
-    background: linear-gradient(0deg, var(--bg2), transparent);
-    overflow: visible;
-  }
-  .hand-row {
-    display: flex;
-    justify-content: center;
-    align-items: flex-end;
-    max-width: 480px;
-    margin: 0 auto;
-    min-height: 110px;
-  }
-  .hand .card {
-    flex: 0 0 auto;
-    width: 72px;
-    aspect-ratio: 3 / 4;
-    max-width: 72px;
-    max-height: 96px;
-    margin: 0 -10px;  /* 겹침 축소 — 스텟 가림 완화 */
-    transform: rotate(var(--rot, 0deg)) translateY(var(--y, 0px));
-    transform-origin: 50% 110%;
-    z-index: var(--z, 1);
-  }
-  .hand .card.playable {
-    /* 활성 카드는 부채꼴 각도 유지하면서 상승 + 확대 */
-    transform: rotate(var(--rot, 0deg)) translateY(calc(var(--y, 0px) - 26px)) scale(1.15);
-    filter: drop-shadow(0 6px 18px rgba(255,215,122,0.9));
-    z-index: 100 !important;
-  }
-  .hand .card.playable::before {
-    content: '';
-    position: absolute;
-    inset: -3px;
-    border: 2px solid rgba(255,215,122,0.75);
-    border-radius: 12px;
-    pointer-events: none;
-    animation: playable-glow 1.4s ease-in-out infinite;
-  }
-  @keyframes playable-glow {
-    0%, 100% { box-shadow: 0 0 4px rgba(255,215,122,0.4); }
-    50%      { box-shadow: 0 0 14px rgba(255,215,122,0.9); }
-  }
-  .hand .card.unaffordable { opacity: 0.55; filter: grayscale(30%); }
-  .hand .card.unaffordable .cost-badge {
-    background: linear-gradient(180deg, #666, #333);
-  }
-  .hand .card .cost-badge {
-    width: 18px; height: 18px;
-    font-size: 10px;
-    top: 2px; left: 2px;
-  }
-  .hand .card .attr-tag {
-    font-size: 8px;
-    padding: 1px 3px;
-    top: 2px; right: 2px;
-  }
-  .hand .card .name {
-    font-size: 8px;
-    padding: 2px 3px;
-  }
-  .hand .card .stats {
-    font-size: 10px;
-    padding: 2px 0;
-  }
-
-  /* ───── Controls ───── */
-  .controls {
-    display: flex; gap: 6px; padding: 5px 8px;
-    background: var(--bg2); border-top: 1px solid var(--border);
-    padding-bottom: calc(5px + env(safe-area-inset-bottom));
-  }
-  button {
-    flex: 1;
-    background: linear-gradient(180deg, #f2c15b, #c98f2a);
-    color: #1a1207;
-    border: none; padding: 8px;
-    font-size: 14px; font-weight: 700;
-    border-radius: 6px;
-    cursor: pointer;
-  }
-  button:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(60%); }
-  button.secondary {
-    background: #2a3a32; color: var(--text);
-  }
-
-  /* ───── Log ───── */
-  .log {
-    position: absolute;
-    top: 50%; left: 10px; right: 10px;
-    transform: translateY(-50%);
-    background: rgba(0,0,0,0.85);
-    color: var(--gold);
-    padding: 10px 14px; border-radius: 8px;
-    font-size: 13px; text-align: center;
-    pointer-events: none; opacity: 0;
-    transition: opacity 0.3s;
-    z-index: 100;
-    border: 1px solid var(--gold);
-    max-width: calc(100% - 24px);
-    line-height: 1.4;
-    word-break: keep-all;
-    overflow-wrap: break-word;
-  }
-  .log.show { opacity: 1; }
-
-  /* ───── Modal ───── */
-  .modal {
-    position: absolute;
-    inset: 0;
-    background: rgba(0,0,0,0.9);
-    display: flex; align-items: center; justify-content: center;
-    z-index: 200;
-  }
-  .modal.hidden { display: none; }
-  .modal-box {
-    background: var(--bg2);
-    border: 2px solid var(--gold);
-    border-radius: 12px;
-    padding: 24px;
-    text-align: center;
-    max-width: 320px;
-  }
-  .modal-box h2 { margin: 0 0 10px; color: var(--gold); }
-  .modal-box p { color: var(--muted); margin: 0 0 16px; }
-
-  /* ───── Target indicator ───── */
-  .targeting .card.targetable {
-    animation: pulse 0.8s infinite;
-    cursor: crosshair;
-  }
-  @keyframes pulse {
-    0%, 100% { box-shadow: 0 0 8px rgba(255,215,122,0.4); }
-    50% { box-shadow: 0 0 16px rgba(255,215,122,0.9); }
-  }
-  .targeting .zone.opp-leader-zone,
-  .targeting .zone.opp-field {
-    animation: face-pulse 0.8s infinite;
-    cursor: crosshair;
-    outline: 2px dashed rgba(255,100,100,0.6);
-    outline-offset: -4px;
-  }
-  @keyframes face-pulse {
-    0%, 100% { box-shadow: inset 0 0 20px rgba(255,80,80,0.1); }
-    50% { box-shadow: inset 0 0 40px rgba(255,80,80,0.5); }
-  }
-
-  /* ───── 리더 라벨 (평상시 표시) ───── */
-  .leader-tag {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    font-weight: 800;
-    font-size: 12px;
-    padding: 2px 8px;
-    border-radius: 12px;
-    letter-spacing: 0.3px;
-  }
-  .leader-tag.opp {
-    background: linear-gradient(180deg, #4a1515, #2a0a0a);
-    color: #ff9b9b;
-    border: 1px solid #6a2525;
-  }
-  .leader-tag.player {
-    background: linear-gradient(180deg, #15402a, #0a2a1a);
-    color: #9bffb0;
-    border: 1px solid #256a40;
-  }
-
-  /* ───── 공격 모드 힌트 오버레이 ───── */
-  .attack-hint {
-    display: none;
-    position: absolute;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    background: linear-gradient(180deg, #ff5555, #c02020);
-    color: #fff;
-    padding: 6px 14px;
-    border-radius: 20px;
-    font-weight: 900;
-    font-size: 13px;
-    pointer-events: none;
-    z-index: 50;
-    box-shadow: 0 4px 12px rgba(255,80,80,0.6), inset 0 1px 1px rgba(255,255,255,0.3);
-    white-space: nowrap;
-    letter-spacing: 0.5px;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
-  }
-  .targeting .attack-hint {
-    display: block;
-    animation: hint-bounce 0.6s ease-in-out infinite alternate;
-  }
-  @keyframes hint-bounce {
-    0% { transform: translate(-50%, -50%) scale(1); }
-    100% { transform: translate(-50%, -50%) scale(1.08); }
-  }
-
-  /* ───── 예상 데미지 뱃지 (타겟 위에) ───── */
-  .target-preview {
-    position: absolute;
-    top: -6px; left: 50%;
-    transform: translate(-50%, -100%);
-    background: rgba(10, 5, 5, 0.95);
-    border: 1.5px solid #ff6060;
-    border-radius: 8px;
-    padding: 3px 6px;
-    font-size: 10px;
-    font-weight: 800;
-    z-index: 20;
-    white-space: nowrap;
-    pointer-events: none;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.7);
-    line-height: 1.3;
-  }
-  .target-preview::after {
-    content: '';
-    position: absolute;
-    top: 100%; left: 50%;
-    transform: translateX(-50%);
-    border: 5px solid transparent;
-    border-top-color: #ff6060;
-  }
-  .target-preview .pv-main {
-    color: #ffd060;
-    display: block;
-  }
-  .target-preview .pv-back {
-    color: #ff9090;
-    font-size: 9px;
-    opacity: 0.85;
-    display: block;
-  }
-  .target-preview .pv-mult.up { color: #ffff66; font-size: 9px; margin-left: 2px; }
-  .target-preview .pv-mult.dn { color: #66aaff; font-size: 9px; margin-left: 2px; }
-  .target-preview .pv-mult.ev { color: #999; font-size: 9px; margin-left: 2px; }
-
-  /* 리더 공격 미리보기 */
-  .attack-hint .lead-dmg {
-    display: inline-block;
-    margin-left: 6px;
-    padding: 1px 6px;
-    background: rgba(0,0,0,0.4);
-    border-radius: 10px;
-    color: #ffee55;
-  }
-
-  /* ───── 공격 취소 버튼 (공격 모드일 때 표시) ───── */
-  .cancel-attack {
-    display: none;
-    position: absolute;
-    bottom: 90px; left: 50%;
-    transform: translateX(-50%);
-    background: #444;
-    color: #fff;
-    padding: 6px 16px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 700;
-    z-index: 150;
-    cursor: pointer;
-    border: 1px solid #666;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.5);
-  }
-  .targeting .cancel-attack { display: block; }
-
-  /* ───── Ready glow (내 공격 가능 카드) ───── */
-  .card.ready {
-    animation: ready-glow 1.4s ease-in-out infinite;
-  }
-  @keyframes ready-glow {
-    0%, 100% { filter: drop-shadow(0 0 2px rgba(255,255,255,0.3)); }
-    50% { filter: drop-shadow(0 0 10px rgba(255,255,120,0.9)); }
-  }
-
-  /* ───── 소환 애니메이션 ───── */
-  .card.summoned {
-    animation: summon-pop 0.55s cubic-bezier(0.2, 1.3, 0.4, 1);
-  }
-  @keyframes summon-pop {
-    0%   { transform: translateY(60px) scale(0.3) rotate(-10deg); opacity: 0; }
-    60%  { transform: translateY(-6px) scale(1.12) rotate(2deg); opacity: 1; }
-    100% { transform: translateY(0) scale(1) rotate(0); opacity: 1; }
-  }
-
-  /* ───── 드로우 애니메이션 ───── */
-  .card.drawn {
-    animation: card-draw 0.4s ease-out;
-  }
-  @keyframes card-draw {
-    0% { transform: translateY(-80px) scale(0.6); opacity: 0; }
-    100% { transform: translateY(0) scale(1); opacity: 1; }
-  }
-
-  /* ───── 플로팅 데미지 숫자 ───── */
-  .float-dmg {
-    position: fixed;
-    pointer-events: none;
-    font-weight: 900;
-    font-size: 26px;
-    text-shadow:
-      0 0 4px rgba(0,0,0,0.95),
-      -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
-    z-index: 220;
-    transform: translate(-50%, -50%);
-    animation: float-up 1.6s ease-out forwards;
-  }
-  @keyframes float-up {
-    0%   { opacity: 0; transform: translate(-50%, 10px) scale(0.4); }
-    10%  { opacity: 1; transform: translate(-50%, -10px) scale(1.3); }
-    80%  { opacity: 1; transform: translate(-50%, -40px) scale(1); }
-    100% { opacity: 0; transform: translate(-50%, -60px) scale(0.9); }
-  }
-
-  /* ───── HP 쉐이크 ───── */
-  .hp-shake {
-    display: inline-block;
-    animation: hp-shake 0.5s;
-    color: #ff6060 !important;
-  }
-  @keyframes hp-shake {
-    0%, 100% { transform: translateX(0) scale(1); }
-    15% { transform: translateX(-5px) scale(1.25); }
-    35% { transform: translateX(5px) scale(1.25); }
-    55% { transform: translateX(-3px) scale(1.15); }
-    75% { transform: translateX(3px) scale(1.1); }
-  }
-
-  /* ───── 피격 플래시 ───── */
-  .card.hit {
-    animation: hit-flash 0.35s;
-  }
-  @keyframes hit-flash {
-    0%, 100% { filter: none; }
-    30% { filter: brightness(2) saturate(0) drop-shadow(0 0 8px #ff0); }
-  }
-
-  /* ───── 죽음 직전 흔들림 ───── */
-  .card.dying {
-    animation: death-shake 0.75s ease-in-out;
-    z-index: 20;
-  }
-  @keyframes death-shake {
-    0%   { transform: translate(0, 0) rotate(0); filter: none; }
-    10%  { transform: translate(-4px, -1px) rotate(-3deg); filter: brightness(1.4) drop-shadow(0 0 4px #f55); }
-    20%  { transform: translate(4px, 1px) rotate(3deg); filter: brightness(0.7); }
-    30%  { transform: translate(-5px, 0) rotate(-4deg); filter: brightness(1.7) hue-rotate(-15deg) drop-shadow(0 0 6px #f00); }
-    40%  { transform: translate(5px, -2px) rotate(4deg); filter: brightness(0.5); }
-    50%  { transform: translate(-6px, 1px) rotate(-3deg); filter: brightness(2) hue-rotate(-25deg) drop-shadow(0 0 10px #f22); }
-    60%  { transform: translate(6px, 0) rotate(3deg); filter: brightness(0.4) grayscale(0.5); }
-    70%  { transform: translate(-4px, -1px) rotate(-2deg); filter: brightness(1.6); }
-    80%  { transform: translate(4px, 1px) rotate(2deg); filter: brightness(0.6) grayscale(0.3); }
-    90%  { transform: translate(-2px, 0) rotate(-1deg); filter: brightness(1.3); }
-    100% { transform: translate(0, 0) rotate(0); filter: brightness(0.5) grayscale(0.8); }
-  }
-
-  /* ───── Shooter / Fighter 전체 효과 (화면 플래시) ───── */
-  .zone.opp-field.aoe-flash,
-  .zone.player-field.aoe-flash {
-    animation: aoe-flash 0.5s;
-  }
-  @keyframes aoe-flash {
-    0%, 100% { box-shadow: inset 0 0 0 rgba(255,80,80,0); }
-    40%      { box-shadow: inset 0 0 30px rgba(255,80,80,0.8); }
-  }
-
-  /* ───── 턴 배너 ───── */
-  .turn-banner {
-    position: absolute;
-    top: 50%; left: 50%;
-    pointer-events: none;
-    font-size: 42px; font-weight: 900;
-    letter-spacing: 2px;
-    text-shadow: 0 0 16px rgba(0,0,0,0.95), 0 0 4px currentColor;
-    z-index: 180;
-    opacity: 0;
-    white-space: nowrap;
-  }
-  .turn-banner.show {
-    animation: banner 1.3s ease-out forwards;
-  }
-  @keyframes banner {
-    0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.5) skewX(-20deg); }
-    20%  { opacity: 1; transform: translate(-50%, -50%) scale(1.1) skewX(0); }
-    70%  { opacity: 1; transform: translate(-50%, -50%) scale(1) skewX(0); }
-    100% { opacity: 0; transform: translate(-50%, -50%) scale(1.6) skewX(10deg); }
-  }
-
-  /* ───── 미니 배너 (상대 공격 대상 알림) ───── */
-  .mini-banner {
-    position: absolute;
-    top: 30%; left: 50%;
-    pointer-events: none;
-    font-size: 14px; font-weight: 800;
-    background: rgba(10, 5, 5, 0.95);
-    color: #fff;
-    padding: 10px 16px;
-    border-radius: 14px;
-    border: 1.5px solid #ff6060;
-    box-shadow: 0 4px 14px rgba(0,0,0,0.7);
-    z-index: 170;
-    opacity: 0;
-    letter-spacing: 0.3px;
-    text-align: center;
-    line-height: 1.4;
-    max-width: calc(100% - 32px);
-    width: max-content;
-    word-break: keep-all;
-    overflow-wrap: break-word;
-  }
-  .mini-banner.show {
-    animation: mini-banner 2.2s ease-out forwards;
-  }
-  @keyframes mini-banner {
-    0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.7); }
-    8%   { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
-    15%  { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-    85%  { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-    100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
-  }
-
-  /* ───── 로그 패널 ───── */
-  .log-panel {
-    position: absolute;
-    inset: 0;
-    background: rgba(5, 10, 8, 0.97);
-    z-index: 250;
-    display: flex;
-    flex-direction: column;
-    padding: 12px 16px;
-    padding-bottom: calc(16px + env(safe-area-inset-bottom));
-    overflow: hidden;
-  }
-  .log-panel.hidden { display: none; }
-  .log-panel-header {
-    display: flex; justify-content: space-between; align-items: center;
-    padding-bottom: 10px;
-    border-bottom: 1px solid var(--border);
-    margin-bottom: 10px;
-  }
-  .log-panel-header h3 {
-    margin: 0; color: var(--gold); font-size: 16px;
-  }
-  .log-close {
-    background: #333; color: #fff;
-    border: none; padding: 5px 12px;
-    border-radius: 6px; cursor: pointer;
-    font-size: 13px; font-weight: 700;
-    flex: initial;
-  }
-  .log-list {
-    flex: 1;
-    overflow-y: auto;
-    display: flex; flex-direction: column; gap: 4px;
-    font-size: 12px;
-    color: var(--text);
-  }
-  .log-entry {
-    padding: 6px 8px;
-    background: rgba(255,255,255,0.03);
-    border-radius: 4px;
-    border-left: 3px solid var(--border);
-    line-height: 1.4;
-  }
-  .log-entry.turn { border-left-color: var(--gold); color: var(--gold); font-weight: 700; }
-  .log-entry.player { border-left-color: #4bbf76; }
-  .log-entry.opp { border-left-color: #ff6060; }
-  .log-entry .ts { color: var(--muted); margin-right: 6px; font-size: 10px; }
-
-  /* 로그 버튼 (controls 안) */
-  button.log-btn {
-    flex: 0 0 auto;
-    width: 44px;
-    background: #2a3a32;
-    color: var(--text);
-    font-size: 16px;
-    padding: 8px 0;
-  }
-
-  /* ───── 연계 아이콘 (상대 리더 영역 우측) ───── */
-  .combo-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px; height: 28px;
-    border-radius: 50%;
-    background: linear-gradient(180deg, #666, #333);
-    color: #999;
-    font-size: 15px;
-    font-weight: 900;
-    border: 2px solid #444;
-    cursor: not-allowed;
-    opacity: 0.4;
-    transition: all 0.2s;
-    margin-left: 4px;
-  }
-  .combo-badge.active {
-    background: linear-gradient(180deg, #ffd57a, #c98f2a);
-    color: #000;
-    border-color: #fff;
-    cursor: pointer;
-    opacity: 1;
-    animation: combo-glow 1.2s ease-in-out infinite;
-  }
-  @keyframes combo-glow {
-    0%, 100% { box-shadow: 0 0 6px rgba(255,215,122,0.6); }
-    50%      { box-shadow: 0 0 16px rgba(255,215,122,1), 0 0 4px #fff; }
-  }
-
-  /* ───── 연계 모달 ───── */
-  .combo-modal {
-    position: absolute; inset: 0;
-    background: rgba(0,0,0,0.95);
-    z-index: 265;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 16px;
-  }
-  .combo-modal.hidden { display: none; }
-  .combo-modal-box {
-    background: var(--bg2);
-    border: 2px solid var(--gold);
-    border-radius: 12px;
-    padding: 16px;
-    max-width: 420px;
-    width: 100%;
-    max-height: 90%;
-    overflow-y: auto;
-  }
-  .combo-modal-box h3 {
-    margin: 0 0 10px;
-    color: var(--gold);
-    text-align: center;
-    font-size: 16px;
-  }
-  .combo-item {
-    background: rgba(255,215,122,0.08);
-    border: 1px solid rgba(255,215,122,0.4);
-    border-radius: 10px;
-    padding: 10px;
-    margin-bottom: 10px;
-  }
-  .combo-item .combo-label {
-    color: var(--gold);
-    font-weight: 800;
-    font-size: 13px;
-    text-align: center;
-    margin-bottom: 6px;
-  }
-  .combo-item .combo-cards {
-    display: flex; justify-content: center; gap: 6px;
-    margin-bottom: 10px;
-    flex-wrap: wrap;
-  }
-  .combo-item .combo-cards .card {
-    width: 68px;
-    max-width: 68px;
-    max-height: 92px;
-  }
-  .combo-item button {
-    width: 100%;
-    background: linear-gradient(180deg, #ffd57a, #c98f2a);
-    color: #1a1207;
-    padding: 10px;
-    font-weight: 800;
-    border-radius: 6px;
-    border: none;
-    cursor: pointer;
-    font-size: 13px;
-  }
-
-  /* ───── 연계 발동 애니메이션 (카드 들어올림) ───── */
-  .card.combo-attacker {
-    animation: combo-rise 0.5s forwards;
-    z-index: 80;
-  }
-  @keyframes combo-rise {
-    0%   { transform: translateY(0) scale(1); filter: none; }
-    100% { transform: translateY(-30px) scale(1.2);
-           filter: drop-shadow(0 0 14px #ffd57a) brightness(1.4); }
-  }
-  .card.combo-blast {
-    animation: combo-blast 0.4s ease-out;
-  }
-  @keyframes combo-blast {
-    0%   { transform: translateY(-30px) scale(1.2); }
-    50%  { transform: translateY(-30px) scale(1.5);
-           filter: drop-shadow(0 0 30px #ff0) brightness(2); }
-    100% { transform: translateY(-30px) scale(1.2); }
-  }
-
-  /* ───── 카드 교체 FAB (1회 한정) ───── */
-  .swap-fab {
-    position: absolute;
-    top: 2px;
-    left: 8px;
-    width: 42px;
-    height: 42px;
-    border-radius: 10px;
-    background: linear-gradient(180deg, #3a5042, #1f3028);
-    border: 2px solid var(--gold);
-    cursor: pointer;
-    z-index: 110;
-    padding: 0;
-    display: block;
-    box-shadow: 0 3px 8px rgba(0,0,0,0.6), inset 0 1px 1px rgba(255,255,255,0.1);
-  }
-  .swap-fab:active { transform: scale(0.92); }
-  .swap-fab.used { display: none; }
-  .swap-fab::before,
-  .swap-fab::after {
-    content: '';
-    position: absolute;
-    width: 12px; height: 18px;
-    border: 1px solid rgba(0,0,0,0.7);
-    border-radius: 2px;
-    top: 50%;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.5);
-  }
-  .swap-fab::before {
-    left: 4px;
-    transform: translateY(-50%) rotate(-18deg);
-    background: linear-gradient(180deg, #d9b64a, #8a6f1a);
-  }
-  .swap-fab::after {
-    right: 4px;
-    transform: translateY(-50%) rotate(18deg);
-    background: linear-gradient(180deg, #4aa3d9, #205c80);
-  }
-  .swap-fab .arrows {
-    position: absolute;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    color: var(--gold);
-    font-size: 16px;
-    font-weight: 900;
-    text-shadow: 0 0 3px #000, 0 0 2px #000;
-    z-index: 2;
-    line-height: 1;
-  }
-
-  /* ───── 교체 모달 ───── */
-  .swap-modal {
-    position: absolute;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.95);
-    z-index: 265;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 16px;
-  }
-  .swap-modal.hidden { display: none; }
-  .swap-modal-box {
-    background: var(--bg2);
-    border: 2px solid var(--gold);
-    border-radius: 12px;
-    padding: 16px;
-    max-width: 420px;
-    width: 100%;
-    max-height: 85%;
-    overflow-y: auto;
-  }
-  .swap-modal-box h3 {
-    margin: 0 0 6px;
-    color: var(--gold);
-    text-align: center;
-    font-size: 15px;
-  }
-  .swap-modal-box p {
-    color: var(--muted);
-    font-size: 12px;
-    text-align: center;
-    margin: 0 0 14px;
-    line-height: 1.4;
-  }
-  .swap-hand {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    justify-content: center;
-    margin-bottom: 14px;
-  }
-  .swap-hand .card {
-    width: 78px;
-    max-width: 78px;
-    max-height: 104px;
-    cursor: pointer;
-    transition: transform 0.15s, filter 0.15s;
-  }
-  .swap-hand .card:active {
-    transform: scale(0.95);
-  }
-
-  /* ───── 도움말 ? FAB ───── */
-  .help-fab {
-    position: absolute;
-    bottom: calc(68px + env(safe-area-inset-bottom));
-    right: 10px;
-    width: 42px; height: 42px;
-    border-radius: 50%;
-    background: linear-gradient(180deg, #3a5042, #1f3028);
-    color: var(--gold);
-    font-size: 20px;
-    font-weight: 900;
-    border: 2px solid var(--gold);
-    cursor: pointer;
-    z-index: 100;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.6), inset 0 1px 1px rgba(255,255,255,0.1);
-    padding: 0;
-  }
-  .help-fab:active { transform: scale(0.92); }
-
-  /* ───── 도움말 모달 ───── */
-  .help-modal {
-    position: absolute;
-    inset: 0;
-    background: rgba(5, 10, 8, 0.97);
-    z-index: 260;
-    display: flex;
-    flex-direction: column;
-    padding: 12px 16px;
-    padding-bottom: calc(16px + env(safe-area-inset-bottom));
-  }
-  .help-modal.hidden { display: none; }
-  .help-header {
-    display: flex; justify-content: space-between; align-items: center;
-    padding-bottom: 10px;
-    border-bottom: 1px solid var(--border);
-    margin-bottom: 10px;
-  }
-  .help-header h3 { color: var(--gold); margin: 0; font-size: 17px; }
-  .help-content {
-    flex: 1;
-    overflow-y: auto;
-    color: var(--text);
-    font-size: 13px;
-    line-height: 1.55;
-    padding-right: 4px;
-  }
-  .help-content h4 {
-    color: var(--gold);
-    margin: 16px 0 6px;
-    font-size: 14px;
-    border-left: 3px solid var(--gold);
-    padding-left: 8px;
-  }
-  .help-content h4:first-child { margin-top: 0; }
-  .help-content p { margin: 4px 0 8px; }
-  .help-content ul, .help-content ol {
-    padding-left: 18px;
-    margin: 4px 0 8px;
-  }
-  .help-content li { margin: 3px 0; }
-  .help-content strong { color: #ffd57a; font-weight: 700; }
-  .help-content table {
-    width: 100%;
-    margin: 6px 0 10px;
-    border-collapse: collapse;
-    font-size: 12px;
-  }
-  .help-content th, .help-content td {
-    border: 1px solid var(--border);
-    padding: 5px 7px;
-    text-align: left;
-    vertical-align: top;
-  }
-  .help-content th {
-    background: rgba(255,215,122,0.08);
-    color: var(--gold);
-    font-weight: 700;
-  }
-  .help-content hr {
-    margin: 14px 0;
-    border: none;
-    border-top: 1px solid var(--border);
-  }
-  .help-tip {
-    background: rgba(75,191,118,0.08);
-    border-left: 3px solid var(--green);
-    padding: 8px 10px;
-    margin: 6px 0;
-    border-radius: 4px;
-    font-size: 12px;
-  }
-
-  /* ───── 공격 중 input 잠금 ───── */
-  body.locked .card.hand,
-  body.locked .card { pointer-events: none; }
-  body.locked #btn-end { pointer-events: none; }
-
-  /* ───── 턴 종료 버튼 깜빡 (액션 소진 시) ───── */
-  button#btn-end.pulse-end {
-    animation: pulse-end 0.9s ease-in-out infinite;
-  }
-  @keyframes pulse-end {
-    0%, 100% {
-      box-shadow: 0 0 0 rgba(255,215,122,0);
-      transform: scale(1);
+    * { 
+    	box-sizing: border-box; 
+    	margin:0; 
+    	padding:0; 
     }
-    50% {
-      box-shadow: 0 0 16px rgba(255,215,122,0.9), 0 0 4px #fff;
-      transform: scale(1.06);
+    body { 
+    	display:flex; 
+    	justify-content:center; 
+    	align-items:center; 
+    	height:100vh; 
+    	background:#f0f0f0; 
+    	font-family:sans-serif; 
+    	overflow:hidden; 
     }
-  }
-
-  /* ───── 샤터 조각 컨테이너 (JS 생성) ───── */
-  .shatter-container {
-    position: fixed; pointer-events: none; z-index: 160;
-  }
-  .shatter-container .piece {
-    position: absolute; inset: 0;
-    overflow: hidden;
-  }
-
-  .cancel-target {
-    position: absolute;
-    bottom: 60px; left: 50%; transform: translateX(-50%);
-    background: #e35b5b; color: #fff; padding: 6px 14px;
-    border-radius: 20px; font-size: 12px; z-index: 150;
-    cursor: pointer;
-  }
+    #gameContainer { 
+    	width:100%; 
+    	max-width:500px; 
+    	height:100%; 
+    	position:relative; 
+    	display:flex; 
+    	flex-direction:column; 
+    	align-items:center; 
+    }
+    #roundDisplay { 
+    	position:absolute; 
+    	top:40%; 
+    	font-size:3em; 
+    	font-weight:bold; 
+    	display: none; /* 기본 숨김 */
+    	transition: opacity 0.5s; 
+    	z-index:10; 
+    }
+    #grid { display:grid; grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(6, 1fr); grid-gap:5px; width:90%; margin-top:10px; }
+    .card { 
+    	width:100%; 
+    	padding-top:140%; 
+    	position:relative; 
+    	perspective:600px; 
+    	cursor:pointer; 
+    }
+    .card-inner { position:absolute; width:100%; height:95%; top:0; left:0; transition: transform 0.5s; transform-style: preserve-3d; pointer-events: all; /* 클릭 보장 */}
+    .card.flipped .card-inner { transform: rotateY(180deg); }
+    .card-front, .card-back {
+        position:absolute; width:100%; height:100%; backface-visibility:hidden;
+        border-radius:8px; display:flex; justify-content:center; align-items:center; font-size:1.2em; color:#fff;
+    }
+    .card-front { 
+    	background:#ff5555; 
+    	background-size: 80% 80%; 
+	    background-repeat: no-repeat;
+	    background-position: center;
+    } 
+    .card-back { 
+    	background:#aaa; 
+    	transform: rotateY(180deg); 
+    	background-image: url('images/stamp_chopper.png');
+    	background-size: 50% 40%;      
+    	background-repeat: no-repeat;  
+    	background-position: center;    
+    } 
+    #overlay {
+        display:none; 
+        position:absolute; 
+        top:0; 
+        left:0; 
+        width:100%; 
+        height:100%;
+        background:rgba(0,0,0,0.5); 
+        justify-content:center; 
+        align-items:center; 
+        flex-direction:column; 
+        z-index:20;
+    }
+    #scoreDisplay { 
+    	font-size:2em; 
+    	color:#fff; 
+    	margin-bottom:20px; 
+    }
+    #restartBtn { 
+    	padding:10px 20px; 
+    	font-size:1.2em; 
+    	border:none; 
+    	border-radius:5px; 
+    	background:#ff5555; 
+    	color:#fff; 
+    	cursor:pointer; 
+    }
 </style>
 </head>
 <body>
-<div id="app">
-  <!-- Opponent zones -->
-  <div class="zone opp-leader-zone">
-    <div class="zone-label">
-      <span class="leader-tag opp">👹 상대 리더</span>
-      <div style="display: flex; gap: 8px;">
-        <span class="hp-bar"><span class="heart">♥</span><span id="opp-hp">25</span></span>
-        <span class="mana">💧<span id="opp-mana">1</span>/<span id="opp-max-mana">1</span></span>
-        <span style="color:var(--muted); font-size:12px;">남은 카드 <span id="opp-deck">15</span></span>
-        <span class="combo-badge" id="btn-combo" title="연계 발동 (턴당 1회)">⚡</span>
-      </div>
+<div id="gameContainer">
+    <div id="roundDisplay"></div>
+    <div id="grid"></div>
+    <div id="overlay">
+        <div id="scoreDisplay"></div>
+        <button id="restartBtn">재시작</button>
     </div>
-    <div class="opp-hand-row" id="opp-hand"></div>
-    <div class="attack-hint">리더 공격<span class="lead-dmg" id="lead-dmg">−?</span></div>
-  </div>
-  <div class="zone opp-field">
-    <div class="field-row" id="opp-field"></div>
-  </div>
-
-  <!-- Player field -->
-  <div class="zone player-field">
-    <div class="field-row" id="player-field"></div>
-  </div>
-  <div class="zone player-leader-zone">
-    <div class="zone-label">
-      <span class="leader-tag player">🙂 내 리더</span>
-      <div style="display: flex; gap: 8px;">
-        <span class="hp-bar"><span class="heart">♥</span><span id="player-hp">25</span></span>
-        <span class="mana">💧<span id="player-mana">1</span>/<span id="player-max-mana">1</span></span>
-        <span style="color:var(--muted); font-size:12px;">남은 카드 <span id="player-deck">15</span></span>
-      </div>
-    </div>
-  </div>
-
-  <!-- Hand -->
-  <div class="zone hand">
-    <button class="swap-fab" id="btn-swap" title="카드 교체 (1회 한정)">
-      <span class="arrows">⇅</span>
-    </button>
-    <div class="hand-row" id="player-hand"></div>
-  </div>
-
-  <!-- Controls -->
-  <div class="controls">
-    <button class="secondary" id="btn-new">새 게임</button>
-    <button class="log-btn" id="btn-log" title="배틀 로그">📜</button>
-    <button id="btn-end">턴 종료</button>
-  </div>
-
-  <div class="log" id="log"></div>
-  <div class="turn-banner" id="turn-banner"></div>
-  <div class="mini-banner" id="mini-banner"></div>
-  <div class="cancel-attack" id="cancel-attack">✕ 공격 취소</div>
-
-  <!-- 배틀 로그 패널 -->
-  <div class="log-panel hidden" id="log-panel">
-    <div class="log-panel-header">
-      <h3>📜 배틀 로그</h3>
-      <button class="log-close" id="log-close">✕ 닫기</button>
-    </div>
-    <div class="log-list" id="log-list"></div>
-  </div>
-
-  <!-- 연계 모달 -->
-  <div class="combo-modal hidden" id="combo-modal">
-    <div class="combo-modal-box">
-      <h3>⚡ 연계 발동</h3>
-      <div id="combo-list"></div>
-      <button class="log-close" id="combo-cancel" style="width:100%">취소</button>
-    </div>
-  </div>
-
-  <!-- 교체 모달 -->
-  <div class="swap-modal hidden" id="swap-modal">
-    <div class="swap-modal-box">
-      <h3>카드 교체 (1회 한정)</h3>
-      <p>교체할 카드를 선택하세요.<br>선택한 카드보다 <b>더 높은 마나</b>의 카드로 바뀝니다.</p>
-      <div class="swap-hand" id="swap-hand"></div>
-      <button class="log-close" id="swap-cancel" style="width:100%">취소</button>
-    </div>
-  </div>
-
-  <!-- 도움말 FAB 버튼 -->
-  <button class="help-fab" id="btn-help" title="게임 설명">?</button>
-
-  <!-- 도움말 모달 -->
-  <div class="help-modal hidden" id="help-modal">
-    <div class="help-header">
-      <h3>게임 설명</h3>
-      <button class="log-close" id="help-close">✕ 닫기</button>
-    </div>
-    <div class="help-content">
-      <h4>① 목표</h4>
-      <p>상대 리더 HP를 25 → 0 만들면 승리.</p>
-
-      <h4>② 화면 구성</h4>
-      <ul>
-        <li><strong>위쪽</strong>: 상대 리더 / 상대 필드 / 상대 뒷면 카드(손패 장수)</li>
-        <li><strong>아래쪽</strong>: 내 리더 / 내 필드 / 내 손패</li>
-      </ul>
-
-      <h4>③ 내 턴 자동 효과</h4>
-      <p>턴 시작 시 자동으로:</p>
-      <ul>
-        <li>마나 +1 (최대 7, 매 턴 가득 리필)</li>
-        <li>카드 1장 뽑기</li>
-        <li>내 필드 카드 노란 빛 = 공격 가능</li>
-      </ul>
-
-      <h4>④ 카드 소환</h4>
-      <p>손패 카드 클릭 → 필드로 (마나 ≥ 좌상단 코스트)</p>
-      <ul>
-        <li>필드 최대 4자리</li>
-        <li>소환한 턴에는 공격 불가 (다음 턴부터)</li>
-      </ul>
-
-      <h4>⑤ 공격 방법 (2단계)</h4>
-      <ol>
-        <li>내 필드 카드 클릭 → 선택 (더 밝은 테두리)</li>
-        <li>타겟 클릭:
-          <ul>
-            <li>적 카드 → 그 카드와 전투</li>
-            <li>상단 "상대 리더" 영역 → 리더 직접 공격</li>
-          </ul>
-        </li>
-        <li>취소: 선택 카드 다시 클릭 또는 하단 "공격 취소"</li>
-      </ol>
-
-      <h4>⑥ 데미지 규칙</h4>
-      <ul>
-        <li><strong>카드 vs 카드</strong> = 서로 데미지 (공격자/수비자 모두 다침)</li>
-        <li><strong>카드 vs 리더</strong> = 공격자 안 다침 (리더 직접 공격은 안전)</li>
-        <li>HP 0 → 카드 파괴</li>
-      </ul>
-
-      <h4>⑦ 속성 상성 (양방향 적용)</h4>
-      <ul>
-        <li>삼각: 힘 → 기 → 속 → 힘</li>
-        <li>양방향: 심 ↔ 지</li>
-      </ul>
-      <table>
-        <tr><th>상황</th><th>내가 입히는 데미지</th><th>내가 받는 반격</th></tr>
-        <tr><td>상성 유리</td><td>×1.25 (최소 +1)</td><td>×0.75 (최소 −1)</td></tr>
-        <tr><td>상성 불리</td><td>×0.75 (최소 −1)</td><td>×1.25 (최소 +1)</td></tr>
-        <tr><td>중립</td><td>×1.0</td><td>×1.0</td></tr>
-      </table>
-      <p>유리 상성 공격은 두 배로 이득 — 더 때리고 덜 맞음.<br>
-      공격 모드에서 적 카드 위 뱃지로 공격/반격 데미지 미리 확인 가능.</p>
-
-      <h4>⑧ 클래스 효과</h4>
-      <table>
-        <tr><th>클래스</th><th>효과</th></tr>
-        <tr><td>격투형 (Fighter)</td><td>소환 시 랜덤 적 1 데미지</td></tr>
-        <tr><td>사격형 (Shooter)</td><td>소환 시 적 전체 1 데미지</td></tr>
-        <tr><td>박식형 (Cerebral)</td><td>소환 시 카드 1장 뽑기</td></tr>
-        <tr><td>타격형 (Striker)</td><td>턴 시작 ATK +1 (영구)</td></tr>
-        <tr><td>자유형 (Free Spirit)</td><td>턴 시작 내 리더 HP +1</td></tr>
-        <tr><td>강인형 (Powerhouse)</td><td>소환 시 자신 HP +2</td></tr>
-        <tr><td>참격형 (Slasher)</td><td>공격 시 +1 데미지</td></tr>
-      </table>
-
-      <h4>⑨ 턴 종료</h4>
-      <ul>
-        <li>아무 때나 "턴 종료" 버튼 (의무 없음, 마나 남겨도 됨)</li>
-        <li>할 액션 없으면 버튼 금색 깜빡 → 1.5초 뒤 자동 종료</li>
-      </ul>
-
-      <h4>⑩ 배틀 로그</h4>
-      <ul>
-        <li>하단 로그 버튼 → 지난 60개 액션 전부 확인</li>
-        <li>턴 구분선 / 내 액션 / 상대 액션 색상 구분</li>
-      </ul>
-
-      <h4>⑪ 승리 / 패배</h4>
-      <ul>
-        <li>상대 리더 HP = 0 → <strong>승리</strong></li>
-        <li>내 리더 HP = 0 → <strong>패배</strong></li>
-        <li>상대만 카드 전멸(손패+남은카드+필드=0) → <strong>자동 승리</strong></li>
-        <li>내 카드 전멸 → <strong>자동 패배</strong></li>
-        <li>양쪽 모두 카드 소진 → <strong>리더 HP가 많은 쪽 승리</strong>, 같으면 무승부</li>
-      </ul>
-
-      <h4>⑫ 연계기 (COMBO)</h4>
-      <ul>
-        <li>필드에 <strong>같은 속성 3장</strong> 또는 <strong>같은 타입 3장</strong>이 모이면 발동 가능</li>
-        <li>상대 리더 영역 우측 <strong>⚡ 아이콘</strong>이 금색으로 깜빡 → 클릭</li>
-        <li>여러 연계 성립 시 모달에서 원하는 조합 선택 → <strong>적 전체 −2 데미지</strong></li>
-        <li><strong>쿨다운 2턴</strong> — 발동 후 2턴 지나야 다시 사용 (뱃지에 남은 쿨 숫자 표시)</li>
-        <li>연계는 그 턴의 공격을 소모하는 액션 — <strong>발동하면 자동으로 턴이 종료</strong>됨</li>
-        <li>마나 무료, 상대 AI 도 동일 조건으로 연계 사용</li>
-      </ul>
-
-      <h4>⑬ 선공 / 후공 (코인 보정)</h4>
-      <ul>
-        <li>매 게임 선·후공은 <strong>랜덤</strong> 결정</li>
-        <li>후공자는 첫 턴에 <strong>마나 +1 보너스</strong> (코인) — 선공 불리 보상</li>
-      </ul>
-
-      <hr>
-
-      <h4>초보 꿀팁</h4>
-      <div class="help-tip">1. <strong>반격 포함 수치 체크</strong> — 공격 −5 해도 반격 −6 이면 손해</div>
-      <div class="help-tip">2. <strong>상성 유리할 때 적극 공격</strong> — 양방향 보너스로 거의 무상 트레이드</div>
-      <div class="help-tip">3. <strong>상대 필드 비면 리더 몰빵</strong> — 리더 공격은 안전</div>
-      <div class="help-tip">4. <strong>마나는 안 쓰면 사라짐</strong> — 가능하면 쓰기</div>
-      <div class="help-tip">5. <strong>소환한 카드는 그 턴에 공격 못 함</strong> — 다음 턴에 쓰려면 미리 소환해두기</div>
-      <div class="help-tip">6. <strong>상대가 사격형 소환하면 전체 −1</strong> — 체력 1인 내 카드들 조심</div>
-    </div>
-  </div>
-
-  <!-- Game over modal -->
-  <div class="modal hidden" id="gameover">
-    <div class="modal-box">
-      <h2 id="result-title">승리!</h2>
-      <p id="result-msg">상대 HP 를 0 으로 만들었습니다.</p>
-      <button id="btn-restart">다시 시작</button>
-    </div>
-  </div>
 </div>
 
 <script>
-// ─────────── Card pool: units.js 에서 ★5+ 캐릭 뽑아 변환 ───────────
-const ATTR_IDX = { STR: 0, DEX: 1, QCK: 2, PSY: 3, INT: 4 };
-const ATTR_COUNTER = { STR: 'DEX', DEX: 'QCK', QCK: 'STR', PSY: 'INT', INT: 'PSY' };
-const ATTR_KO = { STR: '힘', DEX: '기', QCK: '속', PSY: '심', INT: '지' };
-const CLASS_EFFECT = {
-  'Fighter':      { onPlay: 'deal1' },
-  'Slasher':      { onAttack: 'bonus1' },
-  'Striker':      { onTurn: 'atkUp1' },
-  'Shooter':      { onPlay: 'dealAll1' },
-  'Free Spirit':  { onTurn: 'healLeader1' },
-  'Driven':       { passive: 'lowHpBoost' },
-  'Cerebral':     { onPlay: 'draw1' },
-  'Powerhouse':   { passive: 'hp+2' },
-};
-const CLASS_LABEL = {
-  'Fighter':     { ko: '격투', char: '격', color: '#e35b5b' },
-  'Slasher':     { ko: '참격', char: '참', color: '#b060d0' },
-  'Striker':     { ko: '타격', char: '타', color: '#e08830' },
-  'Shooter':     { ko: '사격', char: '사', color: '#4aa3d9' },
-  'Free Spirit': { ko: '자유', char: '자', color: '#4bbf76' },
-  'Driven':      { ko: '야심', char: '야', color: '#d04040' },
-  'Cerebral':    { ko: '박식', char: '박', color: '#d9b64a' },
-  'Powerhouse':  { ko: '강인', char: '강', color: '#8a8a9e' },
-};
+const TOTAL_ROUNDS = 10;
+const MAX_SCORE_BASE = 1000;
+const PENALTY_PER_FLIP = 10;
 
-function cardPool() {
-  if (!window.units) return [];
-  const pool = [];
-  window.units.forEach((u, i) => {
-    if (!u || !u[0]) return;
-    const logbook = i + 1;
-    // 부제 제거: "루피 – 고무고무 총" → "루피"
-    const name = u[0].split(/\s+[-–—]\s+/)[0];
-    const attr = u[1];
-    const cls = Array.isArray(u[2]) ? u[2][0] : u[2];
-    const rarityRaw = u[3];
-    const rarity = typeof rarityRaw === 'string' ? parseInt(rarityRaw) : rarityRaw;
-    if (!rarity || rarity < 5) return;
-    if (!ATTR_IDX.hasOwnProperty(attr)) return;
-    const cost = u[4];
-    const maxHp = u[12];
-    const maxAtk = u[13];
-    if (!cost || !maxHp || !maxAtk) return;
-    // 스케일 다운
-    const atk = Math.max(1, Math.floor(maxAtk / 400));
-    const baseHp = Math.max(1, Math.floor(maxHp / 800));
-    const hp = baseHp * 2;  // 실제 전투 HP — 2배로 (카드 생존력↑)
-    // 마나 = 전투력(ATK+원래 HP) 기반 — 밸런스 유지
-    const mana = Math.min(7, Math.max(1, Math.round((atk + baseHp) / 2.8)));
-    pool.push({
-      id: logbook, name, attr, cls,
-      mana, atk, hp, maxHp: hp,
-      effect: CLASS_EFFECT[cls] || {},
-      exhausted: true,  // 소환 턴엔 공격 불가
+const cardImages = [
+    'images/dl_ld02.png',
+    'images/dl_ld03.png',
+    'images/dl_ld07.png',
+    'images/dl_ld09.png',
+    'images/dl_ld10.png',
+    'images/dl_ld16.png',
+    'images/dl_ld19.png',
+    'images/dl_ld30.png',
+    'images/dl_ld31.png',
+    'images/dl_ld35.png',
+    'images/dl_ld36.png',
+    'images/dl_ld37.png',
+    'images/dl_ld38.png',
+    'images/rungame_item_meat.png',
+    'images/rungame_item_score.png',
+    'images/item_t_gasha_limited_medal.png',
+    'images/character_detail_RushAttack_btn.png',
+    'images/common_drop_trainbow.png',
+    'images/ship.png',
+    'images/gasha_rate_document_01.png',
+	'images/help_navichara.png',
+    'images/island_map_0003_t.png',
+    'images/island_map_0012_t.png',
+    'images/island_map_0031_t.png',
+    'images/common_footer_home.png',
+    'images/popuptext_slot_bomb.png',
+    'images/popuptext_slot_poison.png',
+    'images/ship_0001_t1.png',
+    'images/state_icon_give_strong.png',
+    'images/mapbattle_achievment_league03_006.png',
+    'images/popuptext_slot_palsy.png',
+    'images/popuptext_slot_rainbow.png'
+];
+
+let currentRound = 1;
+let flips = 0;
+let score = 0;
+let isCheckingMatch = false;
+let firstCard = null;
+let matchedCards = [];
+const grid = document.getElementById('grid');
+const roundDisplay = document.getElementById('roundDisplay');
+const overlay = document.getElementById('overlay');
+const scoreDisplay = document.getElementById('scoreDisplay');
+const restartBtn = document.getElementById('restartBtn');
+
+restartBtn.addEventListener('click', () => {
+    overlay.style.display = 'none';
+    currentRound = 1;
+    score = 0;
+    startRound();
+});
+
+function startRound() {
+    roundDisplay.textContent = `라운드 ${currentRound}`;
+    roundDisplay.style.display = 'block'; 
+    grid.innerHTML = '';
+    firstCard = null;
+    matchedCards = [];
+    flips = 0;
+    isCheckingMatch = false;
+
+    setTimeout(() => {
+    	roundDisplay.style.display = 'none'; 
+        setTimeout(() => {
+            createCards();
+            showAllCards();
+        },500);
+    },1000);
+}
+
+function createCards() {
+    const totalPairs = 12;
+    const selectedIndices = shuffle([...Array(cardImages.length).keys()]).slice(0, totalPairs);
+    let cardsArray = [];
+
+    selectedIndices.forEach(i => {
+        cardsArray.push({type:i, img:cardImages[i]});
+        cardsArray.push({type:i, img:cardImages[i]});
     });
-  });
-  return pool;
-}
 
-const THUMB_BASE = 'https://hayaden.github.io/optcDB_Ko/api/images/thumbnail/jap';
-function img(id) {
-  const padded = String(id).padStart(4, '0');
-  const d1 = padded[0];
-  const bucket = String(Math.floor(id / 100) * 100 % 1000).padStart(3, '0');
-  return `${THUMB_BASE}/${d1}/${bucket}/${padded}.png`;
-}
-function imgFallback(id) {
-  return `../cimg/${id}.png`;
-}
+    cardsArray = shuffle(cardsArray);
 
-function shuffle(arr) {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
+    cardsArray.forEach(cardData => {
+        const card = document.createElement('div');
+        card.classList.add('card');
+        const inner = document.createElement('div');
+        inner.classList.add('card-inner');
+        const front = document.createElement('div');
+        front.classList.add('card-front');
+        front.style.backgroundImage = `url(${cardData.img})`;
+        front.style.backgroundSize='cover';
+        const back = document.createElement('div');
+        back.classList.add('card-back');
+        inner.appendChild(front);
+        inner.appendChild(back);
+        card.appendChild(inner);
+        grid.appendChild(card);
 
-// ─────────── Game state ───────────
-let state = null;
+        card.addEventListener('click', () => {
+            if(isCheckingMatch || matchedCards.includes(card)) return;
+            flips++;
+            if(!card.classList.contains('flipped')) {
+                card.classList.add('flipped');
+            } else {
+                card.classList.remove('flipped');
+            }
 
-function newGame() {
-  const pool = cardPool();
-  if (pool.length < 30) {
-    log('캐릭 풀 부족 (★5+ 필요). units.js 로드 확인.');
-    return;
-  }
-  const makeDeck = () => shuffle(pool).slice(0, 15).map(c => ({ ...c }));
-  if (state && state._autoEndTimer) clearTimeout(state._autoEndTimer);
-  const firstPlayer = Math.random() < 0.5 ? 'player' : 'opp';
-  state = {
-    player: { hp: 25, mana: 1, maxMana: 1, deck: makeDeck(), hand: [], field: [], _comboCooldown: 0 },
-    opp:    { hp: 25, mana: 1, maxMana: 1, deck: makeDeck(), hand: [], field: [], _comboCooldown: 0 },
-    turn: firstPlayer,
-    firstPlayer,
-    attackingCard: null,
-    turnNo: 1,
-    history: [],
-    _coinUsed: false,
-    _swapUsed: false,
-    _gameOver: false,
-    _locked: false,
-    _autoEndTimer: null,
-  };
-  for (let i = 0; i < 5; i++) drawCard('player');
-  for (let i = 0; i < 5; i++) drawCard('opp');
-  setLocked(false);
-  logTurn(`─── 게임 시작 · ${firstPlayer === 'player' ? '내가 선공' : '상대가 선공'} ───`);
-  document.getElementById('btn-swap').classList.remove('used');
-  render();
-  if (firstPlayer === 'player') {
-    showBanner('내 턴 (선공)', '#4bbf76');
-  } else {
-    showBanner('상대 선공', '#ff6b6b');
-    setTimeout(() => oppTurn(), 700);
-  }
-}
-
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
-
-function setLocked(on) {
-  state._locked = on;
-  document.body.classList.toggle('locked', on);
-}
-
-// ─────────── 연계기 (양쪽 지원) ───────────
-// 같은 속성 3장 OR 같은 타입 3장 각각 성립
-function detectCombos(side) {
-  const attrMap = {}, clsMap = {};
-  state[side].field.forEach(c => {
-    (attrMap[c.attr] = attrMap[c.attr] || []).push(c);
-    (clsMap[c.cls] = clsMap[c.cls] || []).push(c);
-  });
-  const combos = [];
-  Object.entries(attrMap).forEach(([attr, cards]) => {
-    if (cards.length >= 3) combos.push({ group: 'attr', key: attr, cards });
-  });
-  Object.entries(clsMap).forEach(([cls, cards]) => {
-    if (cards.length >= 3) combos.push({ group: 'class', key: cls, cards });
-  });
-  return combos;
-}
-
-function comboLabel(combo) {
-  if (combo.group === 'attr') return `${ATTR_KO[combo.key] || combo.key}속성`;
-  if (combo.group === 'class') {
-    const cls = CLASS_LABEL[combo.key];
-    return cls ? `${cls.ko}형` : combo.key;
-  }
-  return '';
-}
-
-function updateComboBadge() {
-  const btn = document.getElementById('btn-combo');
-  if (!state) return;
-  const combos = detectCombos('player');
-  const canUse = combos.length > 0
-    && state.turn === 'player'
-    && !state._locked
-    && state.player._comboCooldown === 0
-    && !state._gameOver;
-  btn.classList.toggle('active', canUse);
-  // 쿨다운 표시
-  if (state.player._comboCooldown > 0 && combos.length > 0) {
-    btn.textContent = state.player._comboCooldown;
-    btn.title = `연계 쿨다운 ${state.player._comboCooldown}턴`;
-  } else {
-    btn.textContent = '⚡';
-    btn.title = canUse ? '연계 발동 (턴당 1회)' : '연계 조건 불충족';
-  }
-}
-
-function openComboModal() {
-  if (state.player._comboCooldown > 0 || state.turn !== 'player' || state._locked) return;
-  const combos = detectCombos('player');
-  if (!combos.length) return;
-  const listEl = document.getElementById('combo-list');
-  listEl.innerHTML = '';
-  combos.forEach((combo, idx) => {
-    const item = document.createElement('div');
-    item.className = 'combo-item';
-    item.innerHTML = `
-      <div class="combo-label">${comboLabel(combo)} 연계 (${combo.cards.length}장)</div>
-      <div class="combo-cards"></div>
-      <button data-idx="${idx}">⚡ 발동 (적 전체 −2)</button>
-    `;
-    const cardsEl = item.querySelector('.combo-cards');
-    combo.cards.slice(0, 4).forEach(c => {
-      const card = cardEl(c, 'combo');
-      card.style.transform = 'none';
-      card.style.margin = '0';
-      card.classList.remove('ready', 'playable', 'unaffordable');
-      cardsEl.appendChild(card);
+            if(!firstCard){
+                firstCard = card;
+            } else {
+                checkMatch(firstCard, card);
+                firstCard = null;
+            }
+        });
     });
-    item.querySelector('button').addEventListener('click', (e) => {
-      e.stopPropagation();
-      closeComboModal();
-      triggerCombo(combo, 'player');
-    });
-    listEl.appendChild(item);
-  });
-  document.getElementById('combo-modal').classList.remove('hidden');
 }
 
-function closeComboModal() {
-  document.getElementById('combo-modal').classList.add('hidden');
+function showAllCards() {
+    const cards = Array.from(document.querySelectorAll('.card'));
+    
+    isCheckingMatch = true; 
+    cards.forEach(c => c.classList.remove('flipped')); 
+
+    setTimeout(() => {
+        cards.forEach(c => c.classList.add('flipped'));
+        isCheckingMatch = false; 
+    }, 1000);
 }
 
-async function triggerCombo(combo, side) {
-  if (state[side]._comboCooldown > 0 || state._gameOver) return;
-  state[side]._comboCooldown = 2;  // 2턴 쿨다운
-  const wasLocked = state._locked;
-  if (!wasLocked) setLocked(true);
-
-  const targetSide = side === 'player' ? 'opp' : 'player';
-  const sideLabel = side === 'player' ? '내' : '상대';
-  const label = comboLabel(combo);
-  log(`⚡ ${sideLabel} 연계 — ${label} → 전체 −2`, side);
-  showMiniBanner(`⚡ ${sideLabel} 연계 발동!<br>${label}`);
-  await sleep(1300);
-
-  // 공격자 들어올림
-  const attackers = combo.cards.slice(0, 3);
-  const atkEls = attackers.map(c => findCardEl(c.instanceId)).filter(Boolean);
-  atkEls.forEach(el => el.classList.add('combo-attacker'));
-  await sleep(500);
-
-  // 공격 플래시
-  atkEls.forEach(el => {
-    el.classList.remove('combo-blast');
-    void el.offsetWidth;
-    el.classList.add('combo-blast');
-  });
-
-  // AOE 플래시 (타겟 필드 전체)
-  const zoneSelector = targetSide === 'opp' ? '.opp-field' : '.player-field';
-  const zoneEl = document.querySelector(zoneSelector);
-  if (zoneEl) {
-    zoneEl.classList.remove('aoe-flash');
-    void zoneEl.offsetWidth;
-    zoneEl.classList.add('aoe-flash');
-  }
-
-  // 타겟 전체에 데미지 숫자 + 피격 플래시
-  state[targetSide].field.forEach(t => {
-    const el = findCardEl(t.instanceId);
-    if (el) { showFloatDmg(el, '-2', '#ff5555'); flashCard(el); }
-  });
-  await sleep(300);
-  state[targetSide].field.forEach(t => { t.hp -= 2; });
-  await sleep(500);
-
-  // 죽는 카드 흔들림 → 샤터
-  const dying = state[targetSide].field.filter(t => t.hp <= 0);
-  await Promise.all(dying.map(t => {
-    const el = findCardEl(t.instanceId);
-    return el ? destroyCard(el) : Promise.resolve();
-  }));
-  cleanupDead(targetSide);
-
-  // 공격자 복귀
-  atkEls.forEach(el => {
-    el.classList.remove('combo-attacker', 'combo-blast');
-  });
-
-  if (checkWin()) return;
-  render();
-
-  // 플레이어 연계 발동 후엔 자동 턴 종료 (연계는 "턴을 쓰는" 액션)
-  if (side === 'player' && state.turn === 'player') {
-    await sleep(400);
-    setLocked(false);
-    await endTurn();
-  }
+function flipCard(card) {
+    card.classList.toggle('flipped');
 }
 
-function previewDmg(attacker, target) {
-  let mult = 1.0;
-  if (ATTR_COUNTER[attacker.attr] === target.attr) mult = 1.25;
-  else if (ATTR_COUNTER[target.attr] === attacker.attr) mult = 0.75;
-
-  // 공격 데미지
-  let dmg = Math.round(attacker.atk * mult);
-  if (mult > 1) dmg = Math.max(dmg, attacker.atk + 1);
-  if (mult < 1) dmg = Math.min(dmg, attacker.atk - 1);
-  dmg = Math.max(1, dmg);
-  if (attacker.effect && attacker.effect.onAttack === 'bonus1') dmg += 1;
-
-  // 반격 데미지 — 상성 반대 적용 (공격자 유리면 반격 감소)
-  const counterMult = mult === 1.25 ? 0.75 : mult === 0.75 ? 1.25 : 1.0;
-  let counterDmg = Math.round(target.atk * counterMult);
-  if (counterMult > 1) counterDmg = Math.max(counterDmg, target.atk + 1);
-  if (counterMult < 1) counterDmg = Math.min(counterDmg, target.atk - 1);
-  counterDmg = Math.max(1, counterDmg);
-
-  return { dmg, mult, counterDmg, counterMult };
-}
-
-function canAct(side) {
-  const s = state[side];
-  // 소환 가능한 손패 1장이라도?
-  if (s.field.length < 4 && s.hand.some(c => c.mana <= s.mana)) return true;
-  // 공격 가능한 필드 카드 1장이라도?
-  if (s.field.some(c => !c.exhausted)) return true;
-  return false;
-}
-
-function updateEndButton() {
-  const endBtn = document.getElementById('btn-end');
-  clearTimeout(state._autoEndTimer);
-  state._autoEndTimer = null;
-  const noAction = state.turn === 'player' && !state._locked && !canAct('player');
-  endBtn.classList.toggle('pulse-end', noAction);
-  if (noAction) {
-    state._autoEndTimer = setTimeout(() => {
-      if (state.turn === 'player' && !state._locked && !canAct('player')) {
-        endTurn();
-      }
-    }, 1500);
-  }
-}
-
-function drawCard(side, markAnim = false) {
-  const s = state[side];
-  if (s.deck.length === 0 || s.hand.length >= 5) return null;
-  const card = s.deck.shift();
-  card.instanceId = Math.random().toString(36).slice(2, 8);
-  if (markAnim) card._justDrawn = true;
-  s.hand.push(card);
-  return card;
-}
-
-function startTurn(side) {
-  const s = state[side];
-  s.maxMana = Math.min(7, s.maxMana + 1);
-  // 턴 시작 시 자기 연계 쿨다운 1 감소 (최소 0)
-  s._comboCooldown = Math.max(0, (s._comboCooldown || 0) - 1);
-  // 후공 코인 — 후공자 첫 턴만 마나 +1
-  if (side !== state.firstPlayer && !state._coinUsed) {
-    s.maxMana = Math.min(7, s.maxMana + 1);
-    state._coinUsed = true;
-    log(`${side === 'player' ? '내' : '상대'} 후공 코인 — 마나 +1 보너스`, side);
-    showMiniBanner(`${side === 'player' ? '🪙 내' : '🪙 상대'} 후공 코인 — 마나 +1`);
-  }
-  s.mana = s.maxMana;
-  drawCard(side, side === 'player');
-  s.field.forEach(c => { c.exhausted = false; });
-  s.field.forEach(c => applyEffect(c, 'onTurn', side));
-}
-
-async function applyEffect(card, trigger, side) {
-  const eff = card.effect || {};
-  const my = state[side];
-  const opp = state[side === 'player' ? 'opp' : 'player'];
-  const oppSide = side === 'player' ? 'opp' : 'player';
-  if (trigger === 'onPlay') {
-    if (eff.onPlay === 'deal1' && opp.field.length) {
-      const target = opp.field[Math.floor(Math.random() * opp.field.length)];
-      log(`${card.name}: 소환 효과 — ${target.name} 에 1 데미지`, side);
-      showMiniBanner(`<b>${card.name}</b> 효과 — ${target.name} −1`);
-      await sleep(500);
-      const el = findCardEl(target.instanceId);
-      if (el) { showFloatDmg(el, '-1', '#ff5555'); flashCard(el); }
-      target.hp -= 1;
-      await sleep(400);
-      if (target.hp <= 0 && el) await destroyCard(el);
-      cleanupDead(oppSide);
-      render();
-    }
-    if (eff.onPlay === 'dealAll1') {
-      log(`${card.name}: 적 전체에 1 데미지`, side);
-      showMiniBanner(`<b>${card.name}</b> 사격 — 적 전체 −1!`);
-      await sleep(600);
-      // AOE 플래시 (상대 필드 전체 번쩍)
-      const zoneEl = document.querySelector(side === 'player' ? '.opp-field' : '.player-field');
-      if (zoneEl) {
-        zoneEl.classList.remove('aoe-flash');
-        void zoneEl.offsetWidth;
-        zoneEl.classList.add('aoe-flash');
-      }
-      // 각 타겟 피격 + 데미지 숫자
-      opp.field.forEach(t => {
-        const el = findCardEl(t.instanceId);
-        if (el) { showFloatDmg(el, '-1', '#ff5555'); flashCard(el); }
-      });
-      await sleep(100);
-      opp.field.forEach(t => { t.hp -= 1; });
-      await sleep(500);
-      // 죽는 카드들 흔들림 → 파괴 (병렬)
-      const dyingTargets = opp.field.filter(t => t.hp <= 0);
-      await Promise.all(dyingTargets.map(t => {
-        const el = findCardEl(t.instanceId);
-        return el ? destroyCard(el) : Promise.resolve();
-      }));
-      cleanupDead(oppSide);
-      render();
-    }
-    if (eff.onPlay === 'draw1') {
-      drawCard(side, side === 'player');
-      log(`${card.name}: 카드 1장 뽑기`, side);
-    }
-    if (eff.passive === 'hp+2') { card.hp += 2; card.maxHp += 2; }
-  }
-  if (trigger === 'onTurn') {
-    if (eff.onTurn === 'atkUp1') { card.atk += 1; }
-    if (eff.onTurn === 'healLeader1' && my.hp < 25) {
-      my.hp = Math.min(25, my.hp + 1);
-    }
-  }
-}
-
-function cleanupDead(side) {
-  const s = state[side];
-  s.field = s.field.filter(c => c.hp > 0);
-}
-
-async function endTurn() {
-  if (state.turn !== 'player' || state._locked) return;
-  state.turn = 'opp';
-  state.turnNo++;
-  render();
-  if (checkWin()) return;
-  await oppTurn();
-}
-
-function pickOppMove(attacker) {
-  // 각 대상에 대해 공격 가치 점수화. 자살 공격은 금지, 리더 처치 가능하면 최우선.
-  const player = state.player;
-  const options = [];
-
-  // 몬스터 공격 평가
-  player.field.forEach(t => {
-    const { dmg: dmgT } = previewDmg(attacker, t);
-    const dmgA = t.atk;
-    const killTarget = dmgT >= t.hp;
-    const dieSelf = dmgA >= attacker.hp;
-    let score;
-    if (killTarget && !dieSelf) score = 30;             // 완벽: 적 처치 + 생존
-    else if (killTarget && dieSelf) score = 10;         // 1:1 교환 (허용)
-    else if (!killTarget && dieSelf) score = -20;       // 자살: 피함
-    else score = 2 + Math.min(dmgT, t.hp) * 0.5;        // 그냥 체력만 깎음
-    options.push({ type: 'card', target: t, score });
-  });
-
-  // 리더 공격 평가 (하스스톤식 — 상대 몬스터 있어도 가능)
-  const willKillLeader = attacker.atk >= player.hp;
-  let faceScore = willKillLeader ? 100 : attacker.atk * 0.4;
-  options.push({ type: 'face', score: faceScore });
-
-  options.sort((a, b) => b.score - a.score);
-  const best = options[0];
-  if (!best || best.score < -5) return null;  // 자살 공격 밖에 없으면 skip
-  return best;
-}
-
-async function oppTurn() {
-  setLocked(true);
-  showBanner('상대 턴', '#ff6b6b');
-  logTurn(`─── 턴 ${Math.ceil((state.turnNo) / 2)} · 상대 ───`);
-  await sleep(900);
-  startTurn('opp');
-  render();
-  await sleep(500);
-
-  // 소환 루프 (비싼 카드부터)
-  while (state.opp.field.length < 4) {
-    const affordable = state.opp.hand
-      .filter(c => c.mana <= state.opp.mana)
-      .sort((a, b) => b.mana - a.mana);
-    if (!affordable.length) break;
-    await summonCard(affordable[0], 'opp');
-    await sleep(400);
-  }
-
-  // 연계 체크 — 쿨다운 0 이고 가능 조합 있으면 발동 (발동 후 공격 생략)
-  let comboTriggered = false;
-  if (state.opp._comboCooldown === 0) {
-    const oppCombos = detectCombos('opp');
-    if (oppCombos.length) {
-      const best = oppCombos.sort((a, b) => b.cards.length - a.cards.length)[0];
-      await triggerCombo(best, 'opp');
-      if (state._gameOver) return;
-      comboTriggered = true;
-      await sleep(500);
-    }
-  }
-
-  // 공격 루프 — 연계 안 했을 때만 (연계는 "턴을 쓰는" 액션)
-  const attackers = comboTriggered ? [] : [...state.opp.field.filter(c => !c.exhausted)];
-  for (const atk of attackers) {
-    if (atk.hp <= 0) continue;
-    if (state._gameOver) return;
-    const move = pickOppMove(atk);
-    if (!move) continue;  // 공격할만한 대상 없음
-
-    // 미니 배너로 공격 예고
-    if (move.type === 'face') {
-      showMiniBanner(`상대 <b>${atk.name}</b><br>→ 내 리더 공격!`);
+function checkMatch(c1,c2){
+    isCheckingMatch = true;
+    const t1 = c1.querySelector('.card-front').style.backgroundImage;
+    const t2 = c2.querySelector('.card-front').style.backgroundImage;
+    if(t1 === t2){
+        matchedCards.push(c1,c2);
+        c1.style.boxShadow = '0 0 20px 5px yellow';
+        c2.style.boxShadow = '0 0 20px 5px yellow';
+        setTimeout(()=>{
+            c1.style.boxShadow = '';
+            c2.style.boxShadow = '';
+            checkRoundEnd();
+            isCheckingMatch = false;
+        },500);
     } else {
-      showMiniBanner(`상대 <b>${atk.name}</b><br>→ 내 <b>${move.target.name}</b> 공격!`);
+        setTimeout(()=>{
+            flipCard(c1);
+            flipCard(c2);
+            isCheckingMatch = false;
+        },500);
     }
-    await sleep(1500);  // 사용자가 읽을 시간
+}
 
-    if (move.type === 'face') {
-      await performFaceAttack(atk, 'opp');
-    } else {
-      await performAttack(atk, 'opp', move.target, 'player');
+function checkRoundEnd(){
+    if(matchedCards.length === grid.children.length){
+        score += Math.max(0, MAX_SCORE_BASE - flips*PENALTY_PER_FLIP);
+        if(currentRound < TOTAL_ROUNDS){
+            currentRound++;
+            startRound();
+        } else {
+            showGameOver();
+        }
     }
-    if (state.player.hp <= 0) { checkWin(); return; }
-    await sleep(600);  // 다음 공격 사이 간격
-  }
-
-  state.turn = 'player';
-  state.turnNo++;
-  startTurn('player');
-  setLocked(false);
-  render();
-  if (checkWin()) return;
-  logTurn(`─── 턴 ${Math.ceil(state.turnNo / 2)} · 내 턴 ───`);
-  showBanner(`턴 ${Math.ceil(state.turnNo / 2)}`, '#4bbf76');
 }
 
-async function summonCard(card, side) {
-  const s = state[side];
-  if (s.mana < card.mana) return false;
-  if (s.field.length >= 4) return false;
-  // 손패 → 필드로 이동 + 애니메이션 플래그
-  s.hand = s.hand.filter(c => c.instanceId !== card.instanceId);
-  card.exhausted = true;
-  card._justSummoned = true;
-  s.field.push(card);
-  s.mana -= card.mana;
-  log(`${side === 'player' ? '내' : '상대'} ${card.name} 소환 (💧${card.mana})`, side);
-  cleanupDead('player');
-  cleanupDead('opp');
-  render();
-  await sleep(550);
-  // 소환 애니메이션 끝난 뒤 효과 발동 (가시성↑)
-  await applyEffect(card, 'onPlay', side);
-  return true;
+function showGameOver(){
+    scoreDisplay.textContent = `총 점수: ${score}`;
+    overlay.style.display = 'flex';
 }
 
-async function performAttack(attacker, atkSide, target, defSide) {
-  if (!state._locked) setLocked(true);
-  const atkEl = findCardEl(attacker.instanceId);
-  const tgtEl = findCardEl(target.instanceId);
-
-  // 데미지 계산 (속성 상성) — previewDmg 와 동일 공식
-  const { dmg: dmgT, counterDmg: dmgA } = previewDmg(attacker, target);
-
-  log(`${attacker.name} ⚔️ ${target.name} (−${dmgT} / 반격 −${dmgA})`, atkSide);
-  await animateSlash(atkEl, tgtEl);
-
-  // 피격 플래시 + 데미지 숫자
-  flashCard(tgtEl);
-  showFloatDmg(tgtEl, `-${dmgT}`, '#ff5555');
-  if (dmgA > 0) {
-    flashCard(atkEl);
-    showFloatDmg(atkEl, `-${dmgA}`, '#ff8855');
-  }
-
-  // state 변경
-  target.hp -= dmgT;
-  attacker.hp -= dmgA;
-  attacker.exhausted = true;
-
-  await sleep(500);
-
-  // 죽은 카드 흔들림 → 샤터
-  const dyingP = [];
-  if (target.hp <= 0 && tgtEl) dyingP.push(destroyCard(tgtEl));
-  if (attacker.hp <= 0 && atkEl) dyingP.push(destroyCard(atkEl));
-  await Promise.all(dyingP);
-
-  cleanupDead('player');
-  cleanupDead('opp');
-  // 플레이어 턴에선 락 먼저 해제한 뒤 render → 손패 playable 반영 정확히
-  if (state.turn === 'player') setLocked(false);
-  render();
-  checkWin();
-}
-
-async function performFaceAttack(attacker, side) {
-  if (!state._locked) setLocked(true);
-  const defSide = side === 'player' ? 'opp' : 'player';
-  const atkEl = findCardEl(attacker.instanceId);
-  const hpEl = document.getElementById(defSide === 'player' ? 'player-hp' : 'opp-hp');
-
-  log(`${attacker.name} → ${side === 'player' ? '상대' : '내'} 리더 ${attacker.atk} 데미지`, side);
-  await animateSlash(atkEl, hpEl);
-
-  state[defSide].hp -= attacker.atk;
-  attacker.exhausted = true;
-
-  shakeHp(defSide);
-  showFloatDmg(hpEl, `-${attacker.atk}`, '#ff5555');
-
-  await sleep(500);
-  if (state.turn === 'player') setLocked(false);
-  render();
-  checkWin();
-}
-
-function isExhausted(side) {
-  const s = state[side];
-  return s.hand.length === 0 && s.deck.length === 0 && s.field.length === 0;
-}
-
-function checkWin() {
-  if (state._gameOver) return true;
-  let over = false;
-  const ph = state.player.hp, oh = state.opp.hp;
-  if (ph <= 0) {
-    showResult('패배...', '내 HP가 0이 되었습니다.');
-    over = true;
-  } else if (oh <= 0) {
-    showResult('승리!', '상대 HP를 0으로 만들었습니다.');
-    over = true;
-  } else if (isExhausted('player') && isExhausted('opp')) {
-    // 양쪽 모두 소진 → 체력 비교
-    if (ph > oh) showResult('승리!', `양쪽 카드 소진 — 체력 비교 (내 HP ${ph} vs 상대 HP ${oh})`);
-    else if (oh > ph) showResult('패배...', `양쪽 카드 소진 — 체력 비교 (내 HP ${ph} vs 상대 HP ${oh})`);
-    else showResult('무승부', `양쪽 카드 소진 + 체력 동일 (${ph} HP)`);
-    over = true;
-  } else if (isExhausted('opp')) {
-    // 상대만 소진 — 자동 승리
-    showResult('승리!', `상대 카드 전멸 — 더 이상 소환 불가`);
-    over = true;
-  } else if (isExhausted('player')) {
-    // 내가 소진 — 자동 패배
-    showResult('패배...', `내 카드 전멸 — 더 이상 소환 불가`);
-    over = true;
-  }
-  if (over) {
-    state._gameOver = true;
-    setLocked(true);
-  }
-  return over;
-}
-
-// ─────────── 애니메이션 ───────────
-function findCardEl(instanceId) {
-  return document.querySelector(`[data-iid="${instanceId}"]`);
-}
-
-async function animateSlash(atkEl, tgtEl) {
-  if (!atkEl || !tgtEl) { await sleep(200); return; }
-  const r1 = atkEl.getBoundingClientRect();
-  const r2 = tgtEl.getBoundingClientRect();
-  const dx = (r2.left + r2.width/2) - (r1.left + r1.width/2);
-  const dy = (r2.top + r2.height/2) - (r1.top + r1.height/2);
-  atkEl.style.zIndex = '50';
-  const anim = atkEl.animate([
-    { transform: 'translate(0,0) scale(1)', offset: 0 },
-    { transform: `translate(0,0) scale(1)`, offset: 0.15 },
-    { transform: `translate(${dx*0.55}px, ${dy*0.55}px) scale(1.18) rotate(${dx>0?'10deg':'-10deg'})`, offset: 0.55 },
-    { transform: `translate(${dx*0.6}px, ${dy*0.6}px) scale(1.12)`, offset: 0.65 },
-    { transform: 'translate(0,0) scale(1) rotate(0)', offset: 1 },
-  ], { duration: 480, easing: 'cubic-bezier(0.4, 0, 0.6, 1)' });
-  await anim.finished;
-  atkEl.style.zIndex = '';
-}
-
-function flashCard(el) {
-  if (!el) return;
-  el.classList.remove('hit');
-  void el.offsetWidth;
-  el.classList.add('hit');
-}
-
-function showFloatDmg(el, text, color) {
-  if (!el) return;
-  const r = el.getBoundingClientRect();
-  const d = document.createElement('div');
-  d.className = 'float-dmg';
-  d.style.color = color || '#ff5555';
-  d.style.left = (r.left + r.width / 2) + 'px';
-  d.style.top = (r.top + r.height / 3) + 'px';
-  d.textContent = text;
-  document.body.appendChild(d);
-  setTimeout(() => d.remove(), 1700);
-}
-
-function shakeHp(side) {
-  const el = document.getElementById(side === 'player' ? 'player-hp' : 'opp-hp');
-  if (!el) return;
-  el.classList.remove('hp-shake');
-  void el.offsetWidth;
-  el.classList.add('hp-shake');
-  setTimeout(() => el.classList.remove('hp-shake'), 600);
-}
-
-async function destroyCard(el) {
-  if (!el) return;
-  el.classList.add('dying');
-  await sleep(750);  // 흔들흔들
-  await shatterCard(el);  // 파괴
-}
-
-async function shatterCard(el) {
-  if (!el) return;
-  const rect = el.getBoundingClientRect();
-  const inner = el.outerHTML;
-  const container = document.createElement('div');
-  container.className = 'shatter-container';
-  container.style.left = rect.left + 'px';
-  container.style.top = rect.top + 'px';
-  container.style.width = rect.width + 'px';
-  container.style.height = rect.height + 'px';
-  document.body.appendChild(container);
-  el.style.visibility = 'hidden';
-
-  const clips = [
-    'polygon(0 0, 55% 0, 45% 50%, 0 60%)',
-    'polygon(55% 0, 100% 0, 100% 55%, 45% 50%)',
-    'polygon(0 60%, 45% 50%, 55% 100%, 0 100%)',
-    'polygon(45% 50%, 100% 55%, 100% 100%, 55% 100%)',
-  ];
-  const anims = clips.map((clip, i) => {
-    const piece = document.createElement('div');
-    piece.className = 'piece';
-    piece.style.clipPath = clip;
-    piece.innerHTML = inner;
-    const card = piece.firstElementChild;
-    card.style.visibility = 'visible';
-    card.style.margin = '0';
-    card.style.width = '100%';
-    card.style.height = '100%';
-    container.appendChild(piece);
-    const angle = (i / 4) * Math.PI * 2 + Math.PI / 4;
-    const dist = 50 + Math.random() * 40;
-    const dx = Math.cos(angle) * dist;
-    const dy = Math.sin(angle) * dist;
-    const rot = (Math.random() - 0.5) * 120;
-    return piece.animate([
-      { transform: 'translate(0,0) rotate(0)', opacity: 1, filter: 'brightness(1)' },
-      { transform: `translate(${dx*0.4}px, ${dy*0.4}px) rotate(${rot*0.3}deg)`, opacity: 1, offset: 0.3, filter: 'brightness(2)' },
-      { transform: `translate(${dx}px, ${dy+30}px) rotate(${rot}deg)`, opacity: 0, filter: 'brightness(0.5)' },
-    ], { duration: 650, easing: 'cubic-bezier(0.3, 0.2, 0.6, 1)' }).finished;
-  });
-  await Promise.all(anims);
-  container.remove();
-}
-
-function showBanner(text, color) {
-  const b = document.getElementById('turn-banner');
-  b.textContent = text;
-  b.style.color = color || 'var(--gold)';
-  b.classList.remove('show');
-  void b.offsetWidth;
-  b.classList.add('show');
-}
-
-// ─────────── Render ───────────
-function render() {
-  // HP/Mana/Deck
-  document.getElementById('player-hp').textContent = state.player.hp;
-  document.getElementById('player-mana').textContent = state.player.mana;
-  document.getElementById('player-max-mana').textContent = state.player.maxMana;
-  document.getElementById('player-deck').textContent = state.player.deck.length;
-  document.getElementById('opp-hp').textContent = state.opp.hp;
-  document.getElementById('opp-mana').textContent = state.opp.mana;
-  document.getElementById('opp-max-mana').textContent = state.opp.maxMana;
-  document.getElementById('opp-deck').textContent = state.opp.deck.length;
-
-  renderField('opp-field', state.opp.field, 'opp');
-  renderField('player-field', state.player.field, 'player');
-  renderHand('player-hand', state.player.hand);
-  renderOppHand(state.opp.hand.length);
-
-  // Targeting mode class
-  document.body.classList.toggle('targeting', !!state.attackingCard);
-
-  // 리더 공격 데미지 미리보기
-  if (state.attackingCard) {
-    document.getElementById('lead-dmg').textContent = `−${state.attackingCard.atk}`;
-  }
-
-  document.getElementById('btn-end').disabled = state.turn !== 'player';
-  updateEndButton();
-  updateComboBadge();
-}
-
-function renderField(elId, field, side) {
-  const el = document.getElementById(elId);
-  el.innerHTML = '';
-  for (let i = 0; i < 4; i++) {
-    const c = field[i];
-    if (!c) {
-      const slot = document.createElement('div');
-      slot.className = 'slot';
-      slot.textContent = side === 'player' ? '빈 자리' : '';
-      el.appendChild(slot);
-      continue;
+function shuffle(array){
+    for(let i=array.length-1;i>0;i--){
+        const j=Math.floor(Math.random()*(i+1));
+        [array[i],array[j]]=[array[j],array[i]];
     }
-    const card = cardEl(c, side === 'player' ? 'playerFieldCard' : 'oppFieldCard');
-    if (state.attackingCard) {
-      if (side === 'opp') {
-        card.classList.add('targetable');
-        const atk = state.attackingCard;
-        const { dmg, mult, counterDmg, counterMult } = previewDmg(atk, c);
-        const multClass = mult === 1.25 ? 'up' : mult === 0.75 ? 'dn' : 'ev';
-        const multText = mult === 1.25 ? '×1.25' : mult === 0.75 ? '×0.75' : '×1';
-        const cMultClass = counterMult === 1.25 ? 'up' : counterMult === 0.75 ? 'dn' : 'ev';
-        const cMultText = counterMult === 1.25 ? '×1.25' : counterMult === 0.75 ? '×0.75' : '×1';
-        const preview = document.createElement('div');
-        preview.className = 'target-preview';
-        preview.innerHTML = `
-          <span class="pv-main">⚔ −${dmg}<span class="pv-mult ${multClass}">${multText}</span></span>
-          <span class="pv-back">반격 −${counterDmg}<span class="pv-mult ${cMultClass}">${cMultText}</span></span>
-        `;
-        card.appendChild(preview);
-      }
-    }
-    // 내 공격 가능 카드 glow (선택된 카드 제외)
-    if (side === 'player' && !c.exhausted && state.turn === 'player' && !state._locked
-        && !(state.attackingCard && state.attackingCard.instanceId === c.instanceId)) {
-      card.classList.add('ready');
-    }
-    el.appendChild(card);
-  }
+    return array;
 }
 
-function renderOppHand(n) {
-  const el = document.getElementById('opp-hand');
-  el.innerHTML = '';
-  for (let i = 0; i < n; i++) {
-    const back = document.createElement('div');
-    back.className = 'card-back';
-    el.appendChild(back);
-  }
-}
-
-function renderHand(elId, hand) {
-  const el = document.getElementById(elId);
-  el.innerHTML = '';
-  const n = hand.length;
-  const maxAngle = n <= 1 ? 0 : Math.min(22, 4 + n * 3);  // 손패 많을수록 넓게
-  hand.forEach((c, i) => {
-    const card = cardEl(c, 'handCard');
-    const t = n === 1 ? 0 : (i / (n - 1) - 0.5) * 2;      // -1 ~ 1
-    const angle = t * maxAngle;
-    const yDrop = Math.abs(t) * 7;                         // 양 끝 7px 아래
-    const z = 20 - Math.round(Math.abs(i - (n - 1) / 2) * 2);
-    card.style.setProperty('--rot', `${angle}deg`);
-    card.style.setProperty('--y', `${yDrop}px`);
-    card.style.setProperty('--z', z);
-    card.style.zIndex = z;
-
-    const canPlay = c.mana <= state.player.mana
-      && state.player.field.length < 4
-      && state.turn === 'player'
-      && !state._locked;
-    card.classList.add(canPlay ? 'playable' : 'unaffordable');
-    el.appendChild(card);
-  });
-}
-
-function cardEl(c, context) {
-  const el = document.createElement('div');
-  const classes = ['card', c.attr];
-  if (context === 'handCard') classes.push('hand');
-  if (c.exhausted && context !== 'handCard') classes.push('exhausted');
-  if (state.attackingCard && state.attackingCard.instanceId === c.instanceId) classes.push('selected');
-  if (c._justSummoned && context !== 'handCard') { classes.push('summoned'); c._justSummoned = false; }
-  if (c._justDrawn && context === 'handCard') { classes.push('drawn'); c._justDrawn = false; }
-  el.className = classes.join(' ');
-  el.dataset.iid = c.instanceId;
-  const cls = CLASS_LABEL[c.cls];
-  const classBadge = cls
-    ? `<span class="class-badge" style="background:${cls.color};" title="${cls.ko}형">${cls.char}</span>`
-    : `<span></span>`;
-  el.innerHTML = `
-    <div class="cost-badge">${c.mana}</div>
-    <div class="attr-tag" style="color: var(--${c.attr});">${ATTR_KO[c.attr] || c.attr}</div>
-    <div class="thumb"><img src="${img(c.id)}" alt="${c.name}" data-fb="${imgFallback(c.id)}" onerror="if(this.dataset.fb){this.src=this.dataset.fb;this.dataset.fb='';}else{this.style.display='none';this.parentElement.innerHTML='<div class=placeholder>#${c.id}</div>';}"></div>
-    <div class="name">${c.name.length > 10 ? c.name.slice(0,10)+'…' : c.name}</div>
-    <div class="stats">${classBadge}<span class="atk">⚔${c.atk}</span><span class="hp">♥${c.hp}</span></div>
-  `;
-  el.addEventListener('click', (e) => { e.stopPropagation(); handleCardClick(c, context, e); });
-  return el;
-}
-
-async function handleCardClick(c, context, e) {
-  if (state._locked) return;
-  if (state.turn !== 'player') return;
-  if (context === 'handCard') {
-    await summonCard(c, 'player');
-    return;
-  }
-  if (context === 'playerFieldCard') {
-    if (c.exhausted) { log('이 턴엔 공격 불가'); return; }
-    // 토글
-    if (state.attackingCard && state.attackingCard.instanceId === c.instanceId) {
-      state.attackingCard = null;
-    } else {
-      state.attackingCard = c;
-    }
-    render();
-    return;
-  }
-  if (context === 'oppFieldCard') {
-    if (!state.attackingCard) return;
-    const atk = state.attackingCard;
-    state.attackingCard = null;
-    render();
-    await performAttack(atk, 'player', c, 'opp');
-    return;
-  }
-}
-
-// 상대 리더 공격 — opp-leader-zone 또는 opp-field 빈 영역 클릭
-document.addEventListener('click', async (e) => {
-  if (!state || !state.attackingCard || state._locked) return;
-  if (e.target.closest('.card')) return;
-  if (e.target.closest('#cancel-attack')) return;
-  const leaderZone = e.target.closest('.opp-leader-zone');
-  const fieldZone = e.target.closest('.opp-field');
-  if (!leaderZone && !fieldZone) return;
-  const atk = state.attackingCard;
-  state.attackingCard = null;
-  render();
-  await performFaceAttack(atk, 'player');
-});
-
-// 공격 취소 버튼
-document.getElementById('cancel-attack').addEventListener('click', (e) => {
-  e.stopPropagation();
-  if (!state || !state.attackingCard) return;
-  state.attackingCard = null;
-  render();
-});
-
-// ─────────── Util ───────────
-function log(msg, kind) {
-  const el = document.getElementById('log');
-  el.textContent = msg;
-  el.classList.add('show');
-  clearTimeout(window._logT);
-  window._logT = setTimeout(() => el.classList.remove('show'), 2600);
-  // history 저장
-  if (state) {
-    const turnLabel = `T${Math.ceil(state.turnNo / 2)}`;
-    state.history.push({ turnLabel, msg, kind: kind || 'neutral' });
-    if (state.history.length > 60) state.history.shift();
-  }
-}
-
-function logTurn(label) {
-  if (state) state.history.push({ turnLabel: '', msg: label, kind: 'turn' });
-}
-
-function showMiniBanner(text) {
-  const b = document.getElementById('mini-banner');
-  b.innerHTML = text;
-  b.classList.remove('show');
-  void b.offsetWidth;
-  b.classList.add('show');
-}
-
-function openLogPanel() {
-  const panel = document.getElementById('log-panel');
-  const list = document.getElementById('log-list');
-  list.innerHTML = '';
-  if (!state || !state.history.length) {
-    list.innerHTML = '<div class="log-entry" style="color:var(--muted); text-align:center;">아직 기록 없음</div>';
-  } else {
-    // 최신이 위로 오게 역순
-    [...state.history].reverse().forEach(h => {
-      const div = document.createElement('div');
-      div.className = 'log-entry ' + h.kind;
-      if (h.turnLabel) {
-        div.innerHTML = `<span class="ts">${h.turnLabel}</span>${h.msg}`;
-      } else {
-        div.textContent = h.msg;
-      }
-      list.appendChild(div);
-    });
-  }
-  panel.classList.remove('hidden');
-}
-
-function closeLogPanel() {
-  document.getElementById('log-panel').classList.add('hidden');
-}
-
-function showResult(title, msg) {
-  document.getElementById('result-title').textContent = title;
-  document.getElementById('result-msg').textContent = msg;
-  document.getElementById('gameover').classList.remove('hidden');
-}
-
-// ─────────── Boot ───────────
-document.getElementById('btn-end').addEventListener('click', endTurn);
-document.getElementById('btn-new').addEventListener('click', () => {
-  document.getElementById('gameover').classList.add('hidden');
-  newGame();
-});
-document.getElementById('btn-restart').addEventListener('click', () => {
-  document.getElementById('gameover').classList.add('hidden');
-  newGame();
-});
-document.getElementById('btn-log').addEventListener('click', openLogPanel);
-document.getElementById('log-close').addEventListener('click', closeLogPanel);
-document.getElementById('btn-help').addEventListener('click', () => {
-  document.getElementById('help-modal').classList.remove('hidden');
-});
-document.getElementById('help-close').addEventListener('click', () => {
-  document.getElementById('help-modal').classList.add('hidden');
-});
-
-// ─────────── 카드 교체 (1회 한정) ───────────
-function openSwapModal() {
-  if (!state || state._swapUsed || state.turn !== 'player' || state._locked) return;
-  if (!state.player.hand.length) { log('손패가 비어있습니다'); return; }
-  const container = document.getElementById('swap-hand');
-  container.innerHTML = '';
-  state.player.hand.forEach(c => {
-    const card = cardEl(c, 'swap');
-    card.style.transform = 'none';
-    card.style.margin = '0';
-    card.classList.remove('ready', 'playable', 'unaffordable');
-    card.addEventListener('click', (e) => {
-      e.stopPropagation();
-      swapCard(c);
-    }, { once: true });
-    container.appendChild(card);
-  });
-  document.getElementById('swap-modal').classList.remove('hidden');
-}
-
-function closeSwapModal() {
-  document.getElementById('swap-modal').classList.add('hidden');
-}
-
-function swapCard(target) {
-  if (state._swapUsed) return;
-  const pool = cardPool();
-  const higher = pool.filter(c => c.mana > target.mana);
-  if (!higher.length) {
-    showMiniBanner(`더 높은 마나 카드 없음<br>(${target.name} 마나 ${target.mana} 는 최대치)`);
-    closeSwapModal();
-    return;
-  }
-  const picked = higher[Math.floor(Math.random() * higher.length)];
-  const newCard = { ...picked, instanceId: Math.random().toString(36).slice(2, 8), _justDrawn: true };
-  const idx = state.player.hand.findIndex(c => c.instanceId === target.instanceId);
-  if (idx < 0) { closeSwapModal(); return; }
-  state.player.hand[idx] = newCard;
-  state._swapUsed = true;
-  document.getElementById('btn-swap').classList.add('used');
-  log(`카드 교체: ${target.name} (💧${target.mana}) → ${newCard.name} (💧${newCard.mana})`, 'player');
-  showMiniBanner(`교체 성공!<br><b>${target.name}</b> → <b>${newCard.name}</b> (💧${newCard.mana})`);
-  closeSwapModal();
-  render();
-}
-
-document.getElementById('btn-swap').addEventListener('click', openSwapModal);
-document.getElementById('swap-cancel').addEventListener('click', closeSwapModal);
-document.getElementById('btn-combo').addEventListener('click', openComboModal);
-document.getElementById('combo-cancel').addEventListener('click', closeComboModal);
-
-// 모바일 뷰포트 높이 정확히 설정 (주소창/하단바 포함)
-function setViewportHeight() {
-  document.documentElement.style.setProperty('--app-h', window.innerHeight + 'px');
-}
-setViewportHeight();
-window.addEventListener('resize', setViewportHeight);
-window.addEventListener('orientationchange', setViewportHeight);
-
-window.addEventListener('load', () => {
-  setViewportHeight();
-  if (!window.units) {
-    log('units.js 로드 실패');
-    return;
-  }
-  newGame();
-});
+startRound();
 </script>
 </body>
 </html>
