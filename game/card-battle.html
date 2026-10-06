@@ -310,8 +310,8 @@
     z-index: var(--z, 1);
   }
   .hand .card.playable {
-    /* 활성 카드는 크게 상승 + 확대 → 다른 카드 위로 쑥 올라와 전체가 보임 */
-    transform: rotate(0deg) translateY(calc(var(--y, 0px) - 26px)) scale(1.15);
+    /* 활성 카드는 부채꼴 각도 유지하면서 상승 + 확대 */
+    transform: rotate(var(--rot, 0deg)) translateY(calc(var(--y, 0px) - 26px)) scale(1.15);
     filter: drop-shadow(0 6px 18px rgba(255,215,122,0.9));
     z-index: 100 !important;
   }
