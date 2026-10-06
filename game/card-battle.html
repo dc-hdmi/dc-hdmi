@@ -49,6 +49,7 @@
     border-bottom: 1px solid var(--border);
     position: relative;
   }
+  /* 공통 아레나 (상대/내 필드 모두 동일) */
   .zone.player-field, .zone.opp-field {
     flex: 1 1 auto;
     display: flex;
@@ -59,37 +60,15 @@
     max-height: 150px;
     padding: 4px 6px;
     position: relative;
-  }
-  .zone.player-field {
     background:
-      repeating-linear-gradient(45deg, rgba(75,191,118,0.04) 0 10px, transparent 10px 20px),
-      linear-gradient(0deg, rgba(75,191,118,0.18), rgba(75,191,118,0.08));
-    border-top: 1px solid rgba(75,191,118,0.3);
-    border-bottom: 1px solid rgba(75,191,118,0.3);
+      repeating-linear-gradient(45deg, rgba(255,215,122,0.025) 0 12px, transparent 12px 24px),
+      linear-gradient(180deg, rgba(70,55,30,0.25), rgba(50,40,20,0.35));
+    border-top: 1px solid rgba(255,215,122,0.18);
+    border-bottom: 1px solid rgba(255,215,122,0.18);
   }
-  .zone.opp-field {
-    background:
-      repeating-linear-gradient(-45deg, rgba(227,91,91,0.05) 0 10px, transparent 10px 20px),
-      linear-gradient(180deg, rgba(227,91,91,0.2), rgba(227,91,91,0.08));
-    border-top: 1px solid rgba(227,91,91,0.35);
-    border-bottom: 1px solid rgba(227,91,91,0.35);
-  }
-  /* 필드 라벨 (좌측 세로) */
-  .zone.player-field::before,
-  .zone.opp-field::before {
-    content: '전투';
-    position: absolute;
-    left: 2px; top: 50%;
-    transform: translateY(-50%) rotate(-90deg);
-    font-size: 9px;
-    font-weight: 800;
-    letter-spacing: 2px;
-    opacity: 0.55;
-    pointer-events: none;
-    white-space: nowrap;
-  }
-  .zone.player-field::before { color: #4bbf76; }
-  .zone.opp-field::before { color: #ff6060; }
+  /* 상대 필드와 내 필드 사이 구분선 제거 — 하나의 아레나로 */
+  .zone.opp-field { border-bottom: 1px dashed rgba(255,215,122,0.15); }
+  .zone.player-field { border-top: none; }
   .zone-label {
     font-size: 10px; color: var(--muted); letter-spacing: 0.5px;
     display: flex; justify-content: space-between; align-items: center;
@@ -109,16 +88,16 @@
   .field-row {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 6px;
-    min-height: 90px;
+    gap: 10px;
+    min-height: 80px;
     justify-items: center;
   }
   .slot {
     border: 1px dashed rgba(255,255,255,0.08);
     border-radius: 8px;
-    min-height: 90px;
+    min-height: 80px;
     width: 100%;
-    max-width: 110px;
+    max-width: 72px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -134,13 +113,36 @@
     flex-direction: column;
     position: relative;
     overflow: hidden;
-    transition: transform 0.12s, border-color 0.12s, box-shadow 0.12s;
+    transition: transform 0.2s, filter 0.2s, border-color 0.12s, box-shadow 0.12s;
     cursor: pointer;
     aspect-ratio: 3 / 4;
     min-height: 0;
     width: 100%;
     max-width: 110px;
     max-height: 140px;
+  }
+  /* 필드 카드 — 축소해서 여유롭게 */
+  .field-row .card {
+    max-width: 72px;
+    max-height: 96px;
+  }
+  .field-row .card .cost-badge {
+    width: 18px; height: 18px;
+    font-size: 10px;
+    top: 2px; left: 2px;
+  }
+  .field-row .card .attr-tag {
+    font-size: 8px;
+    padding: 1px 3px;
+    top: 2px; right: 2px;
+  }
+  .field-row .card .name {
+    font-size: 8px;
+    padding: 2px 3px;
+  }
+  .field-row .card .stats {
+    font-size: 10px;
+    padding: 2px 0;
   }
   .card.STR { border-color: var(--STR); box-shadow: 0 0 10px rgba(227,91,91,0.35); }
   .card.DEX { border-color: var(--DEX); box-shadow: 0 0 10px rgba(75,191,118,0.35); }
@@ -256,43 +258,73 @@
     font-weight: 900; font-size: 14px;
   }
 
-  /* ───── Hand ───── */
+  /* ───── Hand (부채꼴) ───── */
   .zone.hand {
     border-top: 2px solid var(--border);
     border-bottom: none;
-    padding: 5px 6px;
+    padding: 14px 6px 4px;  /* 상단 여유: 카드 위로 떠올라도 안 짤림 */
     background: linear-gradient(0deg, var(--bg2), transparent);
+    overflow: visible;
   }
   .hand-row {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 4px;
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
     max-width: 480px;
     margin: 0 auto;
-    justify-items: center;
+    min-height: 100px;
   }
   .hand .card {
-    max-width: 86px;
-    max-height: 120px;
+    flex: 0 0 auto;
+    width: 72px;
+    aspect-ratio: 3 / 4;
+    max-width: 72px;
+    max-height: 96px;
+    margin: 0 -14px;  /* 카드 겹치기 */
+    transform: rotate(var(--rot, 0deg)) translateY(var(--y, 0px));
+    transform-origin: 50% 110%;
+    z-index: var(--z, 1);
+  }
+  .hand .card.playable {
+    transform: rotate(var(--rot, 0deg)) translateY(calc(var(--y, 0px) - 14px));
+    filter: drop-shadow(0 2px 10px rgba(255,215,122,0.75));
+    z-index: 50;
+  }
+  .hand .card.playable::before {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border: 2px solid rgba(255,215,122,0.6);
+    border-radius: 12px;
+    pointer-events: none;
+    animation: playable-glow 1.4s ease-in-out infinite;
+  }
+  @keyframes playable-glow {
+    0%, 100% { box-shadow: 0 0 4px rgba(255,215,122,0.4); }
+    50%      { box-shadow: 0 0 14px rgba(255,215,122,0.9); }
+  }
+  .hand .card.unaffordable { opacity: 0.55; filter: grayscale(30%); }
+  .hand .card.unaffordable .cost-badge {
+    background: linear-gradient(180deg, #666, #333);
   }
   .hand .card .cost-badge {
-    width: 20px; height: 20px;
-    font-size: 11px;
+    width: 18px; height: 18px;
+    font-size: 10px;
+    top: 2px; left: 2px;
   }
   .hand .card .attr-tag {
     font-size: 8px;
-    padding: 1px 4px;
+    padding: 1px 3px;
+    top: 2px; right: 2px;
   }
   .hand .card .name {
-    font-size: 9px;
+    font-size: 8px;
     padding: 2px 3px;
   }
   .hand .card .stats {
-    font-size: 11px;
-    padding: 3px 0;
+    font-size: 10px;
+    padding: 2px 0;
   }
-  .card.unaffordable { opacity: 0.5; }
-  .card.unaffordable .cost-badge { background: #555; }
 
   /* ───── Controls ───── */
   .controls {
@@ -984,6 +1016,13 @@
       <ul>
         <li>상대 리더 HP = 0 → <strong>승리</strong></li>
         <li>내 리더 HP = 0 → <strong>패배</strong></li>
+        <li>양쪽 모두 카드 소진(손패+남은카드+필드=0) → <strong>리더 HP가 많은 쪽 승리</strong>, 같으면 무승부</li>
+      </ul>
+
+      <h4>⑫ 선공 / 후공 (코인 보정)</h4>
+      <ul>
+        <li>매 게임 선·후공은 <strong>랜덤</strong> 결정</li>
+        <li>후공자는 첫 턴에 <strong>마나 +1 보너스</strong> (코인) — 선공 불리 보상</li>
       </ul>
 
       <hr>
@@ -1086,21 +1125,31 @@ function newGame() {
   }
   const makeDeck = () => shuffle(pool).slice(0, 15).map(c => ({ ...c }));
   if (state && state._autoEndTimer) clearTimeout(state._autoEndTimer);
+  const firstPlayer = Math.random() < 0.5 ? 'player' : 'opp';
   state = {
     player: { hp: 25, mana: 1, maxMana: 1, deck: makeDeck(), hand: [], field: [] },
     opp:    { hp: 25, mana: 1, maxMana: 1, deck: makeDeck(), hand: [], field: [] },
-    turn: 'player',
+    turn: firstPlayer,
+    firstPlayer,
     attackingCard: null,
     turnNo: 1,
     history: [],
+    _coinUsed: false,
+    _gameOver: false,
     _locked: false,
     _autoEndTimer: null,
   };
   for (let i = 0; i < 5; i++) drawCard('player');
   for (let i = 0; i < 5; i++) drawCard('opp');
   setLocked(false);
+  logTurn(`─── 게임 시작 · ${firstPlayer === 'player' ? '내가 선공' : '상대가 선공'} ───`);
   render();
-  showBanner('내 턴', '#4bbf76');
+  if (firstPlayer === 'player') {
+    showBanner('내 턴 (선공)', '#4bbf76');
+  } else {
+    showBanner('상대 선공', '#ff6b6b');
+    setTimeout(() => oppTurn(), 700);
+  }
 }
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
@@ -1169,6 +1218,13 @@ function drawCard(side, markAnim = false) {
 function startTurn(side) {
   const s = state[side];
   s.maxMana = Math.min(7, s.maxMana + 1);
+  // 후공 코인 — 후공자 첫 턴만 마나 +1
+  if (side !== state.firstPlayer && !state._coinUsed) {
+    s.maxMana = Math.min(7, s.maxMana + 1);
+    state._coinUsed = true;
+    log(`${side === 'player' ? '내' : '상대'} 후공 코인 — 마나 +1 보너스`, side);
+    showMiniBanner(`${side === 'player' ? '🪙 내' : '🪙 상대'} 후공 코인 — 마나 +1`);
+  }
   s.mana = s.maxMana;
   drawCard(side, side === 'player');
   s.field.forEach(c => { c.exhausted = false; });
@@ -1246,6 +1302,7 @@ async function endTurn() {
   state.turn = 'opp';
   state.turnNo++;
   render();
+  if (checkWin()) return;
   await oppTurn();
 }
 
@@ -1302,6 +1359,7 @@ async function oppTurn() {
   const attackers = [...state.opp.field.filter(c => !c.exhausted)];
   for (const atk of attackers) {
     if (atk.hp <= 0) continue;
+    if (state._gameOver) return;
     const move = pickOppMove(atk);
     if (!move) continue;  // 공격할만한 대상 없음
 
@@ -1323,9 +1381,11 @@ async function oppTurn() {
   }
 
   state.turn = 'player';
+  state.turnNo++;
   startTurn('player');
   setLocked(false);
   render();
+  if (checkWin()) return;
   logTurn(`─── 턴 ${Math.ceil(state.turnNo / 2)} · 내 턴 ───`);
   showBanner(`턴 ${Math.ceil(state.turnNo / 2)}`, '#4bbf76');
 }
@@ -1411,14 +1471,32 @@ async function performFaceAttack(attacker, side) {
   checkWin();
 }
 
+function isExhausted(side) {
+  const s = state[side];
+  return s.hand.length === 0 && s.deck.length === 0 && s.field.length === 0;
+}
+
 function checkWin() {
+  if (state._gameOver) return true;
+  let over = false;
   if (state.player.hp <= 0) {
-    setLocked(true);
     showResult('패배...', '내 HP가 0이 되었습니다.');
+    over = true;
   } else if (state.opp.hp <= 0) {
-    setLocked(true);
-    showResult('승리!', '상대 HP 를 0 으로 만들었습니다.');
+    showResult('승리!', '상대 HP를 0으로 만들었습니다.');
+    over = true;
+  } else if (isExhausted('player') && isExhausted('opp')) {
+    const ph = state.player.hp, oh = state.opp.hp;
+    if (ph > oh) showResult('승리!', `카드 소진 — 체력 비교 (내 HP ${ph} vs 상대 HP ${oh})`);
+    else if (oh > ph) showResult('패배...', `카드 소진 — 체력 비교 (내 HP ${ph} vs 상대 HP ${oh})`);
+    else showResult('무승부', `카드 소진 + 체력 동일 (양쪽 ${ph} HP)`);
+    over = true;
   }
+  if (over) {
+    state._gameOver = true;
+    setLocked(true);
+  }
+  return over;
 }
 
 // ─────────── 애니메이션 ───────────
@@ -1616,11 +1694,24 @@ function renderOppHand(n) {
 function renderHand(elId, hand) {
   const el = document.getElementById(elId);
   el.innerHTML = '';
-  hand.forEach(c => {
+  const n = hand.length;
+  const maxAngle = n <= 1 ? 0 : Math.min(22, 4 + n * 3);  // 손패 많을수록 넓게
+  hand.forEach((c, i) => {
     const card = cardEl(c, 'handCard');
-    if (c.mana > state.player.mana || state.player.field.length >= 3 || state.turn !== 'player') {
-      card.classList.add('unaffordable');
-    }
+    const t = n === 1 ? 0 : (i / (n - 1) - 0.5) * 2;      // -1 ~ 1
+    const angle = t * maxAngle;
+    const yDrop = Math.abs(t) * 7;                         // 양 끝 7px 아래
+    const z = 20 - Math.round(Math.abs(i - (n - 1) / 2) * 2);
+    card.style.setProperty('--rot', `${angle}deg`);
+    card.style.setProperty('--y', `${yDrop}px`);
+    card.style.setProperty('--z', z);
+    card.style.zIndex = z;
+
+    const canPlay = c.mana <= state.player.mana
+      && state.player.field.length < 3
+      && state.turn === 'player'
+      && !state._locked;
+    card.classList.add(canPlay ? 'playable' : 'unaffordable');
     el.appendChild(card);
   });
 }
