@@ -193,20 +193,44 @@
     color: var(--text);
   }
 
-  /* 하단: 스텟 바 (ATK | HP 큰 글씨) */
+  /* 하단: 스텟 바 (클래스 | ATK | HP) */
   .card .stats {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 22px 1fr 1fr;
+    align-items: center;
     font-size: 13px; font-weight: 800;
     background: linear-gradient(180deg, #0a1510, #000);
-    padding: 4px 0;
+    padding: 3px 2px;
+    gap: 2px;
   }
   .card .stats > span {
     display: flex; align-items: center; justify-content: center;
     gap: 2px;
   }
-  .card .atk { color: var(--yellow); border-right: 1px solid rgba(255,255,255,0.1); }
+  .card .class-badge {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    color: #fff; font-size: 10px; font-weight: 900;
+    display: inline-flex; align-items: center; justify-content: center;
+    box-shadow: inset 0 1px 1px rgba(255,255,255,0.3), 0 1px 2px rgba(0,0,0,0.6);
+    border: 1px solid rgba(0,0,0,0.4);
+    flex-shrink: 0;
+  }
+  .card .atk { color: var(--yellow); border-right: 1px solid rgba(255,255,255,0.08); }
   .card .hp { color: var(--red); }
+
+  /* 필드/손패 작은 카드용 — 뱃지 축소 */
+  .field-row .card .stats,
+  .hand .card .stats {
+    grid-template-columns: 16px 1fr 1fr;
+    padding: 2px 1px;
+    gap: 1px;
+  }
+  .field-row .card .class-badge,
+  .hand .card .class-badge {
+    width: 13px; height: 13px;
+    font-size: 8px;
+  }
 
   /* 좌상단 코스트 (원형 뱃지) */
   .card .cost-badge {
@@ -1026,7 +1050,9 @@
       <ul>
         <li>상대 리더 HP = 0 → <strong>승리</strong></li>
         <li>내 리더 HP = 0 → <strong>패배</strong></li>
-        <li>양쪽 모두 카드 소진(손패+남은카드+필드=0) → <strong>리더 HP가 많은 쪽 승리</strong>, 같으면 무승부</li>
+        <li>상대만 카드 전멸(손패+남은카드+필드=0) → <strong>자동 승리</strong></li>
+        <li>내 카드 전멸 → <strong>자동 패배</strong></li>
+        <li>양쪽 모두 카드 소진 → <strong>리더 HP가 많은 쪽 승리</strong>, 같으면 무승부</li>
       </ul>
 
       <h4>⑫ 선공 / 후공 (코인 보정)</h4>
@@ -1071,6 +1097,16 @@ const CLASS_EFFECT = {
   'Driven':       { passive: 'lowHpBoost' },
   'Cerebral':     { onPlay: 'draw1' },
   'Powerhouse':   { passive: 'hp+2' },
+};
+const CLASS_LABEL = {
+  'Fighter':     { ko: '격투', char: '격', color: '#e35b5b' },
+  'Slasher':     { ko: '참격', char: '참', color: '#b060d0' },
+  'Striker':     { ko: '타격', char: '타', color: '#e08830' },
+  'Shooter':     { ko: '사격', char: '사', color: '#4aa3d9' },
+  'Free Spirit': { ko: '자유', char: '자', color: '#4bbf76' },
+  'Driven':      { ko: '야심', char: '야', color: '#d04040' },
+  'Cerebral':    { ko: '박식', char: '박', color: '#d9b64a' },
+  'Powerhouse':  { ko: '강인', char: '강', color: '#8a8a9e' },
 };
 
 function cardPool() {
@@ -1490,17 +1526,26 @@ function isExhausted(side) {
 function checkWin() {
   if (state._gameOver) return true;
   let over = false;
-  if (state.player.hp <= 0) {
+  const ph = state.player.hp, oh = state.opp.hp;
+  if (ph <= 0) {
     showResult('패배...', '내 HP가 0이 되었습니다.');
     over = true;
-  } else if (state.opp.hp <= 0) {
+  } else if (oh <= 0) {
     showResult('승리!', '상대 HP를 0으로 만들었습니다.');
     over = true;
   } else if (isExhausted('player') && isExhausted('opp')) {
-    const ph = state.player.hp, oh = state.opp.hp;
-    if (ph > oh) showResult('승리!', `카드 소진 — 체력 비교 (내 HP ${ph} vs 상대 HP ${oh})`);
-    else if (oh > ph) showResult('패배...', `카드 소진 — 체력 비교 (내 HP ${ph} vs 상대 HP ${oh})`);
-    else showResult('무승부', `카드 소진 + 체력 동일 (양쪽 ${ph} HP)`);
+    // 양쪽 모두 소진 → 체력 비교
+    if (ph > oh) showResult('승리!', `양쪽 카드 소진 — 체력 비교 (내 HP ${ph} vs 상대 HP ${oh})`);
+    else if (oh > ph) showResult('패배...', `양쪽 카드 소진 — 체력 비교 (내 HP ${ph} vs 상대 HP ${oh})`);
+    else showResult('무승부', `양쪽 카드 소진 + 체력 동일 (${ph} HP)`);
+    over = true;
+  } else if (isExhausted('opp')) {
+    // 상대만 소진 — 자동 승리
+    showResult('승리!', `상대 카드 전멸 — 더 이상 소환 불가`);
+    over = true;
+  } else if (isExhausted('player')) {
+    // 내가 소진 — 자동 패배
+    showResult('패배...', `내 카드 전멸 — 더 이상 소환 불가`);
     over = true;
   }
   if (over) {
@@ -1737,12 +1782,16 @@ function cardEl(c, context) {
   if (c._justDrawn && context === 'handCard') { classes.push('drawn'); c._justDrawn = false; }
   el.className = classes.join(' ');
   el.dataset.iid = c.instanceId;
+  const cls = CLASS_LABEL[c.cls];
+  const classBadge = cls
+    ? `<span class="class-badge" style="background:${cls.color};" title="${cls.ko}형">${cls.char}</span>`
+    : `<span></span>`;
   el.innerHTML = `
     <div class="cost-badge">${c.mana}</div>
     <div class="attr-tag" style="color: var(--${c.attr});">${ATTR_KO[c.attr] || c.attr}</div>
     <div class="thumb"><img src="${img(c.id)}" alt="${c.name}" data-fb="${imgFallback(c.id)}" onerror="if(this.dataset.fb){this.src=this.dataset.fb;this.dataset.fb='';}else{this.style.display='none';this.parentElement.innerHTML='<div class=placeholder>#${c.id}</div>';}"></div>
     <div class="name">${c.name.length > 10 ? c.name.slice(0,10)+'…' : c.name}</div>
-    <div class="stats"><span class="atk">⚔${c.atk}</span><span class="hp">♥${c.hp}</span></div>
+    <div class="stats">${classBadge}<span class="atk">⚔${c.atk}</span><span class="hp">♥${c.hp}</span></div>
   `;
   el.addEventListener('click', (e) => { e.stopPropagation(); handleCardClick(c, context, e); });
   return el;
