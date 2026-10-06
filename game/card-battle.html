@@ -1297,10 +1297,11 @@
 
       <h4>⑫ 연계기 (COMBO)</h4>
       <ul>
-        <li>필드에 <strong>같은 속성 + 같은 타입</strong> 카드가 3장 이상 모이면 발동 가능</li>
+        <li>필드에 <strong>같은 속성 3장</strong> 또는 <strong>같은 타입 3장</strong>이 모이면 발동 가능</li>
         <li>상대 리더 영역 우측 <strong>⚡ 아이콘</strong>이 금색으로 깜빡 → 클릭</li>
-        <li>모달에서 어떤 연계인지 확인 후 "발동" → <strong>적 전체 −2 데미지</strong></li>
-        <li>참여 카드는 연계 후에도 공격 가능 (프리 보너스), 마나 무료, <strong>턴당 1회만</strong></li>
+        <li>여러 연계 성립 시 모달에서 원하는 조합 선택 → <strong>적 전체 −2 데미지</strong></li>
+        <li>참여 카드는 연계 후에도 공격 가능 (프리 보너스), 마나 무료, <strong>턴당 1회</strong></li>
+        <li>상대 AI 도 동일 조건으로 연계 사용</li>
       </ul>
 
       <h4>⑬ 선공 / 후공 (코인 보정)</h4>
@@ -1424,8 +1425,8 @@ function newGame() {
   if (state && state._autoEndTimer) clearTimeout(state._autoEndTimer);
   const firstPlayer = Math.random() < 0.5 ? 'player' : 'opp';
   state = {
-    player: { hp: 25, mana: 1, maxMana: 1, deck: makeDeck(), hand: [], field: [] },
-    opp:    { hp: 25, mana: 1, maxMana: 1, deck: makeDeck(), hand: [], field: [] },
+    player: { hp: 25, mana: 1, maxMana: 1, deck: makeDeck(), hand: [], field: [], _comboUsed: false },
+    opp:    { hp: 25, mana: 1, maxMana: 1, deck: makeDeck(), hand: [], field: [], _comboUsed: false },
     turn: firstPlayer,
     firstPlayer,
     attackingCard: null,
@@ -1433,7 +1434,6 @@ function newGame() {
     history: [],
     _coinUsed: false,
     _swapUsed: false,
-    _comboUsedThisTurn: false,
     _gameOver: false,
     _locked: false,
     _autoEndTimer: null,
@@ -1459,84 +1459,95 @@ function setLocked(on) {
   document.body.classList.toggle('locked', on);
 }
 
-// ─────────── 연계기 ───────────
-function detectCombos() {
-  const map = {};
-  state.player.field.forEach(c => {
-    const key = `${c.attr}|${c.cls}`;
-    (map[key] = map[key] || []).push(c);
+// ─────────── 연계기 (양쪽 지원) ───────────
+// 같은 속성 3장 OR 같은 타입 3장 각각 성립
+function detectCombos(side) {
+  const attrMap = {}, clsMap = {};
+  state[side].field.forEach(c => {
+    (attrMap[c.attr] = attrMap[c.attr] || []).push(c);
+    (clsMap[c.cls] = clsMap[c.cls] || []).push(c);
   });
-  return Object.entries(map)
-    .filter(([_, cards]) => cards.length >= 3)
-    .map(([key, cards]) => {
-      const [attr, cls] = key.split('|');
-      return { attr, cls, cards };
-    });
+  const combos = [];
+  Object.entries(attrMap).forEach(([attr, cards]) => {
+    if (cards.length >= 3) combos.push({ group: 'attr', key: attr, cards });
+  });
+  Object.entries(clsMap).forEach(([cls, cards]) => {
+    if (cards.length >= 3) combos.push({ group: 'class', key: cls, cards });
+  });
+  return combos;
+}
+
+function comboLabel(combo) {
+  if (combo.group === 'attr') return `${ATTR_KO[combo.key] || combo.key}속성`;
+  if (combo.group === 'class') {
+    const cls = CLASS_LABEL[combo.key];
+    return cls ? `${cls.ko}형` : combo.key;
+  }
+  return '';
 }
 
 function updateComboBadge() {
   const btn = document.getElementById('btn-combo');
   if (!state) return;
-  const combos = detectCombos();
+  const combos = detectCombos('player');
   const canUse = combos.length > 0
     && state.turn === 'player'
     && !state._locked
-    && !state._comboUsedThisTurn
+    && !state.player._comboUsed
     && !state._gameOver;
   btn.classList.toggle('active', canUse);
 }
 
 function openComboModal() {
-  if (!state._comboUsedThisTurn && state.turn === 'player' && !state._locked) {
-    const combos = detectCombos();
-    if (!combos.length) return;
-    const listEl = document.getElementById('combo-list');
-    listEl.innerHTML = '';
-    combos.forEach((combo, idx) => {
-      const item = document.createElement('div');
-      item.className = 'combo-item';
-      const attrKo = ATTR_KO[combo.attr] || combo.attr;
-      const clsKo = CLASS_LABEL[combo.cls] ? CLASS_LABEL[combo.cls].ko : combo.cls;
-      item.innerHTML = `
-        <div class="combo-label">${attrKo}속성 · ${clsKo}형 연계 (${combo.cards.length}장)</div>
-        <div class="combo-cards"></div>
-        <button data-idx="${idx}">⚡ 발동 (적 전체 −2)</button>
-      `;
-      const cardsEl = item.querySelector('.combo-cards');
-      combo.cards.slice(0, 4).forEach(c => {
-        const card = cardEl(c, 'combo');
-        card.style.transform = 'none';
-        card.style.margin = '0';
-        card.classList.remove('ready', 'playable', 'unaffordable');
-        cardsEl.appendChild(card);
-      });
-      item.querySelector('button').addEventListener('click', (e) => {
-        e.stopPropagation();
-        closeComboModal();
-        triggerCombo(combo);
-      });
-      listEl.appendChild(item);
+  if (state.player._comboUsed || state.turn !== 'player' || state._locked) return;
+  const combos = detectCombos('player');
+  if (!combos.length) return;
+  const listEl = document.getElementById('combo-list');
+  listEl.innerHTML = '';
+  combos.forEach((combo, idx) => {
+    const item = document.createElement('div');
+    item.className = 'combo-item';
+    item.innerHTML = `
+      <div class="combo-label">${comboLabel(combo)} 연계 (${combo.cards.length}장)</div>
+      <div class="combo-cards"></div>
+      <button data-idx="${idx}">⚡ 발동 (적 전체 −2)</button>
+    `;
+    const cardsEl = item.querySelector('.combo-cards');
+    combo.cards.slice(0, 4).forEach(c => {
+      const card = cardEl(c, 'combo');
+      card.style.transform = 'none';
+      card.style.margin = '0';
+      card.classList.remove('ready', 'playable', 'unaffordable');
+      cardsEl.appendChild(card);
     });
-    document.getElementById('combo-modal').classList.remove('hidden');
-  }
+    item.querySelector('button').addEventListener('click', (e) => {
+      e.stopPropagation();
+      closeComboModal();
+      triggerCombo(combo, 'player');
+    });
+    listEl.appendChild(item);
+  });
+  document.getElementById('combo-modal').classList.remove('hidden');
 }
 
 function closeComboModal() {
   document.getElementById('combo-modal').classList.add('hidden');
 }
 
-async function triggerCombo(combo) {
-  if (state._comboUsedThisTurn || state._gameOver) return;
-  state._comboUsedThisTurn = true;
-  setLocked(true);
+async function triggerCombo(combo, side) {
+  if (state[side]._comboUsed || state._gameOver) return;
+  state[side]._comboUsed = true;
+  const wasLocked = state._locked;
+  if (!wasLocked) setLocked(true);
 
-  const attrKo = ATTR_KO[combo.attr] || combo.attr;
-  const clsKo = CLASS_LABEL[combo.cls] ? CLASS_LABEL[combo.cls].ko : combo.cls;
-  log(`⚡ 연계 발동 — ${attrKo}속성 + ${clsKo}형 → 적 전체 −2`, 'player');
-  showMiniBanner(`⚡ 연계 발동!<br>${attrKo}속성 · ${clsKo}형`);
+  const targetSide = side === 'player' ? 'opp' : 'player';
+  const sideLabel = side === 'player' ? '내' : '상대';
+  const label = comboLabel(combo);
+  log(`⚡ ${sideLabel} 연계 — ${label} → 전체 −2`, side);
+  showMiniBanner(`⚡ ${sideLabel} 연계 발동!<br>${label}`);
   await sleep(1300);
 
-  // 연계 공격자 들어올림
+  // 공격자 들어올림
   const attackers = combo.cards.slice(0, 3);
   const atkEls = attackers.map(c => findCardEl(c.instanceId)).filter(Boolean);
   atkEls.forEach(el => el.classList.add('combo-attacker'));
@@ -1548,36 +1559,40 @@ async function triggerCombo(combo) {
     void el.offsetWidth;
     el.classList.add('combo-blast');
   });
-  // AOE 플래시 (상대 필드 전체)
-  const zoneEl = document.querySelector('.opp-field');
+
+  // AOE 플래시 (타겟 필드 전체)
+  const zoneSelector = targetSide === 'opp' ? '.opp-field' : '.player-field';
+  const zoneEl = document.querySelector(zoneSelector);
   if (zoneEl) {
     zoneEl.classList.remove('aoe-flash');
     void zoneEl.offsetWidth;
     zoneEl.classList.add('aoe-flash');
   }
-  // 적 전체에 데미지 숫자 + 피격 플래시
-  state.opp.field.forEach(t => {
+
+  // 타겟 전체에 데미지 숫자 + 피격 플래시
+  state[targetSide].field.forEach(t => {
     const el = findCardEl(t.instanceId);
     if (el) { showFloatDmg(el, '-2', '#ff5555'); flashCard(el); }
   });
   await sleep(300);
-  state.opp.field.forEach(t => { t.hp -= 2; });
+  state[targetSide].field.forEach(t => { t.hp -= 2; });
   await sleep(500);
 
   // 죽는 카드 흔들림 → 샤터
-  const dying = state.opp.field.filter(t => t.hp <= 0);
+  const dying = state[targetSide].field.filter(t => t.hp <= 0);
   await Promise.all(dying.map(t => {
     const el = findCardEl(t.instanceId);
     return el ? destroyCard(el) : Promise.resolve();
   }));
-  cleanupDead('opp');
+  cleanupDead(targetSide);
 
   // 공격자 복귀
   atkEls.forEach(el => {
     el.classList.remove('combo-attacker', 'combo-blast');
   });
 
-  setLocked(false);
+  // 플레이어 턴 중 발동이면 락 해제, 상대 턴 중이면 유지
+  if (!wasLocked && state.turn === 'player') setLocked(false);
   render();
   checkWin();
 }
@@ -1641,8 +1656,8 @@ function drawCard(side, markAnim = false) {
 function startTurn(side) {
   const s = state[side];
   s.maxMana = Math.min(7, s.maxMana + 1);
-  // 플레이어 턴 시작 시 연계 쿨타임 리셋
-  if (side === 'player') state._comboUsedThisTurn = false;
+  // 턴 시작 시 자기 연계 쿨타임 리셋
+  s._comboUsed = false;
   // 후공 코인 — 후공자 첫 턴만 마나 +1
   if (side !== state.firstPlayer && !state._coinUsed) {
     s.maxMana = Math.min(7, s.maxMana + 1);
@@ -1778,6 +1793,17 @@ async function oppTurn() {
     if (!affordable.length) break;
     await summonCard(affordable[0], 'opp');
     await sleep(400);
+  }
+
+  // 연계 체크 — 가능하면 가장 큰 조합 사용
+  if (!state.opp._comboUsed) {
+    const oppCombos = detectCombos('opp');
+    if (oppCombos.length) {
+      const best = oppCombos.sort((a, b) => b.cards.length - a.cards.length)[0];
+      await triggerCombo(best, 'opp');
+      if (state._gameOver) return;
+      await sleep(500);
+    }
   }
 
   // 공격 루프 — AI 평가 기반
