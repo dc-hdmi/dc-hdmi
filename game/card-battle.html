@@ -1300,8 +1300,9 @@
         <li>필드에 <strong>같은 속성 3장</strong> 또는 <strong>같은 타입 3장</strong>이 모이면 발동 가능</li>
         <li>상대 리더 영역 우측 <strong>⚡ 아이콘</strong>이 금색으로 깜빡 → 클릭</li>
         <li>여러 연계 성립 시 모달에서 원하는 조합 선택 → <strong>적 전체 −2 데미지</strong></li>
-        <li>참여 카드는 연계 후에도 공격 가능 (프리 보너스), 마나 무료, <strong>턴당 1회</strong></li>
-        <li>상대 AI 도 동일 조건으로 연계 사용</li>
+        <li><strong>쿨다운 2턴</strong> — 발동 후 2턴 지나야 다시 사용 (뱃지에 남은 쿨 숫자 표시)</li>
+        <li>연계는 그 턴의 공격을 소모하는 액션 — <strong>발동하면 자동으로 턴이 종료</strong>됨</li>
+        <li>마나 무료, 상대 AI 도 동일 조건으로 연계 사용</li>
       </ul>
 
       <h4>⑬ 선공 / 후공 (코인 보정)</h4>
@@ -1425,8 +1426,8 @@ function newGame() {
   if (state && state._autoEndTimer) clearTimeout(state._autoEndTimer);
   const firstPlayer = Math.random() < 0.5 ? 'player' : 'opp';
   state = {
-    player: { hp: 25, mana: 1, maxMana: 1, deck: makeDeck(), hand: [], field: [], _comboUsed: false },
-    opp:    { hp: 25, mana: 1, maxMana: 1, deck: makeDeck(), hand: [], field: [], _comboUsed: false },
+    player: { hp: 25, mana: 1, maxMana: 1, deck: makeDeck(), hand: [], field: [], _comboCooldown: 0 },
+    opp:    { hp: 25, mana: 1, maxMana: 1, deck: makeDeck(), hand: [], field: [], _comboCooldown: 0 },
     turn: firstPlayer,
     firstPlayer,
     attackingCard: null,
@@ -1493,13 +1494,21 @@ function updateComboBadge() {
   const canUse = combos.length > 0
     && state.turn === 'player'
     && !state._locked
-    && !state.player._comboUsed
+    && state.player._comboCooldown === 0
     && !state._gameOver;
   btn.classList.toggle('active', canUse);
+  // 쿨다운 표시
+  if (state.player._comboCooldown > 0 && combos.length > 0) {
+    btn.textContent = state.player._comboCooldown;
+    btn.title = `연계 쿨다운 ${state.player._comboCooldown}턴`;
+  } else {
+    btn.textContent = '⚡';
+    btn.title = canUse ? '연계 발동 (턴당 1회)' : '연계 조건 불충족';
+  }
 }
 
 function openComboModal() {
-  if (state.player._comboUsed || state.turn !== 'player' || state._locked) return;
+  if (state.player._comboCooldown > 0 || state.turn !== 'player' || state._locked) return;
   const combos = detectCombos('player');
   if (!combos.length) return;
   const listEl = document.getElementById('combo-list');
@@ -1535,8 +1544,8 @@ function closeComboModal() {
 }
 
 async function triggerCombo(combo, side) {
-  if (state[side]._comboUsed || state._gameOver) return;
-  state[side]._comboUsed = true;
+  if (state[side]._comboCooldown > 0 || state._gameOver) return;
+  state[side]._comboCooldown = 2;  // 2턴 쿨다운
   const wasLocked = state._locked;
   if (!wasLocked) setLocked(true);
 
@@ -1591,10 +1600,15 @@ async function triggerCombo(combo, side) {
     el.classList.remove('combo-attacker', 'combo-blast');
   });
 
-  // 플레이어 턴 중 발동이면 락 해제, 상대 턴 중이면 유지
-  if (!wasLocked && state.turn === 'player') setLocked(false);
+  if (checkWin()) return;
   render();
-  checkWin();
+
+  // 플레이어 연계 발동 후엔 자동 턴 종료 (연계는 "턴을 쓰는" 액션)
+  if (side === 'player' && state.turn === 'player') {
+    await sleep(400);
+    setLocked(false);
+    await endTurn();
+  }
 }
 
 function previewDmg(attacker, target) {
@@ -1656,8 +1670,8 @@ function drawCard(side, markAnim = false) {
 function startTurn(side) {
   const s = state[side];
   s.maxMana = Math.min(7, s.maxMana + 1);
-  // 턴 시작 시 자기 연계 쿨타임 리셋
-  s._comboUsed = false;
+  // 턴 시작 시 자기 연계 쿨다운 1 감소 (최소 0)
+  s._comboCooldown = Math.max(0, (s._comboCooldown || 0) - 1);
   // 후공 코인 — 후공자 첫 턴만 마나 +1
   if (side !== state.firstPlayer && !state._coinUsed) {
     s.maxMana = Math.min(7, s.maxMana + 1);
@@ -1795,19 +1809,21 @@ async function oppTurn() {
     await sleep(400);
   }
 
-  // 연계 체크 — 가능하면 가장 큰 조합 사용
-  if (!state.opp._comboUsed) {
+  // 연계 체크 — 쿨다운 0 이고 가능 조합 있으면 발동 (발동 후 공격 생략)
+  let comboTriggered = false;
+  if (state.opp._comboCooldown === 0) {
     const oppCombos = detectCombos('opp');
     if (oppCombos.length) {
       const best = oppCombos.sort((a, b) => b.cards.length - a.cards.length)[0];
       await triggerCombo(best, 'opp');
       if (state._gameOver) return;
+      comboTriggered = true;
       await sleep(500);
     }
   }
 
-  // 공격 루프 — AI 평가 기반
-  const attackers = [...state.opp.field.filter(c => !c.exhausted)];
+  // 공격 루프 — 연계 안 했을 때만 (연계는 "턴을 쓰는" 액션)
+  const attackers = comboTriggered ? [] : [...state.opp.field.filter(c => !c.exhausted)];
   for (const atk of attackers) {
     if (atk.hp <= 0) continue;
     if (state._gameOver) return;
