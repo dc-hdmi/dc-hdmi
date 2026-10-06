@@ -763,6 +763,119 @@
     padding: 8px 0;
   }
 
+  /* ───── 연계 아이콘 (상대 리더 영역 우측) ───── */
+  .combo-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: linear-gradient(180deg, #666, #333);
+    color: #999;
+    font-size: 15px;
+    font-weight: 900;
+    border: 2px solid #444;
+    cursor: not-allowed;
+    opacity: 0.4;
+    transition: all 0.2s;
+    margin-left: 4px;
+  }
+  .combo-badge.active {
+    background: linear-gradient(180deg, #ffd57a, #c98f2a);
+    color: #000;
+    border-color: #fff;
+    cursor: pointer;
+    opacity: 1;
+    animation: combo-glow 1.2s ease-in-out infinite;
+  }
+  @keyframes combo-glow {
+    0%, 100% { box-shadow: 0 0 6px rgba(255,215,122,0.6); }
+    50%      { box-shadow: 0 0 16px rgba(255,215,122,1), 0 0 4px #fff; }
+  }
+
+  /* ───── 연계 모달 ───── */
+  .combo-modal {
+    position: absolute; inset: 0;
+    background: rgba(0,0,0,0.95);
+    z-index: 265;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  .combo-modal.hidden { display: none; }
+  .combo-modal-box {
+    background: var(--bg2);
+    border: 2px solid var(--gold);
+    border-radius: 12px;
+    padding: 16px;
+    max-width: 420px;
+    width: 100%;
+    max-height: 90%;
+    overflow-y: auto;
+  }
+  .combo-modal-box h3 {
+    margin: 0 0 10px;
+    color: var(--gold);
+    text-align: center;
+    font-size: 16px;
+  }
+  .combo-item {
+    background: rgba(255,215,122,0.08);
+    border: 1px solid rgba(255,215,122,0.4);
+    border-radius: 10px;
+    padding: 10px;
+    margin-bottom: 10px;
+  }
+  .combo-item .combo-label {
+    color: var(--gold);
+    font-weight: 800;
+    font-size: 13px;
+    text-align: center;
+    margin-bottom: 6px;
+  }
+  .combo-item .combo-cards {
+    display: flex; justify-content: center; gap: 6px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+  }
+  .combo-item .combo-cards .card {
+    width: 68px;
+    max-width: 68px;
+    max-height: 92px;
+  }
+  .combo-item button {
+    width: 100%;
+    background: linear-gradient(180deg, #ffd57a, #c98f2a);
+    color: #1a1207;
+    padding: 10px;
+    font-weight: 800;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-size: 13px;
+  }
+
+  /* ───── 연계 발동 애니메이션 (카드 들어올림) ───── */
+  .card.combo-attacker {
+    animation: combo-rise 0.5s forwards;
+    z-index: 80;
+  }
+  @keyframes combo-rise {
+    0%   { transform: translateY(0) scale(1); filter: none; }
+    100% { transform: translateY(-30px) scale(1.2);
+           filter: drop-shadow(0 0 14px #ffd57a) brightness(1.4); }
+  }
+  .card.combo-blast {
+    animation: combo-blast 0.4s ease-out;
+  }
+  @keyframes combo-blast {
+    0%   { transform: translateY(-30px) scale(1.2); }
+    50%  { transform: translateY(-30px) scale(1.5);
+           filter: drop-shadow(0 0 30px #ff0) brightness(2); }
+    100% { transform: translateY(-30px) scale(1.2); }
+  }
+
   /* ───── 카드 교체 FAB (1회 한정) ───── */
   .swap-fab {
     position: absolute;
@@ -1009,6 +1122,7 @@
         <span class="hp-bar"><span class="heart">♥</span><span id="opp-hp">25</span></span>
         <span class="mana">💧<span id="opp-mana">1</span>/<span id="opp-max-mana">1</span></span>
         <span style="color:var(--muted); font-size:12px;">남은 카드 <span id="opp-deck">15</span></span>
+        <span class="combo-badge" id="btn-combo" title="연계 발동 (턴당 1회)">⚡</span>
       </div>
     </div>
     <div class="opp-hand-row" id="opp-hand"></div>
@@ -1060,6 +1174,15 @@
       <button class="log-close" id="log-close">✕ 닫기</button>
     </div>
     <div class="log-list" id="log-list"></div>
+  </div>
+
+  <!-- 연계 모달 -->
+  <div class="combo-modal hidden" id="combo-modal">
+    <div class="combo-modal-box">
+      <h3>⚡ 연계 발동</h3>
+      <div id="combo-list"></div>
+      <button class="log-close" id="combo-cancel" style="width:100%">취소</button>
+    </div>
   </div>
 
   <!-- 교체 모달 -->
@@ -1172,7 +1295,15 @@
         <li>양쪽 모두 카드 소진 → <strong>리더 HP가 많은 쪽 승리</strong>, 같으면 무승부</li>
       </ul>
 
-      <h4>⑫ 선공 / 후공 (코인 보정)</h4>
+      <h4>⑫ 연계기 (COMBO)</h4>
+      <ul>
+        <li>필드에 <strong>같은 속성 + 같은 타입</strong> 카드가 3장 이상 모이면 발동 가능</li>
+        <li>상대 리더 영역 우측 <strong>⚡ 아이콘</strong>이 금색으로 깜빡 → 클릭</li>
+        <li>모달에서 어떤 연계인지 확인 후 "발동" → <strong>적 전체 −2 데미지</strong></li>
+        <li>참여 카드는 연계 후에도 공격 가능 (프리 보너스), 마나 무료, <strong>턴당 1회만</strong></li>
+      </ul>
+
+      <h4>⑬ 선공 / 후공 (코인 보정)</h4>
       <ul>
         <li>매 게임 선·후공은 <strong>랜덤</strong> 결정</li>
         <li>후공자는 첫 턴에 <strong>마나 +1 보너스</strong> (코인) — 선공 불리 보상</li>
@@ -1302,6 +1433,7 @@ function newGame() {
     history: [],
     _coinUsed: false,
     _swapUsed: false,
+    _comboUsedThisTurn: false,
     _gameOver: false,
     _locked: false,
     _autoEndTimer: null,
@@ -1325,6 +1457,129 @@ function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 function setLocked(on) {
   state._locked = on;
   document.body.classList.toggle('locked', on);
+}
+
+// ─────────── 연계기 ───────────
+function detectCombos() {
+  const map = {};
+  state.player.field.forEach(c => {
+    const key = `${c.attr}|${c.cls}`;
+    (map[key] = map[key] || []).push(c);
+  });
+  return Object.entries(map)
+    .filter(([_, cards]) => cards.length >= 3)
+    .map(([key, cards]) => {
+      const [attr, cls] = key.split('|');
+      return { attr, cls, cards };
+    });
+}
+
+function updateComboBadge() {
+  const btn = document.getElementById('btn-combo');
+  if (!state) return;
+  const combos = detectCombos();
+  const canUse = combos.length > 0
+    && state.turn === 'player'
+    && !state._locked
+    && !state._comboUsedThisTurn
+    && !state._gameOver;
+  btn.classList.toggle('active', canUse);
+}
+
+function openComboModal() {
+  if (!state._comboUsedThisTurn && state.turn === 'player' && !state._locked) {
+    const combos = detectCombos();
+    if (!combos.length) return;
+    const listEl = document.getElementById('combo-list');
+    listEl.innerHTML = '';
+    combos.forEach((combo, idx) => {
+      const item = document.createElement('div');
+      item.className = 'combo-item';
+      const attrKo = ATTR_KO[combo.attr] || combo.attr;
+      const clsKo = CLASS_LABEL[combo.cls] ? CLASS_LABEL[combo.cls].ko : combo.cls;
+      item.innerHTML = `
+        <div class="combo-label">${attrKo}속성 · ${clsKo}형 연계 (${combo.cards.length}장)</div>
+        <div class="combo-cards"></div>
+        <button data-idx="${idx}">⚡ 발동 (적 전체 −2)</button>
+      `;
+      const cardsEl = item.querySelector('.combo-cards');
+      combo.cards.slice(0, 4).forEach(c => {
+        const card = cardEl(c, 'combo');
+        card.style.transform = 'none';
+        card.style.margin = '0';
+        card.classList.remove('ready', 'playable', 'unaffordable');
+        cardsEl.appendChild(card);
+      });
+      item.querySelector('button').addEventListener('click', (e) => {
+        e.stopPropagation();
+        closeComboModal();
+        triggerCombo(combo);
+      });
+      listEl.appendChild(item);
+    });
+    document.getElementById('combo-modal').classList.remove('hidden');
+  }
+}
+
+function closeComboModal() {
+  document.getElementById('combo-modal').classList.add('hidden');
+}
+
+async function triggerCombo(combo) {
+  if (state._comboUsedThisTurn || state._gameOver) return;
+  state._comboUsedThisTurn = true;
+  setLocked(true);
+
+  const attrKo = ATTR_KO[combo.attr] || combo.attr;
+  const clsKo = CLASS_LABEL[combo.cls] ? CLASS_LABEL[combo.cls].ko : combo.cls;
+  log(`⚡ 연계 발동 — ${attrKo}속성 + ${clsKo}형 → 적 전체 −2`, 'player');
+  showMiniBanner(`⚡ 연계 발동!<br>${attrKo}속성 · ${clsKo}형`);
+  await sleep(1300);
+
+  // 연계 공격자 들어올림
+  const attackers = combo.cards.slice(0, 3);
+  const atkEls = attackers.map(c => findCardEl(c.instanceId)).filter(Boolean);
+  atkEls.forEach(el => el.classList.add('combo-attacker'));
+  await sleep(500);
+
+  // 공격 플래시
+  atkEls.forEach(el => {
+    el.classList.remove('combo-blast');
+    void el.offsetWidth;
+    el.classList.add('combo-blast');
+  });
+  // AOE 플래시 (상대 필드 전체)
+  const zoneEl = document.querySelector('.opp-field');
+  if (zoneEl) {
+    zoneEl.classList.remove('aoe-flash');
+    void zoneEl.offsetWidth;
+    zoneEl.classList.add('aoe-flash');
+  }
+  // 적 전체에 데미지 숫자 + 피격 플래시
+  state.opp.field.forEach(t => {
+    const el = findCardEl(t.instanceId);
+    if (el) { showFloatDmg(el, '-2', '#ff5555'); flashCard(el); }
+  });
+  await sleep(300);
+  state.opp.field.forEach(t => { t.hp -= 2; });
+  await sleep(500);
+
+  // 죽는 카드 흔들림 → 샤터
+  const dying = state.opp.field.filter(t => t.hp <= 0);
+  await Promise.all(dying.map(t => {
+    const el = findCardEl(t.instanceId);
+    return el ? destroyCard(el) : Promise.resolve();
+  }));
+  cleanupDead('opp');
+
+  // 공격자 복귀
+  atkEls.forEach(el => {
+    el.classList.remove('combo-attacker', 'combo-blast');
+  });
+
+  setLocked(false);
+  render();
+  checkWin();
 }
 
 function previewDmg(attacker, target) {
@@ -1386,6 +1641,8 @@ function drawCard(side, markAnim = false) {
 function startTurn(side) {
   const s = state[side];
   s.maxMana = Math.min(7, s.maxMana + 1);
+  // 플레이어 턴 시작 시 연계 쿨타임 리셋
+  if (side === 'player') state._comboUsedThisTurn = false;
   // 후공 코인 — 후공자 첫 턴만 마나 +1
   if (side !== state.firstPlayer && !state._coinUsed) {
     s.maxMana = Math.min(7, s.maxMana + 1);
@@ -1816,6 +2073,7 @@ function render() {
 
   document.getElementById('btn-end').disabled = state.turn !== 'player';
   updateEndButton();
+  updateComboBadge();
 }
 
 function renderField(elId, field, side) {
@@ -2094,6 +2352,8 @@ function swapCard(target) {
 
 document.getElementById('btn-swap').addEventListener('click', openSwapModal);
 document.getElementById('swap-cancel').addEventListener('click', closeSwapModal);
+document.getElementById('btn-combo').addEventListener('click', openComboModal);
+document.getElementById('combo-cancel').addEventListener('click', closeComboModal);
 
 // 모바일 뷰포트 높이 정확히 설정 (주소창/하단바 포함)
 function setViewportHeight() {
