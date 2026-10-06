@@ -1,0 +1,1258 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>OPTC 카드 대전</title>
+<script src="units.js?v=20261006"></script>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  :root {
+    --bg: #0a1612;
+    --bg2: #0e1f1a;
+    --border: #1f3028;
+    --gold: #ffd57a;
+    --text: #e8f1ec;
+    --muted: #789084;
+    --red: #e35b5b;
+    --green: #4bbf76;
+    --blue: #4aa3d9;
+    --purple: #d872c0;
+    --yellow: #d9b64a;
+    --STR: #e35b5b; --DEX: #4bbf76; --QCK: #4aa3d9;
+    --PSY: #d872c0; --INT: #d9b64a;
+  }
+  html, body {
+    margin: 0; padding: 0; height: 100vh; overflow: hidden;
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, "Segoe UI", "Noto Sans KR", sans-serif;
+    user-select: none;
+  }
+  #app {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    max-width: 480px;
+    margin: 0 auto;
+    position: relative;
+  }
+
+  /* ───── Zones ───── */
+  .zone {
+    flex: 0 0 auto;
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+  }
+  .zone.player-field, .zone.opp-field {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    justify-content: center;
+    min-height: 110px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.015), transparent);
+  }
+  .zone.player-field { background: linear-gradient(0deg, rgba(100,220,180,0.05), transparent); }
+  .zone.opp-field { background: linear-gradient(180deg, rgba(220,80,80,0.08), transparent); }
+  .zone-label {
+    font-size: 10px; color: var(--muted); letter-spacing: 0.5px;
+    display: flex; justify-content: space-between; align-items: center;
+    padding-bottom: 2px;
+  }
+  .hp-bar {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 13px; font-weight: 700;
+  }
+  .hp-bar .heart { color: var(--red); }
+  .mana {
+    display: inline-flex; align-items: center; gap: 4px;
+    color: var(--blue); font-weight: 700; font-size: 13px;
+  }
+
+  /* ───── Cards ───── */
+  .field-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    min-height: 92px;
+  }
+  .slot {
+    border: 1px dashed rgba(255,255,255,0.08);
+    border-radius: 8px;
+    min-height: 90px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255,255,255,0.1);
+    font-size: 10px;
+    position: relative;
+  }
+  .card {
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    background: linear-gradient(180deg, #1a2a24, #0e1812);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.12s, border-color 0.12s, box-shadow 0.12s;
+    cursor: pointer;
+    aspect-ratio: 3 / 4;
+    min-height: 0;
+  }
+  .card.STR { border-color: var(--STR); box-shadow: 0 0 10px rgba(227,91,91,0.35); }
+  .card.DEX { border-color: var(--DEX); box-shadow: 0 0 10px rgba(75,191,118,0.35); }
+  .card.QCK { border-color: var(--QCK); box-shadow: 0 0 10px rgba(74,163,217,0.35); }
+  .card.PSY { border-color: var(--PSY); box-shadow: 0 0 10px rgba(216,114,192,0.35); }
+  .card.INT { border-color: var(--INT); box-shadow: 0 0 10px rgba(217,182,74,0.35); }
+  .card.selected { transform: translateY(-6px); border-width: 3px; box-shadow: 0 6px 16px rgba(255,215,122,0.6); }
+  .card.exhausted { opacity: 0.5; filter: grayscale(60%); }
+  .card.hand { cursor: pointer; }
+
+  /* 상단: 캐릭터 이미지 영역 (카드의 ~60%) */
+  .card .thumb {
+    flex: 1 1 60%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(circle at 50% 30%, #203028, #000);
+    overflow: hidden;
+    position: relative;
+    border-bottom: 2px solid rgba(255,255,255,0.08);
+  }
+  .card .thumb img {
+    width: 100%; height: 100%; object-fit: cover;
+    display: block;
+  }
+  .card .thumb .placeholder {
+    color: var(--muted); font-size: 11px; text-align: center;
+    padding: 0 4px; word-break: keep-all;
+  }
+
+  /* 중단: 이름 바 */
+  .card .name {
+    font-size: 10px; font-weight: 700; text-align: center;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    padding: 3px 4px;
+    background: rgba(0,0,0,0.4);
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    color: var(--text);
+  }
+
+  /* 하단: 스텟 바 (ATK | HP 큰 글씨) */
+  .card .stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    font-size: 13px; font-weight: 800;
+    background: linear-gradient(180deg, #0a1510, #000);
+    padding: 4px 0;
+  }
+  .card .stats > span {
+    display: flex; align-items: center; justify-content: center;
+    gap: 2px;
+  }
+  .card .atk { color: var(--yellow); border-right: 1px solid rgba(255,255,255,0.1); }
+  .card .hp { color: var(--red); }
+
+  /* 좌상단 코스트 (원형 뱃지) */
+  .card .cost-badge {
+    position: absolute; top: 4px; left: 4px;
+    background: linear-gradient(180deg, #6abfe6, #2a7ab5);
+    color: #fff; font-weight: 900;
+    font-size: 13px; width: 24px; height: 24px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 3;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.7), inset 0 1px 1px rgba(255,255,255,0.3);
+    border: 2px solid rgba(255,255,255,0.4);
+  }
+
+  /* 우상단 속성 뱃지 */
+  .card .attr-tag {
+    position: absolute; top: 4px; right: 4px;
+    font-size: 9px; font-weight: 800;
+    padding: 2px 5px; border-radius: 4px;
+    background: rgba(0,0,0,0.75);
+    z-index: 3;
+    border: 1px solid currentColor;
+    letter-spacing: 0.3px;
+  }
+
+  /* ───── Opponent hand (face-down) ───── */
+  .opp-hand-row {
+    display: flex;
+    gap: 4px;
+    justify-content: center;
+    padding-top: 4px;
+    min-height: 42px;
+  }
+  .opp-hand-row .card-back {
+    width: 32px; height: 42px;
+    border-radius: 5px;
+    border: 1.5px solid #3a1818;
+    background:
+      repeating-linear-gradient(45deg, #4a1515 0 4px, #2a0e0e 4px 8px),
+      #1a0808;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(255,100,100,0.2);
+    position: relative;
+  }
+  .opp-hand-row .card-back::before {
+    content: '?';
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    color: rgba(255,180,180,0.4);
+    font-weight: 900; font-size: 14px;
+  }
+
+  /* ───── Hand ───── */
+  .zone.hand {
+    border-top: 2px solid var(--border);
+    border-bottom: none;
+    padding: 8px 6px;
+    background: linear-gradient(0deg, var(--bg2), transparent);
+  }
+  .hand-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    max-width: 360px;
+    margin: 0 auto;
+  }
+  .card.unaffordable { opacity: 0.5; }
+  .card.unaffordable .cost-badge { background: #555; }
+
+  /* ───── Controls ───── */
+  .controls {
+    display: flex; gap: 6px; padding: 6px 10px;
+    background: var(--bg2); border-top: 1px solid var(--border);
+  }
+  button {
+    flex: 1;
+    background: linear-gradient(180deg, #f2c15b, #c98f2a);
+    color: #1a1207;
+    border: none; padding: 10px;
+    font-size: 14px; font-weight: 700;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  button:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(60%); }
+  button.secondary {
+    background: #2a3a32; color: var(--text);
+  }
+
+  /* ───── Log ───── */
+  .log {
+    position: absolute;
+    top: 50%; left: 10px; right: 10px;
+    transform: translateY(-50%);
+    background: rgba(0,0,0,0.85);
+    color: var(--gold);
+    padding: 10px 14px; border-radius: 8px;
+    font-size: 14px; text-align: center;
+    pointer-events: none; opacity: 0;
+    transition: opacity 0.3s;
+    z-index: 100;
+    border: 1px solid var(--gold);
+  }
+  .log.show { opacity: 1; }
+
+  /* ───── Modal ───── */
+  .modal {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.9);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 200;
+  }
+  .modal.hidden { display: none; }
+  .modal-box {
+    background: var(--bg2);
+    border: 2px solid var(--gold);
+    border-radius: 12px;
+    padding: 24px;
+    text-align: center;
+    max-width: 320px;
+  }
+  .modal-box h2 { margin: 0 0 10px; color: var(--gold); }
+  .modal-box p { color: var(--muted); margin: 0 0 16px; }
+
+  /* ───── Target indicator ───── */
+  .targeting .card.targetable {
+    animation: pulse 0.8s infinite;
+    cursor: crosshair;
+  }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 8px rgba(255,215,122,0.4); }
+    50% { box-shadow: 0 0 16px rgba(255,215,122,0.9); }
+  }
+  .targeting .zone.opp-leader-zone,
+  .targeting .zone.opp-field {
+    animation: face-pulse 0.8s infinite;
+    cursor: crosshair;
+    outline: 2px dashed rgba(255,100,100,0.6);
+    outline-offset: -4px;
+  }
+  @keyframes face-pulse {
+    0%, 100% { box-shadow: inset 0 0 20px rgba(255,80,80,0.1); }
+    50% { box-shadow: inset 0 0 40px rgba(255,80,80,0.5); }
+  }
+
+  /* ───── 리더 라벨 (평상시 표시) ───── */
+  .leader-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-weight: 800;
+    font-size: 12px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    letter-spacing: 0.3px;
+  }
+  .leader-tag.opp {
+    background: linear-gradient(180deg, #4a1515, #2a0a0a);
+    color: #ff9b9b;
+    border: 1px solid #6a2525;
+  }
+  .leader-tag.player {
+    background: linear-gradient(180deg, #15402a, #0a2a1a);
+    color: #9bffb0;
+    border: 1px solid #256a40;
+  }
+
+  /* ───── 공격 모드 힌트 오버레이 ───── */
+  .attack-hint {
+    display: none;
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    background: linear-gradient(180deg, #ff5555, #c02020);
+    color: #fff;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-weight: 900;
+    font-size: 13px;
+    pointer-events: none;
+    z-index: 50;
+    box-shadow: 0 4px 12px rgba(255,80,80,0.6), inset 0 1px 1px rgba(255,255,255,0.3);
+    white-space: nowrap;
+    letter-spacing: 0.5px;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  }
+  .targeting .attack-hint {
+    display: block;
+    animation: hint-bounce 0.6s ease-in-out infinite alternate;
+  }
+  @keyframes hint-bounce {
+    0% { transform: translate(-50%, -50%) scale(1); }
+    100% { transform: translate(-50%, -50%) scale(1.08); }
+  }
+
+  /* ───── 타겟 카드에 🎯 아이콘 (중앙 희미하게) ───── */
+  .targeting .card.targetable::after {
+    content: '🎯';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 28px;
+    z-index: 5;
+    pointer-events: none;
+    opacity: 0.6;
+    animation: target-bounce 0.6s ease-in-out infinite alternate;
+    filter: drop-shadow(0 0 6px rgba(0,0,0,0.9));
+  }
+  @keyframes target-bounce {
+    0% { transform: translate(-50%, -50%) scale(1); opacity: 0.5; }
+    100% { transform: translate(-50%, -50%) scale(1.2); opacity: 0.8; }
+  }
+
+  /* ───── 예상 데미지 뱃지 (타겟 위에) ───── */
+  .target-preview {
+    position: absolute;
+    top: -6px; left: 50%;
+    transform: translate(-50%, -100%);
+    background: rgba(10, 5, 5, 0.95);
+    border: 1.5px solid #ff6060;
+    border-radius: 8px;
+    padding: 3px 6px;
+    font-size: 10px;
+    font-weight: 800;
+    z-index: 20;
+    white-space: nowrap;
+    pointer-events: none;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.7);
+    line-height: 1.3;
+  }
+  .target-preview::after {
+    content: '';
+    position: absolute;
+    top: 100%; left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: #ff6060;
+  }
+  .target-preview .pv-main {
+    color: #ffd060;
+    display: block;
+  }
+  .target-preview .pv-back {
+    color: #ff9090;
+    font-size: 9px;
+    opacity: 0.85;
+    display: block;
+  }
+  .target-preview .pv-mult.up { color: #ffff66; font-size: 9px; margin-left: 2px; }
+  .target-preview .pv-mult.dn { color: #66aaff; font-size: 9px; margin-left: 2px; }
+  .target-preview .pv-mult.ev { color: #999; font-size: 9px; margin-left: 2px; }
+
+  /* 리더 공격 미리보기 */
+  .attack-hint .lead-dmg {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 1px 6px;
+    background: rgba(0,0,0,0.4);
+    border-radius: 10px;
+    color: #ffee55;
+  }
+
+  /* ───── 공격 취소 버튼 (공격 모드일 때 표시) ───── */
+  .cancel-attack {
+    display: none;
+    position: absolute;
+    bottom: 90px; left: 50%;
+    transform: translateX(-50%);
+    background: #444;
+    color: #fff;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    z-index: 150;
+    cursor: pointer;
+    border: 1px solid #666;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+  }
+  .targeting .cancel-attack { display: block; }
+
+  /* ───── Ready glow (내 공격 가능 카드) ───── */
+  .card.ready {
+    animation: ready-glow 1.4s ease-in-out infinite;
+  }
+  @keyframes ready-glow {
+    0%, 100% { filter: drop-shadow(0 0 2px rgba(255,255,255,0.3)); }
+    50% { filter: drop-shadow(0 0 10px rgba(255,255,120,0.9)); }
+  }
+
+  /* ───── 소환 애니메이션 ───── */
+  .card.summoned {
+    animation: summon-pop 0.55s cubic-bezier(0.2, 1.3, 0.4, 1);
+  }
+  @keyframes summon-pop {
+    0%   { transform: translateY(60px) scale(0.3) rotate(-10deg); opacity: 0; }
+    60%  { transform: translateY(-6px) scale(1.12) rotate(2deg); opacity: 1; }
+    100% { transform: translateY(0) scale(1) rotate(0); opacity: 1; }
+  }
+
+  /* ───── 드로우 애니메이션 ───── */
+  .card.drawn {
+    animation: card-draw 0.4s ease-out;
+  }
+  @keyframes card-draw {
+    0% { transform: translateY(-80px) scale(0.6); opacity: 0; }
+    100% { transform: translateY(0) scale(1); opacity: 1; }
+  }
+
+  /* ───── 플로팅 데미지 숫자 ───── */
+  .float-dmg {
+    position: fixed;
+    pointer-events: none;
+    font-weight: 900;
+    font-size: 26px;
+    text-shadow:
+      0 0 4px rgba(0,0,0,0.95),
+      -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+    z-index: 220;
+    transform: translate(-50%, -50%);
+    animation: float-up 1.1s ease-out forwards;
+  }
+  @keyframes float-up {
+    0%   { opacity: 0; transform: translate(-50%, 10px) scale(0.4); }
+    15%  { opacity: 1; transform: translate(-50%, -10px) scale(1.3); }
+    75%  { opacity: 1; transform: translate(-50%, -40px) scale(1); }
+    100% { opacity: 0; transform: translate(-50%, -60px) scale(0.9); }
+  }
+
+  /* ───── HP 쉐이크 ───── */
+  .hp-shake {
+    display: inline-block;
+    animation: hp-shake 0.5s;
+    color: #ff6060 !important;
+  }
+  @keyframes hp-shake {
+    0%, 100% { transform: translateX(0) scale(1); }
+    15% { transform: translateX(-5px) scale(1.25); }
+    35% { transform: translateX(5px) scale(1.25); }
+    55% { transform: translateX(-3px) scale(1.15); }
+    75% { transform: translateX(3px) scale(1.1); }
+  }
+
+  /* ───── 피격 플래시 ───── */
+  .card.hit {
+    animation: hit-flash 0.35s;
+  }
+  @keyframes hit-flash {
+    0%, 100% { filter: none; }
+    30% { filter: brightness(2) saturate(0) drop-shadow(0 0 8px #ff0); }
+  }
+
+  /* ───── 턴 배너 ───── */
+  .turn-banner {
+    position: absolute;
+    top: 50%; left: 50%;
+    pointer-events: none;
+    font-size: 42px; font-weight: 900;
+    letter-spacing: 2px;
+    text-shadow: 0 0 16px rgba(0,0,0,0.95), 0 0 4px currentColor;
+    z-index: 180;
+    opacity: 0;
+    white-space: nowrap;
+  }
+  .turn-banner.show {
+    animation: banner 1.3s ease-out forwards;
+  }
+  @keyframes banner {
+    0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.5) skewX(-20deg); }
+    20%  { opacity: 1; transform: translate(-50%, -50%) scale(1.1) skewX(0); }
+    70%  { opacity: 1; transform: translate(-50%, -50%) scale(1) skewX(0); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(1.6) skewX(10deg); }
+  }
+
+  /* ───── 공격 중 input 잠금 ───── */
+  body.locked .card.hand,
+  body.locked .card { pointer-events: none; }
+  body.locked #btn-end { pointer-events: none; }
+
+  /* ───── 턴 종료 버튼 깜빡 (액션 소진 시) ───── */
+  button#btn-end.pulse-end {
+    animation: pulse-end 0.9s ease-in-out infinite;
+  }
+  @keyframes pulse-end {
+    0%, 100% {
+      box-shadow: 0 0 0 rgba(255,215,122,0);
+      transform: scale(1);
+    }
+    50% {
+      box-shadow: 0 0 16px rgba(255,215,122,0.9), 0 0 4px #fff;
+      transform: scale(1.06);
+    }
+  }
+
+  /* ───── 샤터 조각 컨테이너 (JS 생성) ───── */
+  .shatter-container {
+    position: fixed; pointer-events: none; z-index: 160;
+  }
+  .shatter-container .piece {
+    position: absolute; inset: 0;
+    overflow: hidden;
+  }
+
+  .cancel-target {
+    position: absolute;
+    bottom: 60px; left: 50%; transform: translateX(-50%);
+    background: #e35b5b; color: #fff; padding: 6px 14px;
+    border-radius: 20px; font-size: 12px; z-index: 150;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- Opponent zones -->
+  <div class="zone opp-leader-zone">
+    <div class="zone-label">
+      <span class="leader-tag opp">👹 상대 리더</span>
+      <div style="display: flex; gap: 8px;">
+        <span class="hp-bar"><span class="heart">♥</span><span id="opp-hp">25</span></span>
+        <span class="mana">💧<span id="opp-mana">1</span>/<span id="opp-max-mana">1</span></span>
+        <span style="color:var(--muted); font-size:12px;">덱 <span id="opp-deck">15</span></span>
+      </div>
+    </div>
+    <div class="opp-hand-row" id="opp-hand"></div>
+    <div class="attack-hint">🎯 리더 공격<span class="lead-dmg" id="lead-dmg">−?</span></div>
+  </div>
+  <div class="zone opp-field">
+    <div class="field-row" id="opp-field"></div>
+  </div>
+
+  <!-- Player field -->
+  <div class="zone player-field">
+    <div class="field-row" id="player-field"></div>
+  </div>
+  <div class="zone player-leader-zone">
+    <div class="zone-label">
+      <span class="leader-tag player">🙂 내 리더</span>
+      <div style="display: flex; gap: 8px;">
+        <span class="hp-bar"><span class="heart">♥</span><span id="player-hp">25</span></span>
+        <span class="mana">💧<span id="player-mana">1</span>/<span id="player-max-mana">1</span></span>
+        <span style="color:var(--muted); font-size:12px;">덱 <span id="player-deck">15</span></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hand -->
+  <div class="zone hand">
+    <div class="hand-row" id="player-hand"></div>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <button class="secondary" id="btn-new">새 게임</button>
+    <button id="btn-end">턴 종료</button>
+  </div>
+
+  <div class="log" id="log"></div>
+  <div class="turn-banner" id="turn-banner"></div>
+  <div class="cancel-attack" id="cancel-attack">✕ 공격 취소</div>
+
+  <!-- Game over modal -->
+  <div class="modal hidden" id="gameover">
+    <div class="modal-box">
+      <h2 id="result-title">승리!</h2>
+      <p id="result-msg">상대 HP 를 0 으로 만들었습니다.</p>
+      <button id="btn-restart">다시 시작</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─────────── Card pool: units.js 에서 ★5+ 캐릭 뽑아 변환 ───────────
+const ATTR_IDX = { STR: 0, DEX: 1, QCK: 2, PSY: 3, INT: 4 };
+const ATTR_COUNTER = { STR: 'DEX', DEX: 'QCK', QCK: 'STR', PSY: 'INT', INT: 'PSY' };
+const ATTR_KO = { STR: '힘', DEX: '기', QCK: '속', PSY: '심', INT: '지' };
+const CLASS_EFFECT = {
+  'Fighter':      { onPlay: 'deal1' },
+  'Slasher':      { onAttack: 'bonus1' },
+  'Striker':      { onTurn: 'atkUp1' },
+  'Shooter':      { onPlay: 'dealAll1' },
+  'Free Spirit':  { onTurn: 'healLeader1' },
+  'Driven':       { passive: 'lowHpBoost' },
+  'Cerebral':     { onPlay: 'draw1' },
+  'Powerhouse':   { passive: 'hp+2' },
+};
+
+function cardPool() {
+  if (!window.units) return [];
+  const pool = [];
+  window.units.forEach((u, i) => {
+    if (!u || !u[0]) return;
+    const logbook = i + 1;
+    const name = u[0];
+    const attr = u[1];
+    const cls = Array.isArray(u[2]) ? u[2][0] : u[2];
+    const rarityRaw = u[3];
+    const rarity = typeof rarityRaw === 'string' ? parseInt(rarityRaw) : rarityRaw;
+    if (!rarity || rarity < 5) return;
+    if (!ATTR_IDX.hasOwnProperty(attr)) return;
+    const cost = u[4];
+    const maxHp = u[12];
+    const maxAtk = u[13];
+    if (!cost || !maxHp || !maxAtk) return;
+    // 스케일 다운
+    const mana = Math.min(7, Math.max(1, Math.floor(cost / 10)));
+    const atk = Math.max(1, Math.floor(maxAtk / 400));
+    const hp = Math.max(1, Math.floor(maxHp / 800));
+    pool.push({
+      id: logbook, name, attr, cls,
+      mana, atk, hp, maxHp: hp,
+      effect: CLASS_EFFECT[cls] || {},
+      exhausted: true,  // 소환 턴엔 공격 불가
+    });
+  });
+  return pool;
+}
+
+const THUMB_BASE = 'https://hayaden.github.io/optcDB_Ko/api/images/thumbnail/jap';
+function img(id) {
+  const padded = String(id).padStart(4, '0');
+  const d1 = padded[0];
+  const bucket = String(Math.floor(id / 100) * 100 % 1000).padStart(3, '0');
+  return `${THUMB_BASE}/${d1}/${bucket}/${padded}.png`;
+}
+function imgFallback(id) {
+  return `../cimg/${id}.png`;
+}
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// ─────────── Game state ───────────
+let state = null;
+
+function newGame() {
+  const pool = cardPool();
+  if (pool.length < 30) {
+    log('캐릭 풀 부족 (★5+ 필요). units.js 로드 확인.');
+    return;
+  }
+  const makeDeck = () => shuffle(pool).slice(0, 15).map(c => ({ ...c }));
+  if (state && state._autoEndTimer) clearTimeout(state._autoEndTimer);
+  state = {
+    player: { hp: 25, mana: 1, maxMana: 1, deck: makeDeck(), hand: [], field: [] },
+    opp:    { hp: 25, mana: 1, maxMana: 1, deck: makeDeck(), hand: [], field: [] },
+    turn: 'player',
+    attackingCard: null,
+    turnNo: 1,
+    _locked: false,
+    _autoEndTimer: null,
+  };
+  for (let i = 0; i < 3; i++) drawCard('player');
+  for (let i = 0; i < 3; i++) drawCard('opp');
+  setLocked(false);
+  render();
+  showBanner('내 턴', '#4bbf76');
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function setLocked(on) {
+  state._locked = on;
+  document.body.classList.toggle('locked', on);
+}
+
+function previewDmg(attacker, target) {
+  let mult = 1.0;
+  if (ATTR_COUNTER[attacker.attr] === target.attr) mult = 1.25;
+  else if (ATTR_COUNTER[target.attr] === attacker.attr) mult = 0.75;
+  let dmg = Math.max(1, Math.floor(attacker.atk * mult));
+  if (attacker.effect && attacker.effect.onAttack === 'bonus1') dmg += 1;
+  return { dmg, mult };
+}
+
+function canAct(side) {
+  const s = state[side];
+  // 소환 가능한 손패 1장이라도?
+  if (s.field.length < 3 && s.hand.some(c => c.mana <= s.mana)) return true;
+  // 공격 가능한 필드 카드 1장이라도?
+  if (s.field.some(c => !c.exhausted)) return true;
+  return false;
+}
+
+function updateEndButton() {
+  const endBtn = document.getElementById('btn-end');
+  clearTimeout(state._autoEndTimer);
+  state._autoEndTimer = null;
+  const noAction = state.turn === 'player' && !state._locked && !canAct('player');
+  endBtn.classList.toggle('pulse-end', noAction);
+  if (noAction) {
+    state._autoEndTimer = setTimeout(() => {
+      if (state.turn === 'player' && !state._locked && !canAct('player')) {
+        endTurn();
+      }
+    }, 1500);
+  }
+}
+
+function drawCard(side, markAnim = false) {
+  const s = state[side];
+  if (s.deck.length === 0 || s.hand.length >= 3) return null;
+  const card = s.deck.shift();
+  card.instanceId = Math.random().toString(36).slice(2, 8);
+  if (markAnim) card._justDrawn = true;
+  s.hand.push(card);
+  return card;
+}
+
+function startTurn(side) {
+  const s = state[side];
+  s.maxMana = Math.min(7, s.maxMana + 1);
+  s.mana = s.maxMana;
+  drawCard(side, side === 'player');
+  s.field.forEach(c => { c.exhausted = false; });
+  s.field.forEach(c => applyEffect(c, 'onTurn', side));
+}
+
+function applyEffect(card, trigger, side) {
+  const eff = card.effect || {};
+  const my = state[side];
+  const opp = state[side === 'player' ? 'opp' : 'player'];
+  if (trigger === 'onPlay') {
+    if (eff.onPlay === 'deal1' && opp.field.length) {
+      const target = opp.field[Math.floor(Math.random() * opp.field.length)];
+      target.hp -= 1;
+      log(`${card.name}: 소환 효과 — ${target.name} 에 1 데미지`);
+    }
+    if (eff.onPlay === 'dealAll1') {
+      opp.field.forEach(t => { t.hp -= 1; });
+      log(`${card.name}: 적 전체에 1 데미지`);
+    }
+    if (eff.onPlay === 'draw1') {
+      drawCard(side, side === 'player');
+      log(`${card.name}: 카드 1장 뽑기`);
+    }
+    if (eff.passive === 'hp+2') { card.hp += 2; card.maxHp += 2; }
+  }
+  if (trigger === 'onTurn') {
+    if (eff.onTurn === 'atkUp1') { card.atk += 1; }
+    if (eff.onTurn === 'healLeader1' && my.hp < 25) {
+      my.hp = Math.min(25, my.hp + 1);
+    }
+  }
+}
+
+function cleanupDead(side) {
+  const s = state[side];
+  s.field = s.field.filter(c => c.hp > 0);
+}
+
+async function endTurn() {
+  if (state.turn !== 'player' || state._locked) return;
+  state.turn = 'opp';
+  state.turnNo++;
+  render();
+  await oppTurn();
+}
+
+async function oppTurn() {
+  setLocked(true);
+  showBanner('상대 턴', '#ff6b6b');
+  await sleep(900);
+  startTurn('opp');
+  render();
+  await sleep(400);
+
+  // 소환 루프 (비싼 카드부터)
+  while (state.opp.field.length < 3) {
+    const affordable = state.opp.hand
+      .filter(c => c.mana <= state.opp.mana)
+      .sort((a, b) => b.mana - a.mana);
+    if (!affordable.length) break;
+    await summonCard(affordable[0], 'opp');
+    await sleep(300);
+  }
+
+  // 공격 루프 — 카드 vs 카드 또는 vs face
+  const attackers = [...state.opp.field.filter(c => !c.exhausted)];
+  for (const atk of attackers) {
+    if (atk.hp <= 0) continue;
+    if (state.player.field.length) {
+      // 가장 체력 낮은 적군 우선 타겟 (AI 조금 더 똑똑)
+      const target = [...state.player.field].sort((a, b) => a.hp - b.hp)[0];
+      await performAttack(atk, 'opp', target, 'player');
+    } else {
+      await performFaceAttack(atk, 'opp');
+    }
+    if (state.player.hp <= 0) { checkWin(); return; }
+    await sleep(250);
+  }
+
+  state.turn = 'player';
+  startTurn('player');
+  setLocked(false);
+  render();
+  showBanner(`턴 ${Math.ceil(state.turnNo / 2)}`, '#4bbf76');
+}
+
+async function summonCard(card, side) {
+  const s = state[side];
+  if (s.mana < card.mana) return false;
+  if (s.field.length >= 3) return false;
+  // 손패 → 필드로 이동 + 애니메이션 플래그
+  s.hand = s.hand.filter(c => c.instanceId !== card.instanceId);
+  card.exhausted = true;
+  card._justSummoned = true;
+  s.field.push(card);
+  s.mana -= card.mana;
+  applyEffect(card, 'onPlay', side);
+  log(`${side === 'player' ? '내' : '상대'} ${card.name} 소환`);
+  cleanupDead('player');
+  cleanupDead('opp');
+  render();
+  await sleep(550);
+  return true;
+}
+
+async function performAttack(attacker, atkSide, target, defSide) {
+  if (!state._locked) setLocked(true);
+  const atkEl = findCardEl(attacker.instanceId);
+  const tgtEl = findCardEl(target.instanceId);
+
+  // 데미지 계산 (속성 상성)
+  let bonusMult = 1.0;
+  if (ATTR_COUNTER[attacker.attr] === target.attr) bonusMult = 1.25;
+  else if (ATTR_COUNTER[target.attr] === attacker.attr) bonusMult = 0.75;
+  let dmgT = Math.max(1, Math.floor(attacker.atk * bonusMult));
+  const dmgA = target.atk;
+  if (attacker.effect && attacker.effect.onAttack === 'bonus1') dmgT += 1;
+
+  log(`${attacker.name} ⚔️ ${target.name} (${dmgT} / ${dmgA})`);
+  await animateSlash(atkEl, tgtEl);
+
+  // 피격 플래시 + 데미지 숫자
+  flashCard(tgtEl);
+  showFloatDmg(tgtEl, `-${dmgT}`, '#ff5555');
+  if (dmgA > 0) {
+    flashCard(atkEl);
+    showFloatDmg(atkEl, `-${dmgA}`, '#ff8855');
+  }
+
+  // state 변경
+  target.hp -= dmgT;
+  attacker.hp -= dmgA;
+  attacker.exhausted = true;
+
+  await sleep(500);
+
+  // 죽은 카드 샤터
+  const shatterP = [];
+  if (target.hp <= 0 && tgtEl) shatterP.push(shatterCard(tgtEl));
+  if (attacker.hp <= 0 && atkEl) shatterP.push(shatterCard(atkEl));
+  await Promise.all(shatterP);
+
+  cleanupDead('player');
+  cleanupDead('opp');
+  // 상대 턴에서 호출 시엔 render 는 하되 락 유지, 플레이어 턴에선 락 해제
+  render();
+  if (state.turn === 'player') setLocked(false);
+  checkWin();
+}
+
+async function performFaceAttack(attacker, side) {
+  if (!state._locked) setLocked(true);
+  const defSide = side === 'player' ? 'opp' : 'player';
+  const atkEl = findCardEl(attacker.instanceId);
+  const hpEl = document.getElementById(defSide === 'player' ? 'player-hp' : 'opp-hp');
+
+  log(`${attacker.name} 가 상대 리더에 ${attacker.atk} 데미지`);
+  await animateSlash(atkEl, hpEl);
+
+  state[defSide].hp -= attacker.atk;
+  attacker.exhausted = true;
+
+  shakeHp(defSide);
+  showFloatDmg(hpEl, `-${attacker.atk}`, '#ff5555');
+
+  await sleep(500);
+  render();
+  if (state.turn === 'player') setLocked(false);
+  checkWin();
+}
+
+function checkWin() {
+  if (state.player.hp <= 0) {
+    setLocked(true);
+    showResult('패배...', '내 HP가 0이 되었습니다.');
+  } else if (state.opp.hp <= 0) {
+    setLocked(true);
+    showResult('승리!', '상대 HP 를 0 으로 만들었습니다.');
+  }
+}
+
+// ─────────── 애니메이션 ───────────
+function findCardEl(instanceId) {
+  return document.querySelector(`[data-iid="${instanceId}"]`);
+}
+
+async function animateSlash(atkEl, tgtEl) {
+  if (!atkEl || !tgtEl) { await sleep(200); return; }
+  const r1 = atkEl.getBoundingClientRect();
+  const r2 = tgtEl.getBoundingClientRect();
+  const dx = (r2.left + r2.width/2) - (r1.left + r1.width/2);
+  const dy = (r2.top + r2.height/2) - (r1.top + r1.height/2);
+  atkEl.style.zIndex = '50';
+  const anim = atkEl.animate([
+    { transform: 'translate(0,0) scale(1)', offset: 0 },
+    { transform: `translate(0,0) scale(1)`, offset: 0.15 },
+    { transform: `translate(${dx*0.55}px, ${dy*0.55}px) scale(1.18) rotate(${dx>0?'10deg':'-10deg'})`, offset: 0.55 },
+    { transform: `translate(${dx*0.6}px, ${dy*0.6}px) scale(1.12)`, offset: 0.65 },
+    { transform: 'translate(0,0) scale(1) rotate(0)', offset: 1 },
+  ], { duration: 480, easing: 'cubic-bezier(0.4, 0, 0.6, 1)' });
+  await anim.finished;
+  atkEl.style.zIndex = '';
+}
+
+function flashCard(el) {
+  if (!el) return;
+  el.classList.remove('hit');
+  void el.offsetWidth;
+  el.classList.add('hit');
+}
+
+function showFloatDmg(el, text, color) {
+  if (!el) return;
+  const r = el.getBoundingClientRect();
+  const d = document.createElement('div');
+  d.className = 'float-dmg';
+  d.style.color = color || '#ff5555';
+  d.style.left = (r.left + r.width / 2) + 'px';
+  d.style.top = (r.top + r.height / 3) + 'px';
+  d.textContent = text;
+  document.body.appendChild(d);
+  setTimeout(() => d.remove(), 1200);
+}
+
+function shakeHp(side) {
+  const el = document.getElementById(side === 'player' ? 'player-hp' : 'opp-hp');
+  if (!el) return;
+  el.classList.remove('hp-shake');
+  void el.offsetWidth;
+  el.classList.add('hp-shake');
+  setTimeout(() => el.classList.remove('hp-shake'), 600);
+}
+
+async function shatterCard(el) {
+  if (!el) return;
+  const rect = el.getBoundingClientRect();
+  const inner = el.outerHTML;
+  const container = document.createElement('div');
+  container.className = 'shatter-container';
+  container.style.left = rect.left + 'px';
+  container.style.top = rect.top + 'px';
+  container.style.width = rect.width + 'px';
+  container.style.height = rect.height + 'px';
+  document.body.appendChild(container);
+  el.style.visibility = 'hidden';
+
+  const clips = [
+    'polygon(0 0, 55% 0, 45% 50%, 0 60%)',
+    'polygon(55% 0, 100% 0, 100% 55%, 45% 50%)',
+    'polygon(0 60%, 45% 50%, 55% 100%, 0 100%)',
+    'polygon(45% 50%, 100% 55%, 100% 100%, 55% 100%)',
+  ];
+  const anims = clips.map((clip, i) => {
+    const piece = document.createElement('div');
+    piece.className = 'piece';
+    piece.style.clipPath = clip;
+    piece.innerHTML = inner;
+    const card = piece.firstElementChild;
+    card.style.visibility = 'visible';
+    card.style.margin = '0';
+    card.style.width = '100%';
+    card.style.height = '100%';
+    container.appendChild(piece);
+    const angle = (i / 4) * Math.PI * 2 + Math.PI / 4;
+    const dist = 50 + Math.random() * 40;
+    const dx = Math.cos(angle) * dist;
+    const dy = Math.sin(angle) * dist;
+    const rot = (Math.random() - 0.5) * 120;
+    return piece.animate([
+      { transform: 'translate(0,0) rotate(0)', opacity: 1, filter: 'brightness(1)' },
+      { transform: `translate(${dx*0.4}px, ${dy*0.4}px) rotate(${rot*0.3}deg)`, opacity: 1, offset: 0.3, filter: 'brightness(2)' },
+      { transform: `translate(${dx}px, ${dy+30}px) rotate(${rot}deg)`, opacity: 0, filter: 'brightness(0.5)' },
+    ], { duration: 650, easing: 'cubic-bezier(0.3, 0.2, 0.6, 1)' }).finished;
+  });
+  await Promise.all(anims);
+  container.remove();
+}
+
+function showBanner(text, color) {
+  const b = document.getElementById('turn-banner');
+  b.textContent = text;
+  b.style.color = color || 'var(--gold)';
+  b.classList.remove('show');
+  void b.offsetWidth;
+  b.classList.add('show');
+}
+
+// ─────────── Render ───────────
+function render() {
+  // HP/Mana/Deck
+  document.getElementById('player-hp').textContent = state.player.hp;
+  document.getElementById('player-mana').textContent = state.player.mana;
+  document.getElementById('player-max-mana').textContent = state.player.maxMana;
+  document.getElementById('player-deck').textContent = state.player.deck.length;
+  document.getElementById('opp-hp').textContent = state.opp.hp;
+  document.getElementById('opp-mana').textContent = state.opp.mana;
+  document.getElementById('opp-max-mana').textContent = state.opp.maxMana;
+  document.getElementById('opp-deck').textContent = state.opp.deck.length;
+
+  renderField('opp-field', state.opp.field, 'opp');
+  renderField('player-field', state.player.field, 'player');
+  renderHand('player-hand', state.player.hand);
+  renderOppHand(state.opp.hand.length);
+
+  // Targeting mode class
+  document.body.classList.toggle('targeting', !!state.attackingCard);
+
+  // 리더 공격 데미지 미리보기
+  if (state.attackingCard) {
+    document.getElementById('lead-dmg').textContent = `−${state.attackingCard.atk}`;
+  }
+
+  document.getElementById('btn-end').disabled = state.turn !== 'player';
+  updateEndButton();
+}
+
+function renderField(elId, field, side) {
+  const el = document.getElementById(elId);
+  el.innerHTML = '';
+  for (let i = 0; i < 3; i++) {
+    const c = field[i];
+    if (!c) {
+      const slot = document.createElement('div');
+      slot.className = 'slot';
+      slot.textContent = side === 'player' ? '빈 자리' : '';
+      el.appendChild(slot);
+      continue;
+    }
+    const card = cardEl(c, side === 'player' ? 'playerFieldCard' : 'oppFieldCard');
+    if (state.attackingCard) {
+      if (side === 'opp') {
+        card.classList.add('targetable');
+        // 예상 데미지 뱃지 (상성 포함)
+        const atk = state.attackingCard;
+        const { dmg, mult } = previewDmg(atk, c);
+        const multClass = mult === 1.25 ? 'up' : mult === 0.75 ? 'dn' : 'ev';
+        const multText = mult === 1.25 ? '×1.25' : mult === 0.75 ? '×0.75' : '×1';
+        const preview = document.createElement('div');
+        preview.className = 'target-preview';
+        preview.innerHTML = `
+          <span class="pv-main">⚔ −${dmg}<span class="pv-mult ${multClass}">${multText}</span></span>
+          <span class="pv-back">반격 −${c.atk}</span>
+        `;
+        card.appendChild(preview);
+      }
+    }
+    // 내 공격 가능 카드 glow (선택된 카드 제외)
+    if (side === 'player' && !c.exhausted && state.turn === 'player' && !state._locked
+        && !(state.attackingCard && state.attackingCard.instanceId === c.instanceId)) {
+      card.classList.add('ready');
+    }
+    el.appendChild(card);
+  }
+}
+
+function renderOppHand(n) {
+  const el = document.getElementById('opp-hand');
+  el.innerHTML = '';
+  for (let i = 0; i < n; i++) {
+    const back = document.createElement('div');
+    back.className = 'card-back';
+    el.appendChild(back);
+  }
+}
+
+function renderHand(elId, hand) {
+  const el = document.getElementById(elId);
+  el.innerHTML = '';
+  hand.forEach(c => {
+    const card = cardEl(c, 'handCard');
+    if (c.mana > state.player.mana || state.player.field.length >= 3 || state.turn !== 'player') {
+      card.classList.add('unaffordable');
+    }
+    el.appendChild(card);
+  });
+}
+
+function cardEl(c, context) {
+  const el = document.createElement('div');
+  const classes = ['card', c.attr];
+  if (context === 'handCard') classes.push('hand');
+  if (c.exhausted && context !== 'handCard') classes.push('exhausted');
+  if (state.attackingCard && state.attackingCard.instanceId === c.instanceId) classes.push('selected');
+  if (c._justSummoned && context !== 'handCard') { classes.push('summoned'); c._justSummoned = false; }
+  if (c._justDrawn && context === 'handCard') { classes.push('drawn'); c._justDrawn = false; }
+  el.className = classes.join(' ');
+  el.dataset.iid = c.instanceId;
+  el.innerHTML = `
+    <div class="cost-badge">${c.mana}</div>
+    <div class="attr-tag" style="color: var(--${c.attr});">${ATTR_KO[c.attr] || c.attr}</div>
+    <div class="thumb"><img src="${img(c.id)}" alt="${c.name}" data-fb="${imgFallback(c.id)}" onerror="if(this.dataset.fb){this.src=this.dataset.fb;this.dataset.fb='';}else{this.style.display='none';this.parentElement.innerHTML='<div class=placeholder>#${c.id}</div>';}"></div>
+    <div class="name">${c.name.length > 10 ? c.name.slice(0,10)+'…' : c.name}</div>
+    <div class="stats"><span class="atk">⚔${c.atk}</span><span class="hp">♥${c.hp}</span></div>
+  `;
+  el.addEventListener('click', (e) => { e.stopPropagation(); handleCardClick(c, context, e); });
+  return el;
+}
+
+async function handleCardClick(c, context, e) {
+  if (state._locked) return;
+  if (state.turn !== 'player') return;
+  if (context === 'handCard') {
+    await summonCard(c, 'player');
+    return;
+  }
+  if (context === 'playerFieldCard') {
+    if (c.exhausted) { log('이 턴엔 공격 불가'); return; }
+    // 토글
+    if (state.attackingCard && state.attackingCard.instanceId === c.instanceId) {
+      state.attackingCard = null;
+    } else {
+      state.attackingCard = c;
+    }
+    render();
+    return;
+  }
+  if (context === 'oppFieldCard') {
+    if (!state.attackingCard) return;
+    const atk = state.attackingCard;
+    state.attackingCard = null;
+    render();
+    await performAttack(atk, 'player', c, 'opp');
+    return;
+  }
+}
+
+// 상대 리더 공격 — opp-leader-zone 또는 opp-field 빈 영역 클릭
+document.addEventListener('click', async (e) => {
+  if (!state || !state.attackingCard || state._locked) return;
+  if (e.target.closest('.card')) return;
+  if (e.target.closest('#cancel-attack')) return;
+  const leaderZone = e.target.closest('.opp-leader-zone');
+  const fieldZone = e.target.closest('.opp-field');
+  if (!leaderZone && !fieldZone) return;
+  const atk = state.attackingCard;
+  state.attackingCard = null;
+  render();
+  await performFaceAttack(atk, 'player');
+});
+
+// 공격 취소 버튼
+document.getElementById('cancel-attack').addEventListener('click', (e) => {
+  e.stopPropagation();
+  if (!state || !state.attackingCard) return;
+  state.attackingCard = null;
+  render();
+});
+
+// ─────────── Util ───────────
+function log(msg) {
+  const el = document.getElementById('log');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(window._logT);
+  window._logT = setTimeout(() => el.classList.remove('show'), 1600);
+}
+
+function showResult(title, msg) {
+  document.getElementById('result-title').textContent = title;
+  document.getElementById('result-msg').textContent = msg;
+  document.getElementById('gameover').classList.remove('hidden');
+}
+
+// ─────────── Boot ───────────
+document.getElementById('btn-end').addEventListener('click', endTurn);
+document.getElementById('btn-new').addEventListener('click', () => {
+  document.getElementById('gameover').classList.add('hidden');
+  newGame();
+});
+document.getElementById('btn-restart').addEventListener('click', () => {
+  document.getElementById('gameover').classList.add('hidden');
+  newGame();
+});
+
+window.addEventListener('load', () => {
+  if (!window.units) {
+    log('units.js 로드 실패');
+    return;
+  }
+  newGame();
+});
+</script>
+</body>
+</html>
