@@ -209,10 +209,12 @@
         }
 
         function buildRow(id) {
-            const meta = (window.units && window.units[id]) || {};
+            // units.js는 배열 형식: [name, attr, class, rarity, cost, combo, sockets, maxLvl, ...]
+            // 배열은 0-indexed, 도감번호는 1-indexed → id-1 로 접근
+            const meta = (window.units && window.units[id - 1]) || [];
             const detail = (window.details_kor && window.details_kor[id]) || {};
-            const name = meta.name || '(이름 없음)';
-            const cost = meta.cost != null ? `코스트 ${meta.cost}` : '코스트 -';
+            const name = meta[0] || '(이름 없음)';
+            const cost = meta[4] != null ? `코스트 ${meta[4]}` : '코스트 -';
 
             const abilityLast = resolveLeveled(detail.festAbility);
             const specialLast = resolveLeveled(detail.festSpecial);
