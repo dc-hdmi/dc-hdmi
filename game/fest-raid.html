@@ -261,8 +261,10 @@
 
         function render() {
             const listEl = document.getElementById('char-list');
-            listEl.innerHTML = TARGET_IDS.map(buildRow).join('');
-            document.getElementById('char-count').textContent = TARGET_IDS.length;
+            // 도감번호 큰 순(최신 캐릭 우선) 정렬 — 원본 배열은 보존
+            const sorted = [...TARGET_IDS].sort((a, b) => b - a);
+            listEl.innerHTML = sorted.map(buildRow).join('');
+            document.getElementById('char-count').textContent = sorted.length;
         }
 
         function applyFilter() {
