@@ -1249,7 +1249,7 @@ function cardPool() {
     const baseHp = Math.max(1, Math.floor(maxHp / 800));
     const hp = baseHp * 2;  // 실제 전투 HP — 2배로 (카드 생존력↑)
     // 마나 = 전투력(ATK+원래 HP) 기반 — 밸런스 유지
-    const mana = Math.min(7, Math.max(1, Math.round((atk + baseHp) / 2.5)));
+    const mana = Math.min(7, Math.max(1, Math.round((atk + baseHp) / 2.8)));
     pool.push({
       id: logbook, name, attr, cls,
       mana, atk, hp, maxHp: hp,
@@ -1612,9 +1612,9 @@ async function performAttack(attacker, atkSide, target, defSide) {
 
   cleanupDead('player');
   cleanupDead('opp');
-  // 상대 턴에서 호출 시엔 render 는 하되 락 유지, 플레이어 턴에선 락 해제
-  render();
+  // 플레이어 턴에선 락 먼저 해제한 뒤 render → 손패 playable 반영 정확히
   if (state.turn === 'player') setLocked(false);
+  render();
   checkWin();
 }
 
@@ -1634,8 +1634,8 @@ async function performFaceAttack(attacker, side) {
   showFloatDmg(hpEl, `-${attacker.atk}`, '#ff5555');
 
   await sleep(500);
-  render();
   if (state.turn === 'player') setLocked(false);
+  render();
   checkWin();
 }
 
