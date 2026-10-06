@@ -55,10 +55,10 @@
     display: flex;
     flex-direction: column;
     gap: 4px;
-    justify-content: center;
+    justify-content: space-between;  /* 게이지바와 필드로우를 양 끝에 */
     min-height: 100px;
-    max-height: 150px;
-    padding: 4px 6px;
+    max-height: 160px;
+    padding: 2px 6px;
     position: relative;
     background:
       repeating-linear-gradient(45deg, rgba(255,255,255,0.025) 0 14px, transparent 14px 28px),
@@ -897,6 +897,11 @@
     margin: 4px auto 0;
     max-width: 320px;
   }
+  .ult-gauge {
+    flex: 0 0 auto;
+    width: 100%;
+    max-width: 320px;
+  }
   .ult-gauge .ult-fill {
     height: 100%;
     transition: width 0.35s ease-out;
@@ -1350,19 +1355,23 @@
       </div>
     </div>
     <div class="opp-hand-row" id="opp-hand"></div>
+    <div class="attack-hint">리더 공격<span class="lead-dmg" id="lead-dmg">−?</span></div>
+  </div>
+  <div class="zone opp-field">
     <div class="ult-gauge opp" id="opp-ult-gauge">
       <div class="ult-fill" id="opp-ult-fill"></div>
       <div class="ult-label">⚡ <span id="opp-ult-text">0/20</span></div>
     </div>
-    <div class="attack-hint">리더 공격<span class="lead-dmg" id="lead-dmg">−?</span></div>
-  </div>
-  <div class="zone opp-field">
     <div class="field-row" id="opp-field"></div>
   </div>
 
   <!-- Player field -->
   <div class="zone player-field">
     <div class="field-row" id="player-field"></div>
+    <div class="ult-gauge player" id="player-ult-gauge">
+      <div class="ult-fill" id="player-ult-fill"></div>
+      <div class="ult-label">⚡ <span id="player-ult-text">0/20</span></div>
+    </div>
   </div>
   <div class="zone player-leader-zone">
     <div class="zone-label">
@@ -1378,10 +1387,6 @@
 
   <!-- Hand -->
   <div class="zone hand">
-    <div class="ult-gauge player" id="player-ult-gauge">
-      <div class="ult-fill" id="player-ult-fill"></div>
-      <div class="ult-label">⚡ <span id="player-ult-text">0/20</span></div>
-    </div>
     <button class="swap-fab" id="btn-swap" title="카드 교체 (1회 한정)">
       <span class="arrows">⇅</span>
     </button>
