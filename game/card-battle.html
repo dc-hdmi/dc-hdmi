@@ -57,11 +57,39 @@
     justify-content: center;
     min-height: 100px;
     max-height: 150px;
-    padding: 2px 6px;
-    background: linear-gradient(180deg, rgba(255,255,255,0.015), transparent);
+    padding: 4px 6px;
+    position: relative;
   }
-  .zone.player-field { background: linear-gradient(0deg, rgba(100,220,180,0.05), transparent); }
-  .zone.opp-field { background: linear-gradient(180deg, rgba(220,80,80,0.08), transparent); }
+  .zone.player-field {
+    background:
+      repeating-linear-gradient(45deg, rgba(75,191,118,0.04) 0 10px, transparent 10px 20px),
+      linear-gradient(0deg, rgba(75,191,118,0.18), rgba(75,191,118,0.08));
+    border-top: 1px solid rgba(75,191,118,0.3);
+    border-bottom: 1px solid rgba(75,191,118,0.3);
+  }
+  .zone.opp-field {
+    background:
+      repeating-linear-gradient(-45deg, rgba(227,91,91,0.05) 0 10px, transparent 10px 20px),
+      linear-gradient(180deg, rgba(227,91,91,0.2), rgba(227,91,91,0.08));
+    border-top: 1px solid rgba(227,91,91,0.35);
+    border-bottom: 1px solid rgba(227,91,91,0.35);
+  }
+  /* 필드 라벨 (좌측 세로) */
+  .zone.player-field::before,
+  .zone.opp-field::before {
+    content: '전투';
+    position: absolute;
+    left: 2px; top: 50%;
+    transform: translateY(-50%) rotate(-90deg);
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    opacity: 0.55;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  .zone.player-field::before { color: #4bbf76; }
+  .zone.opp-field::before { color: #ff6060; }
   .zone-label {
     font-size: 10px; color: var(--muted); letter-spacing: 0.5px;
     display: flex; justify-content: space-between; align-items: center;
@@ -810,7 +838,7 @@
       <div style="display: flex; gap: 8px;">
         <span class="hp-bar"><span class="heart">♥</span><span id="opp-hp">25</span></span>
         <span class="mana">💧<span id="opp-mana">1</span>/<span id="opp-max-mana">1</span></span>
-        <span style="color:var(--muted); font-size:12px;">덱 <span id="opp-deck">15</span></span>
+        <span style="color:var(--muted); font-size:12px;">남은 카드 <span id="opp-deck">15</span></span>
       </div>
     </div>
     <div class="opp-hand-row" id="opp-hand"></div>
@@ -830,7 +858,7 @@
       <div style="display: flex; gap: 8px;">
         <span class="hp-bar"><span class="heart">♥</span><span id="player-hp">25</span></span>
         <span class="mana">💧<span id="player-mana">1</span>/<span id="player-max-mana">1</span></span>
-        <span style="color:var(--muted); font-size:12px;">덱 <span id="player-deck">15</span></span>
+        <span style="color:var(--muted); font-size:12px;">남은 카드 <span id="player-deck">15</span></span>
       </div>
     </div>
   </div>
