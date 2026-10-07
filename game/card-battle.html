@@ -1329,27 +1329,39 @@
 
   /* ───── 도움말 ? (상대 리더 영역 내 "남은 카드" 밑) ───── */
   .help-fab {
-    width: 22px; height: 22px;
+    flex: 0 0 auto;
+    width: 22px;
+    height: 22px;
+    min-width: 22px;
+    min-height: 22px;
+    max-width: 22px;
+    max-height: 22px;
+    aspect-ratio: 1 / 1;
     border-radius: 50%;
-    background: linear-gradient(180deg, #3a5042, #1f3028);
+    background: radial-gradient(circle at 30% 30%, #4a6252, #1f3028);
     color: var(--gold);
     font-size: 12px;
     font-weight: 900;
     border: 1.5px solid var(--gold);
     cursor: pointer;
     padding: 0;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
     box-shadow: 0 2px 4px rgba(0,0,0,0.6);
     line-height: 1;
+    box-sizing: border-box;
   }
   .help-fab:active { transform: scale(0.92); }
-  .deck-help-col {
+  .opp-hand-wrap {
     display: flex;
-    flex-direction: column;
     align-items: center;
-    gap: 3px;
+    gap: 6px;
+    position: relative;
+  }
+  .opp-hand-wrap .opp-hand-row {
+    flex: 1;
+    min-width: 0;
   }
 
   /* ───── 연계 테스트 iframe 모달 ───── */
@@ -1498,13 +1510,13 @@
       <div style="display: flex; gap: 8px;">
         <span class="hp-bar"><span class="heart">♥</span><span id="opp-hp">25</span></span>
         <span class="mana">💧<span id="opp-mana">1</span>/<span id="opp-max-mana">1</span></span>
-        <div class="deck-help-col">
-          <span style="color:var(--muted); font-size:12px;">남은 카드 <span id="opp-deck">15</span></span>
-          <button class="help-fab" id="btn-help" title="게임 설명">?</button>
-        </div>
+        <span style="color:var(--muted); font-size:12px;">남은 카드 <span id="opp-deck">15</span></span>
       </div>
     </div>
-    <div class="opp-hand-row" id="opp-hand"></div>
+    <div class="opp-hand-wrap">
+      <div class="opp-hand-row" id="opp-hand"></div>
+      <button class="help-fab" id="btn-help" title="게임 설명">?</button>
+    </div>
     <div class="attack-hint">리더 공격<span class="lead-dmg" id="lead-dmg">−?</span></div>
   </div>
   <div class="zone opp-field">
