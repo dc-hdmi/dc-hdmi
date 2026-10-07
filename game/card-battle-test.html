@@ -740,22 +740,40 @@ const COMBO_EFFECTS = {
     if (!state[t].field.length) return;
     const target = state[t].field.reduce((a, b) => a.atk > b.atk ? a : b);
     target.blocked = 3;
+    addStatus(t, {
+      kind: 'bind_debuff',
+      turns: 3,
+      icon: 'https://raw.githubusercontent.com/dc-hdmi/dc-hdmi/main/game/images/common_bind.png',
+      title: `봉쇄: ${target.name}`,
+      side: t,
+      targetId: target.instanceId,
+    });
     await flashCard(target);
     showBanner(`🧠 박식 연계 — ${target.name} 봉쇄 3턴`);
   },
 
   // 🛡 강인 — 내 1장 무적 2턴 (선택 UI)
   'class:Powerhouse': async (actor) => {
+    const applyInvincible = (chosen) => {
+      chosen.invincible = 2;
+      chosen.blocked = 0;
+      addStatus(actor, {
+        kind: 'invincible_buff',
+        turns: 2,
+        icon: 'https://raw.githubusercontent.com/dc-hdmi/dc-hdmi/main/game/images/state_icon_invincible.png',
+        title: `무적: ${chosen.name}`,
+        side: actor,
+        targetId: chosen.instanceId,
+      });
+    };
     if (actor === 'player') {
       await selectOne('무적을 걸 내 카드 선택', actor, (chosen) => {
-        chosen.invincible = 2;
-        chosen.blocked = 0;  // 봉쇄 해제
+        applyInvincible(chosen);
         showBanner(`🛡 강인 연계 — ${chosen.name} 무적 2턴`);
       });
     } else {
       const chosen = state[actor].field.reduce((a, b) => a.atk > b.atk ? a : b);
-      chosen.invincible = 2;
-      chosen.blocked = 0;
+      applyInvincible(chosen);
       showBanner(`🛡 강인 연계 (AI) — ${chosen.name} 무적 2턴`);
     }
   },
@@ -903,6 +921,14 @@ function nextTurn() {
         if (st.kind === 'atk_buff') state[side].field.forEach(c => c.atkBonus = 0);
         if (st.kind === 'blind_debuff' && st.blindSide) {
           state[st.blindSide].field.forEach(c => c.blind = 0);
+        }
+        if (st.kind === 'bind_debuff' && st.targetId) {
+          const target = state[side].field.find(c => c.instanceId === st.targetId);
+          if (target) target.blocked = 0;
+        }
+        if (st.kind === 'invincible_buff' && st.targetId) {
+          const target = state[side].field.find(c => c.instanceId === st.targetId);
+          if (target) target.invincible = 0;
         }
         return false;
       }
