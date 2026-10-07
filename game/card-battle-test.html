@@ -826,7 +826,7 @@ async function animateCardOut(card) {
   await el.animate([
     { transform: 'scale(1)', opacity: 1 },
     { transform: 'translateY(-100px) scale(0.3) rotate(45deg)', opacity: 0 }
-  ], { duration: 500, easing: 'ease-in' }).finished;
+  ], { duration: 500, easing: 'ease-in', fill: 'forwards' }).finished;
 }
 
 function showBanner(text) {
