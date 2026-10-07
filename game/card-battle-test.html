@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>OPTC 연계기 테스트</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  :root {
+    --bg: #0a1612; --bg2: #0e1f1a;
+    --border: #1f3028; --gold: #ffd57a;
+    --text: #e8f1ec; --muted: #789084;
+    --red: #e35b5b; --green: #4bbf76; --blue: #4aa3d9;
+    --STR: #e35b5b; --DEX: #4bbf76; --QCK: #4aa3d9;
+    --PSY: #d9b64a; --INT: #d872c0;
+  }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, "Segoe UI", "Noto Sans KR", sans-serif;
+    user-select: none;
+    min-height: 100vh;
+  }
+  #app {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  /* ──── 테스트 컨트롤 패널 ──── */
+  .test-panel {
+    background: var(--bg2);
+    border: 2px solid var(--gold);
+    border-radius: 10px;
+    padding: 10px;
+  }
+  .test-panel h3 {
+    margin: 0 0 8px;
+    color: var(--gold);
+    font-size: 14px;
+  }
+  .toggle-row {
+    display: flex; gap: 10px; margin-bottom: 8px;
+    padding-bottom: 8px; border-bottom: 1px solid var(--border);
+  }
+  .toggle-row label {
+    cursor: pointer; font-weight: 700;
+    padding: 6px 12px; border-radius: 6px;
+    background: #333; color: var(--muted);
+    transition: all 0.15s;
+  }
+  .toggle-row input { display: none; }
+  .toggle-row input:checked + span {
+    background: var(--gold); color: #000;
+    padding: 6px 12px; border-radius: 6px;
+  }
+  .toggle-row label:has(input:checked) {
+    background: var(--gold); color: #000;
+  }
+  .btn-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(85px, 1fr));
+    gap: 5px;
+    margin-bottom: 6px;
+  }
+  .btn-row .group-label {
+    grid-column: 1 / -1;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 1px;
+    margin-top: 4px;
+  }
+  .combo-btn {
+    background: linear-gradient(180deg, #2a3a32, #1a2a24);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 8px 4px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 700;
+    transition: all 0.15s;
+  }
+  .combo-btn:active { transform: scale(0.95); }
+  .combo-btn.attr-STR { border-color: var(--STR); color: var(--STR); }
+  .combo-btn.attr-DEX { border-color: var(--DEX); color: var(--DEX); }
+  .combo-btn.attr-QCK { border-color: var(--QCK); color: var(--QCK); }
+  .combo-btn.attr-PSY { border-color: var(--PSY); color: var(--PSY); }
+  .combo-btn.attr-INT { border-color: var(--INT); color: var(--INT); }
+  .util-row {
+    display: flex; gap: 6px;
+    padding-top: 8px; border-top: 1px solid var(--border);
+  }
+  .util-btn {
+    flex: 1;
+    background: #444;
+    color: #fff;
+    border: none;
+    padding: 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .util-btn.danger { background: #883333; }
+
+  /* ──── 필드 영역 ──── */
+  .field-zone {
+    background:
+      repeating-linear-gradient(45deg, rgba(255,255,255,0.025) 0 14px, transparent 14px 28px),
+      radial-gradient(ellipse at center, rgba(60,135,90,0.4), rgba(15,45,30,0.65)),
+      linear-gradient(180deg, #0d2a1e, #082018);
+    border: 2px solid rgba(255,215,122,0.4);
+    border-radius: 8px;
+    padding: 6px;
+    position: relative;
+  }
+  .field-zone.opp { border-color: rgba(227,91,91,0.5); }
+  .field-zone.player { border-color: rgba(75,191,118,0.5); }
+  .field-label {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+  .field-label.opp { color: var(--red); }
+  .field-label.player { color: var(--green); }
+  .field-row {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    min-height: 110px;
+  }
+  .slot-empty {
+    width: 72px; height: 96px;
+    border: 1px dashed rgba(255,255,255,0.1);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; color: rgba(255,255,255,0.15);
+  }
+
+  /* ──── 아이콘 띠 ──── */
+  .status-strip {
+    min-height: 38px;
+    display: flex;
+    gap: 4px;
+    padding: 3px 6px;
+    background: rgba(0,0,0,0.3);
+    border-radius: 6px;
+    margin: 4px 0;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .status-strip:empty::before {
+    content: '(상태 없음)';
+    color: rgba(255,255,255,0.2);
+    font-size: 10px;
+  }
+  .status-icon {
+    position: relative;
+    width: 32px; height: 32px;
+    border-radius: 6px;
+    background: rgba(0,0,0,0.6);
+    border: 1px solid var(--gold);
+    display: flex; align-items: center; justify-content: center;
+    overflow: visible;
+  }
+  .status-icon img {
+    width: 100%; height: 100%; object-fit: contain;
+    padding: 2px;
+  }
+  .status-icon .count {
+    position: absolute;
+    bottom: -10px; left: 50%;
+    transform: translateX(-50%);
+    background: #000;
+    color: var(--gold);
+    font-size: 10px;
+    font-weight: 900;
+    padding: 1px 4px;
+    border-radius: 4px;
+    border: 1px solid var(--gold);
+    line-height: 1;
+  }
+
+  /* ──── 카드 ──── */
+  .card {
+    width: 72px;
+    aspect-ratio: 3/4;
+    max-height: 96px;
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    background: linear-gradient(180deg, #1a2a24, #0e1812);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: visible;
+    cursor: pointer;
+    transition: transform 0.15s;
+  }
+  .card.STR { border-color: var(--STR); box-shadow: 0 0 8px rgba(227,91,91,0.35); }
+  .card.DEX { border-color: var(--DEX); box-shadow: 0 0 8px rgba(75,191,118,0.35); }
+  .card.QCK { border-color: var(--QCK); box-shadow: 0 0 8px rgba(74,163,217,0.35); }
+  .card.PSY { border-color: var(--PSY); box-shadow: 0 0 8px rgba(217,182,74,0.35); }
+  .card.INT { border-color: var(--INT); box-shadow: 0 0 8px rgba(216,114,192,0.35); }
+  .card .cost-badge {
+    position: absolute; top: 2px; left: 2px;
+    background: linear-gradient(180deg, #6abfe6, #2a7ab5);
+    color: #fff; font-weight: 900; font-size: 10px;
+    width: 18px; height: 18px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 3; border: 1px solid rgba(255,255,255,0.4);
+  }
+  .card .attr-tag {
+    position: absolute; top: 2px; right: 2px;
+    font-size: 8px; font-weight: 800;
+    padding: 1px 3px; border-radius: 3px;
+    background: rgba(0,0,0,0.75);
+    z-index: 3;
+    border: 1px solid currentColor;
+  }
+  .card.STR .attr-tag { color: var(--STR); }
+  .card.DEX .attr-tag { color: var(--DEX); }
+  .card.QCK .attr-tag { color: var(--QCK); }
+  .card.PSY .attr-tag { color: var(--PSY); }
+  .card.INT .attr-tag { color: var(--INT); }
+  .card .thumb {
+    flex: 1 1 60%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(circle at 50% 30%, #203028, #000);
+    overflow: hidden;
+    position: relative;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    font-size: 20px;
+  }
+  .card .name {
+    font-size: 8px; font-weight: 700; text-align: center;
+    padding: 2px; background: rgba(0,0,0,0.4);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .card .stats {
+    display: grid;
+    grid-template-columns: 16px 1fr 1fr;
+    align-items: center;
+    font-size: 10px; font-weight: 800;
+    background: linear-gradient(180deg, #0a1510, #000);
+    padding: 2px 1px;
+    gap: 1px;
+  }
+  .card .stats > span {
+    display: flex; align-items: center; justify-content: center;
+  }
+  .card .class-badge {
+    width: 13px; height: 13px; border-radius: 50%;
+    color: #fff; font-size: 8px; font-weight: 900;
+    display: inline-flex; align-items: center; justify-content: center;
+    border: 1px solid rgba(0,0,0,0.4);
+  }
+  .card .atk { color: #d9b64a; border-right: 1px solid rgba(255,255,255,0.1); }
+  .card .hp { color: var(--red); }
+
+  /* ──── 상태 오버레이 ──── */
+  .card.blocked {
+    opacity: 0.55;
+    filter: grayscale(60%);
+  }
+  .card.blocked .thumb::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: url('https://raw.githubusercontent.com/dc-hdmi/dc-hdmi/main/game/images/common_bind.png') center/85% no-repeat;
+    z-index: 10;
+    pointer-events: none;
+  }
+  .card.invincible {
+    animation: rainbow-border 2s linear infinite;
+    position: relative;
+  }
+  @keyframes rainbow-border {
+    0%   { border-color: #ff5555; box-shadow: 0 0 10px #ff5555, 0 0 4px #fff; }
+    16%  { border-color: #ffa500; box-shadow: 0 0 10px #ffa500, 0 0 4px #fff; }
+    33%  { border-color: #ffff55; box-shadow: 0 0 10px #ffff55, 0 0 4px #fff; }
+    50%  { border-color: #55ff55; box-shadow: 0 0 10px #55ff55, 0 0 4px #fff; }
+    66%  { border-color: #55a3ff; box-shadow: 0 0 10px #55a3ff, 0 0 4px #fff; }
+    83%  { border-color: #a855ff; box-shadow: 0 0 10px #a855ff, 0 0 4px #fff; }
+    100% { border-color: #ff5555; box-shadow: 0 0 10px #ff5555, 0 0 4px #fff; }
+  }
+  .card .invincible-corner {
+    position: absolute;
+    top: -4px; right: -4px;
+    width: 18px; height: 18px;
+    background: url('https://raw.githubusercontent.com/dc-hdmi/dc-hdmi/main/game/images/state_icon_invincible.png') center/contain no-repeat;
+    background-color: rgba(0,0,0,0.6);
+    border-radius: 50%;
+    border: 1px solid var(--gold);
+    z-index: 4;
+  }
+  .card.blind-back {
+    background: repeating-linear-gradient(45deg, #4a1515 0 6px, #2a0e0e 6px 12px);
+    border-color: #5a2a2a !important;
+    box-shadow: none !important;
+  }
+  .card.blind-back > *:not(.blind-mark) { visibility: hidden; }
+  .card.blind-back .blind-mark {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    color: rgba(255,180,180,0.4);
+    font-size: 24px; font-weight: 900;
+    visibility: visible !important;
+  }
+
+  /* 선택 가능 하이라이트 */
+  .card.selectable {
+    animation: selectable-pulse 1s ease-in-out infinite;
+    cursor: crosshair;
+  }
+  @keyframes selectable-pulse {
+    0%, 100% { transform: translateY(0); filter: brightness(1); }
+    50%      { transform: translateY(-6px); filter: brightness(1.3) drop-shadow(0 0 8px gold); }
+  }
+  .card.selected-first {
+    transform: translateY(-10px) scale(1.1);
+    box-shadow: 0 0 16px gold !important;
+    z-index: 10;
+  }
+  .card.deselect {
+    opacity: 0.4; pointer-events: none;
+  }
+
+  /* ──── 선택 UI ──── */
+  .selection-prompt {
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0,0,0,0.95);
+    color: var(--gold);
+    padding: 12px 20px;
+    border: 2px solid var(--gold);
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 800;
+    z-index: 200;
+    pointer-events: none;
+    text-align: center;
+    box-shadow: 0 0 20px rgba(255,215,122,0.6);
+  }
+  .selection-prompt.hidden { display: none; }
+
+  /* ──── 디버그 패널 ──── */
+  .debug-panel {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px;
+    font-size: 12px;
+    line-height: 1.6;
+  }
+  .debug-panel h3 {
+    margin: 0 0 6px;
+    color: var(--gold);
+    font-size: 13px;
+  }
+  .debug-row {
+    padding: 3px 6px;
+    border-radius: 4px;
+    margin: 2px 0;
+    background: rgba(255,255,255,0.03);
+  }
+  .debug-row.player { border-left: 3px solid var(--green); }
+  .debug-row.opp { border-left: 3px solid var(--red); }
+  .debug-row.empty { color: var(--muted); font-style: italic; }
+
+  /* ──── 플로팅 데미지 ──── */
+  .float-dmg {
+    position: fixed;
+    pointer-events: none;
+    font-weight: 900;
+    font-size: 22px;
+    text-shadow: 0 0 4px #000, 0 0 2px #000, 1px 1px 0 #000, -1px -1px 0 #000;
+    z-index: 220;
+    transform: translate(-50%, -50%);
+    animation: float-up 1.2s ease-out forwards;
+  }
+  @keyframes float-up {
+    0%   { opacity: 0; transform: translate(-50%, 10px) scale(0.5); }
+    15%  { opacity: 1; transform: translate(-50%, -10px) scale(1.3); }
+    80%  { opacity: 1; transform: translate(-50%, -35px) scale(1); }
+    100% { opacity: 0; transform: translate(-50%, -50px) scale(0.9); }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- 테스트 컨트롤 -->
+  <div class="test-panel">
+    <h3>🧪 연계기 테스트</h3>
+
+    <div class="toggle-row">
+      <label>
+        <input type="radio" name="actor" value="player" checked>
+        <span>내가 발동</span>
+      </label>
+      <label>
+        <input type="radio" name="actor" value="opp">
+        <span>AI 가 발동</span>
+      </label>
+    </div>
+
+    <div class="btn-row">
+      <div class="group-label">💠 속성 연계</div>
+      <button class="combo-btn attr-STR" data-combo="attr:STR">💪 힘<br>전체 −3</button>
+      <button class="combo-btn attr-DEX" data-combo="attr:DEX">💨 기<br>방어 3턴</button>
+      <button class="combo-btn attr-QCK" data-combo="attr:QCK">🏃 속<br>HP=1</button>
+      <button class="combo-btn attr-PSY" data-combo="attr:PSY">🧠 심<br>HP+2</button>
+      <button class="combo-btn attr-INT" data-combo="attr:INT">🌟 지<br>DoT 3회</button>
+    </div>
+
+    <div class="btn-row">
+      <div class="group-label">🏷 타입 연계</div>
+      <button class="combo-btn" data-combo="class:Fighter">격투<br>랜덤 2장 −3</button>
+      <button class="combo-btn" data-combo="class:Slasher">참격<br>ATK+2 3턴</button>
+      <button class="combo-btn" data-combo="class:Striker">타격<br>블라인드 3턴</button>
+      <button class="combo-btn" data-combo="class:Shooter">사격<br>2장 회수</button>
+      <button class="combo-btn" data-combo="class:Free Spirit">자유<br>약체교체</button>
+      <button class="combo-btn" data-combo="class:Driven">야심<br>트레이드</button>
+      <button class="combo-btn" data-combo="class:Cerebral">박식<br>봉쇄 3턴</button>
+      <button class="combo-btn" data-combo="class:Powerhouse">강인<br>무적 2턴</button>
+    </div>
+
+    <div class="util-row">
+      <button class="util-btn danger" id="btn-reset">🔄 전체 리셋</button>
+      <button class="util-btn" id="btn-next-turn">⏩ 턴 넘기기 (지속 효과)</button>
+    </div>
+  </div>
+
+  <!-- 상대 영역 -->
+  <div class="field-zone opp">
+    <div class="field-label opp">👹 상대 공격영역</div>
+    <div class="status-strip" id="opp-status"></div>
+    <div class="field-row" id="opp-field"></div>
+  </div>
+
+  <!-- 내 영역 -->
+  <div class="field-zone player">
+    <div class="field-label player">🙂 내 공격영역</div>
+    <div class="field-row" id="player-field"></div>
+    <div class="status-strip" id="player-status"></div>
+  </div>
+
+  <!-- 디버그 패널 -->
+  <div class="debug-panel">
+    <h3>📊 현재 상태</h3>
+    <div id="debug-list"></div>
+  </div>
+</div>
+
+<div class="selection-prompt hidden" id="selection-prompt"></div>
+
+<script>
+// ─────────── 샘플 카드 데이터 ───────────
+const ATTR_KO = { STR: '힘', DEX: '기', QCK: '속', PSY: '심', INT: '지' };
+const CLASS_LABEL = {
+  'Fighter':     { ko: '격투', char: '격', color: '#e35b5b' },
+  'Slasher':     { ko: '참격', char: '참', color: '#b060d0' },
+  'Striker':     { ko: '타격', char: '타', color: '#e08830' },
+  'Shooter':     { ko: '사격', char: '사', color: '#4aa3d9' },
+  'Free Spirit': { ko: '자유', char: '자', color: '#4bbf76' },
+  'Driven':      { ko: '야심', char: '야', color: '#d04040' },
+  'Cerebral':    { ko: '박식', char: '박', color: '#d9b64a' },
+  'Powerhouse':  { ko: '강인', char: '강', color: '#8a8a9e' },
+};
+
+// 각 속성/타입별 샘플 (이름/이모지/스탯 다양)
+const SAMPLE_CARDS = [
+  // 힘속성
+  { name: '루피', attr: 'STR', cls: 'Fighter', atk: 5, hp: 6, mana: 4, emoji: '👒' },
+  { name: '에이스', attr: 'STR', cls: 'Striker', atk: 7, hp: 5, mana: 5, emoji: '🔥' },
+  { name: '검은수염', attr: 'STR', cls: 'Powerhouse', atk: 4, hp: 10, mana: 5, emoji: '🖤' },
+  // 기속성
+  { name: '조로', attr: 'DEX', cls: 'Slasher', atk: 6, hp: 5, mana: 4, emoji: '⚔' },
+  { name: '트라팔가', attr: 'DEX', cls: 'Free Spirit', atk: 5, hp: 7, mana: 5, emoji: '🏴‍☠️' },
+  { name: '빅맘', attr: 'DEX', cls: 'Powerhouse', atk: 8, hp: 8, mana: 7, emoji: '🍰' },
+  // 속속성
+  { name: '상디', attr: 'QCK', cls: 'Fighter', atk: 6, hp: 4, mana: 4, emoji: '🦵' },
+  { name: '마르코', attr: 'QCK', cls: 'Free Spirit', atk: 5, hp: 6, mana: 4, emoji: '🔥' },
+  { name: '카이도', attr: 'QCK', cls: 'Striker', atk: 9, hp: 9, mana: 7, emoji: '🐉' },
+  // 심속성
+  { name: '쵸파', attr: 'PSY', cls: 'Striker', atk: 3, hp: 4, mana: 2, emoji: '🦌' },
+  { name: '한콕', attr: 'PSY', cls: 'Shooter', atk: 6, hp: 6, mana: 5, emoji: '🐍' },
+  { name: '카타쿠리', attr: 'PSY', cls: 'Striker', atk: 8, hp: 7, mana: 6, emoji: '🍡' },
+  // 지속성
+  { name: '로빈', attr: 'INT', cls: 'Cerebral', atk: 4, hp: 5, mana: 3, emoji: '🌸' },
+  { name: '크로커다일', attr: 'INT', cls: 'Driven', atk: 7, hp: 6, mana: 5, emoji: '🏜' },
+  { name: '도플라밍고', attr: 'INT', cls: 'Driven', atk: 8, hp: 7, mana: 6, emoji: '🎪' },
+];
+
+function sampleByAttr(attr) {
+  return SAMPLE_CARDS.filter(c => c.attr === attr);
+}
+function sampleByClass(cls) {
+  return SAMPLE_CARDS.filter(c => c.cls === cls);
+}
+function randomCards(n, pool) {
+  const shuffled = [...pool].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, n).map(c => instance(c));
+}
+let _iid = 0;
+function instance(c) {
+  return { ...c, maxHp: c.hp, instanceId: 'c' + (++_iid), buffs: [], blocked: 0, invincible: 0, blind: 0, atkBonus: 0, dmgReduce: 0 };
+}
+
+// ─────────── State ───────────
+let state = {
+  player: { field: [], statuses: [] },  // statuses: {kind, turns, icon, side}[]
+  opp:    { field: [], statuses: [] },
+  selectionMode: null,  // {type, step, attacker, selected}
+};
+
+function reset() {
+  _iid = 0;
+  state = {
+    player: { field: [], statuses: [] },
+    opp:    { field: [], statuses: [] },
+    selectionMode: null,
+  };
+  render();
+}
+
+function getActor() {
+  const checked = document.querySelector('input[name="actor"]:checked');
+  return checked ? checked.value : 'player';
+}
+
+// ─────────── Combo 세팅 + 발동 ───────────
+async function runCombo(comboKey) {
+  reset();
+  const [group, key] = comboKey.split(':');
+  const actor = getActor();
+  const target = actor === 'player' ? 'opp' : 'player';
+
+  // 1. 발동 측에 조건 충족 카드 3장 세팅
+  const comboCards = (group === 'attr' ? sampleByAttr(key) : sampleByClass(key));
+  if (comboCards.length < 3) {
+    alert(`샘플 카드 부족: ${key} ${comboCards.length}장`);
+    return;
+  }
+  state[actor].field = randomCards(3, comboCards);
+
+  // 2. 타겟 측에 샘플 적 카드 2-3장 세팅
+  state[target].field = randomCards(3, SAMPLE_CARDS);
+
+  render();
+  await sleep(400);
+
+  // 3. 연계 효과 발동
+  const effectFn = COMBO_EFFECTS[comboKey];
+  if (effectFn) {
+    await effectFn(actor);
+  } else {
+    alert('효과 미구현: ' + comboKey);
+  }
+  render();
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ─────────── 효과 구현 (13개) ───────────
+const COMBO_EFFECTS = {
+
+  // 💪 힘 — 적 전체 −3 (턴 종료)
+  'attr:STR': async (actor) => {
+    const t = actor === 'player' ? 'opp' : 'player';
+    for (const c of state[t].field) { c.hp -= 3; await flashCard(c); }
+    await sleep(300);
+    cleanDead(t);
+    showBanner('💪 힘속성 연계 — 적 전체 −3 (턴 종료)');
+  },
+
+  // 💨 기 — 내 공격영역 방어 버프 3턴 (받는 데미지 −2)
+  'attr:DEX': async (actor) => {
+    addStatus(actor, {
+      kind: 'defense_buff',
+      turns: 3,
+      icon: 'https://raw.githubusercontent.com/dc-hdmi/dc-hdmi/main/game/images/common_icon_deffence_up.png',
+      title: '방어 버프 (-2 받는 데미지)',
+      side: actor,  // 발동자의 공격영역에 걸림
+    });
+    state[actor].field.forEach(c => c.dmgReduce = 2);
+    showBanner('💨 기속성 연계 — 내 방어 버프 3턴');
+  },
+
+  // 🏃 속 — 적 HP 최고 카드 1장 → 현재 HP = 1
+  'attr:QCK': async (actor) => {
+    const t = actor === 'player' ? 'opp' : 'player';
+    if (!state[t].field.length) return;
+    const target = state[t].field.reduce((a, b) => a.hp > b.hp ? a : b);
+    const before = target.hp;
+    target.hp = 1;
+    await flashCard(target);
+    showFloat(target, `${before}→1`);
+    showBanner(`🏃 속속성 연계 — ${target.name} HP ${before} → 1`);
+  },
+
+  // 🧠 심 — 내 공격영역 전체 HP +2
+  'attr:PSY': async (actor) => {
+    state[actor].field.forEach(c => {
+      c.hp += 2;  // maxHp 유지
+      showFloat(c, '+2', '#5aff5a');
+    });
+    showBanner('🧠 심속성 연계 — 내 전체 HP +2');
+  },
+
+  // 🌟 지 — 상대 공격영역 장판 DoT 3회
+  'attr:INT': async (actor) => {
+    const t = actor === 'player' ? 'opp' : 'player';
+    addStatus(t, {
+      kind: 'dot_debuff',
+      turns: 3,
+      icon: 'https://raw.githubusercontent.com/dc-hdmi/dc-hdmi/main/game/images/popuptext_slot_poison.png',
+      title: '독 (상대 턴 시작 시 −1, 3회)',
+      side: t,  // 영향 받는 쪽
+    });
+    showBanner('🌟 지속성 연계 — 상대 영역 DoT 3회 (턴 넘기기로 확인)');
+  },
+
+  // 👊 격투 — 랜덤 적 2장 각 −3
+  'class:Fighter': async (actor) => {
+    const t = actor === 'player' ? 'opp' : 'player';
+    const picks = [...state[t].field].sort(() => Math.random() - 0.5).slice(0, 2);
+    for (const c of picks) {
+      c.hp -= 3;
+      showFloat(c, '-3');
+      await flashCard(c);
+    }
+    await sleep(300);
+    cleanDead(t);
+    showBanner(`👊 격투 연계 — 랜덤 ${picks.length}장 각 −3`);
+  },
+
+  // ⚔ 참격 — 내 공격영역 ATK +2 3턴
+  'class:Slasher': async (actor) => {
+    addStatus(actor, {
+      kind: 'atk_buff',
+      turns: 3,
+      icon: 'https://raw.githubusercontent.com/dc-hdmi/dc-hdmi/main/game/images/common_attack_up_01_icon.png',
+      title: '공격력 +2 버프',
+      side: actor,
+    });
+    state[actor].field.forEach(c => c.atkBonus = 2);
+    showBanner('⚔ 참격 연계 — 내 ATK +2 3턴');
+  },
+
+  // 💥 타격 — 내 공격영역 블라인드 3턴
+  'class:Striker': async (actor) => {
+    addStatus(actor, {
+      kind: 'blind_debuff',
+      turns: 3,
+      icon: 'https://raw.githubusercontent.com/dc-hdmi/dc-hdmi/main/game/images/common_icon_blind.png',
+      title: '블라인드 (상대에게 안 보임)',
+      side: actor,  // 발동자 카드가 숨겨짐, 아이콘은 상대에게 보임
+    });
+    state[actor].field.forEach(c => c.blind = 3);
+    showBanner('💥 타격 연계 — 내 공격영역 블라인드 3턴');
+  },
+
+  // 🏹 사격 — 적 랜덤 2장 회수 (상태 리셋)
+  'class:Shooter': async (actor) => {
+    const t = actor === 'player' ? 'opp' : 'player';
+    const picks = [...state[t].field].sort(() => Math.random() - 0.5).slice(0, 2);
+    for (const c of picks) {
+      await animateCardOut(c);
+      state[t].field = state[t].field.filter(x => x.instanceId !== c.instanceId);
+    }
+    showBanner(`🏹 사격 연계 — 적 ${picks.length}장 회수 (덱으로)`);
+  },
+
+  // 🎭 자유 — 적 1장 → 마나 1 랜덤 카드로 교체 (선택 UI)
+  'class:Free Spirit': async (actor) => {
+    const t = actor === 'player' ? 'opp' : 'player';
+    if (actor === 'player') {
+      await selectOne('상대 카드를 선택하세요', t, (chosen) => {
+        swapToWeak(chosen, t);
+        showBanner(`🎭 자유 연계 — ${chosen.name} → 약체 교체`);
+      });
+    } else {
+      const chosen = state[t].field.reduce((a, b) => a.atk > b.atk ? a : b);
+      swapToWeak(chosen, t);
+      showBanner(`🎭 자유 연계 (AI) — ${chosen.name} → 약체 교체`);
+    }
+  },
+
+  // 🔥 야심 — 상대 ↔ 내 트레이드 (선택 UI, 2단계)
+  'class:Driven': async (actor) => {
+    const t = actor === 'player' ? 'opp' : 'player';
+    if (actor === 'player') {
+      await selectOne('교체할 상대 카드 선택', t, async (oppPick) => {
+        await selectOne('교체할 내 카드 선택', actor, (myPick) => {
+          tradeCards(oppPick, t, myPick, actor);
+          showBanner(`🔥 야심 연계 — ${oppPick.name} ↔ ${myPick.name}`);
+        });
+      });
+    } else {
+      const oppPick = state[t].field.reduce((a, b) => a.atk > b.atk ? a : b);
+      const myPick = state[actor].field.reduce((a, b) => a.atk < b.atk ? a : b);
+      tradeCards(oppPick, t, myPick, actor);
+      showBanner(`🔥 야심 연계 (AI) — ${oppPick.name} ↔ ${myPick.name}`);
+    }
+  },
+
+  // 🧠 박식 — 적 ATK 최고 1장 봉쇄 3턴
+  'class:Cerebral': async (actor) => {
+    const t = actor === 'player' ? 'opp' : 'player';
+    if (!state[t].field.length) return;
+    const target = state[t].field.reduce((a, b) => a.atk > b.atk ? a : b);
+    target.blocked = 3;
+    await flashCard(target);
+    showBanner(`🧠 박식 연계 — ${target.name} 봉쇄 3턴`);
+  },
+
+  // 🛡 강인 — 내 1장 무적 2턴 (선택 UI)
+  'class:Powerhouse': async (actor) => {
+    if (actor === 'player') {
+      await selectOne('무적을 걸 내 카드 선택', actor, (chosen) => {
+        chosen.invincible = 2;
+        chosen.blocked = 0;  // 봉쇄 해제
+        showBanner(`🛡 강인 연계 — ${chosen.name} 무적 2턴`);
+      });
+    } else {
+      const chosen = state[actor].field.reduce((a, b) => a.atk > b.atk ? a : b);
+      chosen.invincible = 2;
+      chosen.blocked = 0;
+      showBanner(`🛡 강인 연계 (AI) — ${chosen.name} 무적 2턴`);
+    }
+  },
+};
+
+// ─────────── 유틸 ───────────
+function addStatus(side, status) {
+  state[side].statuses.push(status);
+}
+
+function cleanDead(side) {
+  state[side].field = state[side].field.filter(c => c.hp > 0);
+}
+
+function swapToWeak(oldCard, side) {
+  const weakPool = SAMPLE_CARDS.filter(c => c.mana <= 2);
+  const newCard = instance(weakPool[Math.floor(Math.random() * weakPool.length)]);
+  const idx = state[side].field.findIndex(c => c.instanceId === oldCard.instanceId);
+  if (idx >= 0) state[side].field[idx] = newCard;
+}
+
+function tradeCards(cardA, sideA, cardB, sideB) {
+  const idxA = state[sideA].field.findIndex(c => c.instanceId === cardA.instanceId);
+  const idxB = state[sideB].field.findIndex(c => c.instanceId === cardB.instanceId);
+  if (idxA < 0 || idxB < 0) return;
+  // 소속 교환
+  state[sideA].field[idxA] = cardB;
+  state[sideB].field[idxB] = cardA;
+  // 개별 상태 초기화
+  cardA.blocked = 0; cardA.invincible = 0;
+  cardB.blocked = 0; cardB.invincible = 0;
+}
+
+// 선택 UI
+function selectOne(prompt, side, onSelect) {
+  return new Promise(resolve => {
+    state.selectionMode = { prompt, side, onSelect, resolve };
+    render();
+  });
+}
+
+async function flashCard(card) {
+  const el = document.querySelector(`[data-iid="${card.instanceId}"]`);
+  if (!el) return;
+  el.animate([
+    { filter: 'brightness(2) saturate(0)' },
+    { filter: 'none' }
+  ], { duration: 300 });
+  await sleep(100);
+}
+
+function showFloat(card, text, color = '#ff5555') {
+  const el = document.querySelector(`[data-iid="${card.instanceId}"]`);
+  if (!el) return;
+  const r = el.getBoundingClientRect();
+  const d = document.createElement('div');
+  d.className = 'float-dmg';
+  d.style.color = color;
+  d.style.left = (r.left + r.width / 2) + 'px';
+  d.style.top = (r.top + r.height / 2) + 'px';
+  d.textContent = text;
+  document.body.appendChild(d);
+  setTimeout(() => d.remove(), 1300);
+}
+
+async function animateCardOut(card) {
+  const el = document.querySelector(`[data-iid="${card.instanceId}"]`);
+  if (!el) { await sleep(100); return; }
+  await el.animate([
+    { transform: 'scale(1)', opacity: 1 },
+    { transform: 'translateY(-100px) scale(0.3) rotate(45deg)', opacity: 0 }
+  ], { duration: 500, easing: 'ease-in' }).finished;
+}
+
+function showBanner(text) {
+  console.log('[Banner]', text);
+  const b = document.createElement('div');
+  b.style.cssText = `position:fixed;top:70px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.9);color:gold;padding:10px 16px;border-radius:8px;font-weight:800;z-index:300;border:1px solid gold;max-width:90%;text-align:center;`;
+  b.textContent = text;
+  document.body.appendChild(b);
+  setTimeout(() => b.remove(), 2500);
+}
+
+// ─────────── 턴 넘기기 (지속 효과 테스트) ───────────
+function nextTurn() {
+  // DoT 디버프 처리 (장판)
+  ['player', 'opp'].forEach(side => {
+    state[side].statuses.forEach(st => {
+      if (st.kind === 'dot_debuff') {
+        state[side].field.forEach(c => {
+          c.hp -= 1;
+          showFloat(c, '-1');
+        });
+      }
+    });
+    cleanDead(side);
+  });
+  // 모든 상태 턴수 -1
+  ['player', 'opp'].forEach(side => {
+    state[side].statuses = state[side].statuses.filter(st => {
+      st.turns--;
+      if (st.turns <= 0) {
+        // 효과 해제
+        if (st.kind === 'defense_buff') state[side].field.forEach(c => c.dmgReduce = 0);
+        if (st.kind === 'atk_buff') state[side].field.forEach(c => c.atkBonus = 0);
+        if (st.kind === 'blind_debuff') state[side].field.forEach(c => c.blind = 0);
+        return false;
+      }
+      return true;
+    });
+    state[side].field.forEach(c => {
+      if (c.blocked > 0) c.blocked--;
+      if (c.invincible > 0) c.invincible--;
+      if (c.blind > 0) c.blind--;
+    });
+  });
+  render();
+  showBanner('⏩ 턴 진행 — 지속 효과 적용');
+}
+
+// ─────────── Render ───────────
+function render() {
+  renderField('opp-field', state.opp.field, 'opp');
+  renderField('player-field', state.player.field, 'player');
+  renderStatus('opp-status', state.opp.statuses);
+  renderStatus('player-status', state.player.statuses);
+  renderPrompt();
+  renderDebug();
+}
+
+function renderField(elId, field, side) {
+  const el = document.getElementById(elId);
+  el.innerHTML = '';
+  if (!field.length) {
+    el.innerHTML = '<div class="slot-empty">비어있음</div>';
+    return;
+  }
+  field.forEach(c => el.appendChild(cardEl(c, side)));
+}
+
+function cardEl(c, side) {
+  const el = document.createElement('div');
+  const classes = ['card', c.attr];
+  if (c.blocked > 0) classes.push('blocked');
+  if (c.invincible > 0) classes.push('invincible');
+  // 블라인드: 상대가 입은 경우(= blind > 0인 쪽의 상대가 발동자). 테스트에서는 blind > 0인 카드를 뒷면으로.
+  if (c.blind > 0) classes.push('blind-back');
+  // 선택 가능 하이라이트
+  if (state.selectionMode && state.selectionMode.side === side) {
+    classes.push('selectable');
+  }
+  if (state.selectionMode && state.selectionMode.firstPick === c.instanceId) {
+    classes.push('selected-first');
+  }
+  el.className = classes.join(' ');
+  el.dataset.iid = c.instanceId;
+  const cls = CLASS_LABEL[c.cls];
+  const classBadge = cls
+    ? `<span class="class-badge" style="background:${cls.color};">${cls.char}</span>`
+    : `<span></span>`;
+  el.innerHTML = `
+    ${c.blind > 0 ? '<div class="blind-mark">?</div>' : ''}
+    <div class="cost-badge">${c.mana}</div>
+    <div class="attr-tag">${ATTR_KO[c.attr] || c.attr}</div>
+    <div class="thumb">${c.emoji || '?'}</div>
+    <div class="name">${c.name}</div>
+    <div class="stats">${classBadge}<span class="atk">⚔${c.atk + (c.atkBonus || 0)}</span><span class="hp">♥${c.hp}</span></div>
+    ${c.invincible > 0 ? '<div class="invincible-corner"></div>' : ''}
+  `;
+  if (state.selectionMode && state.selectionMode.side === side) {
+    el.addEventListener('click', () => handleSelection(c));
+  }
+  return el;
+}
+
+function handleSelection(c) {
+  const mode = state.selectionMode;
+  if (!mode) return;
+  if (mode.firstPick === c.instanceId) {
+    // 재선택 취소 (야심 1단계)
+    mode.firstPick = null;
+    render();
+    return;
+  }
+  state.selectionMode = null;
+  render();
+  mode.onSelect(c);
+  if (mode.resolve) mode.resolve();
+}
+
+function renderStatus(elId, statuses) {
+  const el = document.getElementById(elId);
+  el.innerHTML = '';
+  statuses.forEach(st => {
+    const icon = document.createElement('div');
+    icon.className = 'status-icon';
+    icon.title = st.title;
+    icon.innerHTML = `
+      <img src="${st.icon}" alt="${st.kind}">
+      <span class="count">${st.turns}</span>
+    `;
+    el.appendChild(icon);
+  });
+}
+
+function renderPrompt() {
+  const p = document.getElementById('selection-prompt');
+  if (state.selectionMode) {
+    p.textContent = state.selectionMode.prompt;
+    p.classList.remove('hidden');
+  } else {
+    p.classList.add('hidden');
+  }
+}
+
+function renderDebug() {
+  const el = document.getElementById('debug-list');
+  const rows = [];
+  ['player', 'opp'].forEach(side => {
+    const prefix = side === 'player' ? '🙂 내' : '👹 상대';
+    state[side].field.forEach(c => {
+      const bits = [];
+      if (c.blocked > 0) bits.push(`봉쇄 ${c.blocked}턴`);
+      if (c.invincible > 0) bits.push(`무적 ${c.invincible}턴`);
+      if (c.blind > 0) bits.push(`블라인드 ${c.blind}턴`);
+      if (c.atkBonus > 0) bits.push(`ATK+${c.atkBonus}`);
+      if (c.dmgReduce > 0) bits.push(`받는데미지 −${c.dmgReduce}`);
+      if (c.hp > c.maxHp) bits.push(`overheal ${c.hp}/${c.maxHp}`);
+      const statusText = bits.length ? ` [${bits.join(', ')}]` : '';
+      rows.push({ side, text: `${prefix}: ${c.name} (⚔${c.atk + (c.atkBonus || 0)}/♥${c.hp})${statusText}` });
+    });
+    state[side].statuses.forEach(st => {
+      rows.push({ side, text: `${prefix} 영역: ${st.title} (${st.turns}턴 남음)` });
+    });
+  });
+  if (!rows.length) {
+    el.innerHTML = '<div class="debug-row empty">아직 아무 상태도 없음</div>';
+    return;
+  }
+  el.innerHTML = rows.map(r => `<div class="debug-row ${r.side}">${r.text}</div>`).join('');
+}
+
+// ─────────── Bind ───────────
+document.querySelectorAll('.combo-btn').forEach(btn => {
+  btn.addEventListener('click', () => runCombo(btn.dataset.combo));
+});
+document.getElementById('btn-reset').addEventListener('click', reset);
+document.getElementById('btn-next-turn').addEventListener('click', nextTurn);
+
+reset();
+</script>
+</body>
+</html>
