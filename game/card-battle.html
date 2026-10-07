@@ -612,6 +612,124 @@
     75% { transform: translateX(3px) scale(1.1); }
   }
 
+  /* ───── 연계 상태 오버레이 ───── */
+  .card.blocked { opacity: 0.55; filter: grayscale(60%); }
+  .card.blocked .thumb::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: url('https://raw.githubusercontent.com/dc-hdmi/dc-hdmi/main/game/images/common_bind.png') center/85% no-repeat;
+    z-index: 10;
+    pointer-events: none;
+  }
+  .card.invincible { animation: rainbow-border 2s linear infinite; }
+  @keyframes rainbow-border {
+    0%   { border-color: #ff5555; box-shadow: 0 0 10px #ff5555, 0 0 4px #fff; }
+    16%  { border-color: #ffa500; box-shadow: 0 0 10px #ffa500, 0 0 4px #fff; }
+    33%  { border-color: #ffff55; box-shadow: 0 0 10px #ffff55, 0 0 4px #fff; }
+    50%  { border-color: #55ff55; box-shadow: 0 0 10px #55ff55, 0 0 4px #fff; }
+    66%  { border-color: #55a3ff; box-shadow: 0 0 10px #55a3ff, 0 0 4px #fff; }
+    83%  { border-color: #a855ff; box-shadow: 0 0 10px #a855ff, 0 0 4px #fff; }
+    100% { border-color: #ff5555; box-shadow: 0 0 10px #ff5555, 0 0 4px #fff; }
+  }
+  .card .invincible-corner {
+    position: absolute;
+    top: -4px; right: -4px;
+    width: 18px; height: 18px;
+    background: url('https://raw.githubusercontent.com/dc-hdmi/dc-hdmi/main/game/images/state_icon_invincible.png') center/contain no-repeat;
+    background-color: rgba(0,0,0,0.6);
+    border-radius: 50%;
+    border: 1px solid var(--gold);
+    z-index: 4;
+  }
+  .card.blind-back {
+    background: repeating-linear-gradient(45deg, #4a1515 0 6px, #2a0e0e 6px 12px) !important;
+    border-color: #5a2a2a !important;
+    box-shadow: none !important;
+  }
+  .card.blind-back > *:not(.blind-mark) { visibility: hidden; }
+  .card.blind-back .blind-mark {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    color: rgba(255,180,180,0.4);
+    font-size: 24px; font-weight: 900;
+    visibility: visible !important;
+  }
+  .card.selectable-target {
+    animation: selectable-pulse 1s ease-in-out infinite;
+    cursor: crosshair;
+  }
+  @keyframes selectable-pulse {
+    0%, 100% { transform: translateY(0); filter: brightness(1); }
+    50%      { transform: translateY(-6px); filter: brightness(1.3) drop-shadow(0 0 8px gold); }
+  }
+  .card.selection-firstpick {
+    transform: translateY(-10px) scale(1.1);
+    box-shadow: 0 0 16px gold !important;
+    z-index: 10;
+  }
+  .card.selection-dim {
+    opacity: 0.4; pointer-events: none;
+  }
+
+  /* ───── 상태 아이콘 띠 ───── */
+  .status-strip {
+    display: flex;
+    gap: 4px;
+    padding: 2px 6px;
+    min-height: 0;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .status-strip:empty { display: none; }
+  .status-icon {
+    position: relative;
+    width: 26px; height: 26px;
+    border-radius: 6px;
+    background: rgba(0,0,0,0.6);
+    border: 1px solid var(--gold);
+    display: flex; align-items: center; justify-content: center;
+    overflow: visible;
+    flex-shrink: 0;
+  }
+  .status-icon img {
+    width: 100%; height: 100%; object-fit: contain;
+    padding: 2px;
+  }
+  .status-icon .count {
+    position: absolute;
+    bottom: -8px; left: 50%;
+    transform: translateX(-50%);
+    background: #000;
+    color: var(--gold);
+    font-size: 9px;
+    font-weight: 900;
+    padding: 0 3px;
+    border-radius: 3px;
+    border: 1px solid var(--gold);
+    line-height: 1.2;
+  }
+
+  /* ───── 선택 프롬프트 ───── */
+  .selection-prompt {
+    position: absolute;
+    top: 40%; left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0,0,0,0.95);
+    color: var(--gold);
+    padding: 10px 16px;
+    border: 2px solid var(--gold);
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 800;
+    z-index: 190;
+    pointer-events: none;
+    text-align: center;
+    box-shadow: 0 0 20px rgba(255,215,122,0.6);
+    max-width: 85%;
+    line-height: 1.4;
+  }
+  .selection-prompt.hidden { display: none; }
+
   /* ───── 피격 플래시 ───── */
   .card.hit {
     animation: hit-flash 0.35s;
@@ -1209,27 +1327,56 @@
     transform: scale(0.95);
   }
 
-  /* ───── 도움말 ? FAB ───── */
+  /* ───── 도움말 ? (상대 리더 영역 내 "남은 카드" 밑) ───── */
   .help-fab {
-    position: absolute;
-    bottom: calc(68px + env(safe-area-inset-bottom));
-    right: 10px;
-    width: 42px; height: 42px;
+    width: 22px; height: 22px;
     border-radius: 50%;
     background: linear-gradient(180deg, #3a5042, #1f3028);
     color: var(--gold);
-    font-size: 20px;
+    font-size: 12px;
     font-weight: 900;
-    border: 2px solid var(--gold);
+    border: 1.5px solid var(--gold);
     cursor: pointer;
-    z-index: 100;
+    padding: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.6), inset 0 1px 1px rgba(255,255,255,0.1);
-    padding: 0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.6);
+    line-height: 1;
   }
   .help-fab:active { transform: scale(0.92); }
+  .deck-help-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+  }
+
+  /* ───── 연계 테스트 iframe 모달 ───── */
+  .test-modal {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.95);
+    z-index: 280;
+    display: flex;
+    flex-direction: column;
+  }
+  .test-modal.hidden { display: none; }
+  .test-modal-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 14px;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--gold);
+  }
+  .test-modal-header h3 {
+    margin: 0; color: var(--gold); font-size: 15px;
+  }
+  .test-modal iframe {
+    flex: 1;
+    width: 100%;
+    border: none;
+    background: var(--bg);
+  }
 
   /* ───── 도움말 모달 ───── */
   .help-modal {
@@ -1351,7 +1498,10 @@
       <div style="display: flex; gap: 8px;">
         <span class="hp-bar"><span class="heart">♥</span><span id="opp-hp">25</span></span>
         <span class="mana">💧<span id="opp-mana">1</span>/<span id="opp-max-mana">1</span></span>
-        <span style="color:var(--muted); font-size:12px;">남은 카드 <span id="opp-deck">15</span></span>
+        <div class="deck-help-col">
+          <span style="color:var(--muted); font-size:12px;">남은 카드 <span id="opp-deck">15</span></span>
+          <button class="help-fab" id="btn-help" title="게임 설명">?</button>
+        </div>
       </div>
     </div>
     <div class="opp-hand-row" id="opp-hand"></div>
@@ -1362,12 +1512,14 @@
       <div class="ult-fill" id="opp-ult-fill"></div>
       <div class="ult-label">⚡ <span id="opp-ult-text">0/20</span></div>
     </div>
+    <div class="status-strip" id="opp-status"></div>
     <div class="field-row" id="opp-field"></div>
   </div>
 
   <!-- Player field -->
   <div class="zone player-field">
     <div class="field-row" id="player-field"></div>
+    <div class="status-strip" id="player-status"></div>
     <div class="ult-gauge player" id="player-ult-gauge">
       <div class="ult-fill" id="player-ult-fill"></div>
       <div class="ult-label">⚡ <span id="player-ult-text">0/20</span></div>
@@ -1404,6 +1556,7 @@
   <div class="turn-banner" id="turn-banner"></div>
   <div class="mini-banner" id="mini-banner"></div>
   <div class="cancel-attack" id="cancel-attack">✕ 공격 취소</div>
+  <div class="selection-prompt hidden" id="selection-prompt"></div>
 
   <!-- 배틀 로그 패널 -->
   <div class="log-panel hidden" id="log-panel">
@@ -1433,6 +1586,15 @@
     </div>
   </div>
 
+  <!-- 연계 테스트 모달 -->
+  <div class="test-modal hidden" id="test-modal">
+    <div class="test-modal-header">
+      <h3>🧪 연계기 테스트</h3>
+      <button class="log-close" id="test-close">✕ 닫기</button>
+    </div>
+    <iframe id="test-iframe" src="about:blank"></iframe>
+  </div>
+
   <!-- 필살기 전체 화면 이펙트 -->
   <div class="ultimate-overlay" id="ult-overlay">
     <div class="ult-flash"></div>
@@ -1441,8 +1603,6 @@
     <div class="ult-text" id="ult-text-label">ULTIMATE</div>
   </div>
 
-  <!-- 도움말 FAB 버튼 -->
-  <button class="help-fab" id="btn-help" title="게임 설명">?</button>
 
   <!-- 도움말 모달 -->
   <div class="help-modal hidden" id="help-modal">
@@ -1544,12 +1704,52 @@
       <h4>⑫ 연계기 (COMBO)</h4>
       <ul>
         <li>필드에 <strong>같은 속성 3장</strong> 또는 <strong>같은 타입 3장</strong>이 모이면 발동 가능</li>
-        <li>상대 리더 영역 우측 <strong>⚡ 아이콘</strong>이 금색으로 깜빡 → 클릭</li>
-        <li>여러 연계 성립 시 모달에서 원하는 조합 선택 → <strong>적 전체 −2 데미지</strong></li>
-        <li><strong>쿨다운 2턴</strong> — 발동 후 2턴 지나야 다시 사용 (뱃지에 남은 쿨 숫자 표시)</li>
-        <li>연계는 그 턴의 공격을 소모하는 액션 — <strong>발동하면 자동으로 턴이 종료</strong>됨</li>
-        <li>마나 무료, 상대 AI 도 동일 조건으로 연계 사용</li>
+        <li>내 리더 영역 우측 <strong>⚡ 아이콘</strong>이 금색으로 깜빡 → 클릭</li>
+        <li><strong>쿨다운 2턴</strong>, 마나 무료, 상대 AI 도 동일 조건으로 사용</li>
+        <li>이미 걸려있는 디버프/버프는 재발동 불가 (모달에서 비활성화)</li>
+        <li>봉쇄 상태 카드는 연계 조건 카운트에서 제외</li>
       </ul>
+
+      <h5 style="color:var(--gold); margin:12px 0 4px; font-size:13px;">💠 속성 연계 (5종)</h5>
+      <table>
+        <tr><th>속성</th><th>효과</th><th>발동 후</th></tr>
+        <tr><td>💪 <b>힘</b></td><td>적 전체 <b>−3 데미지</b></td><td><b>턴 종료</b></td></tr>
+        <tr><td>💨 <b>기</b></td><td>내 공격영역 <b>방어 버프 3턴</b> (받는 데미지 −2)</td><td>턴 유지</td></tr>
+        <tr><td>🏃 <b>속</b></td><td>적 공격영역 HP 최고 카드 1장 → <b>현재 HP = 1</b> (maxHp 유지)</td><td>턴 유지</td></tr>
+        <tr><td>🧠 <b>심</b></td><td>내 공격영역 카드 전체 <b>HP +2</b> (max 초과 회복 가능)</td><td>턴 유지</td></tr>
+        <tr><td>🌟 <b>지</b></td><td>상대 공격영역 <b>장판 DoT 3회</b> — 상대 턴 시작 시 카드 전체 −1</td><td>턴 유지</td></tr>
+      </table>
+
+      <h5 style="color:var(--gold); margin:12px 0 4px; font-size:13px;">🏷 타입 연계 (8종)</h5>
+      <table>
+        <tr><th>타입</th><th>효과</th><th>발동 후</th></tr>
+        <tr><td>격투</td><td>랜덤 적 2장 각 <b>−3</b></td><td>턴 유지</td></tr>
+        <tr><td>참격</td><td>내 공격영역 <b>ATK +2, 3턴</b> 버프</td><td>턴 유지</td></tr>
+        <tr><td>타격</td><td>내 공격영역 <b>블라인드 3턴</b> — 상대가 내 카드 안 보임 (AI 랜덤 공격)</td><td>턴 유지</td></tr>
+        <tr><td>사격</td><td>적 공격영역 <b>랜덤 2장 강제 회수</b> → 상대 남은 카드 +2 (상태 리셋)</td><td>턴 유지</td></tr>
+        <tr><td>자유</td><td>적 카드 <b>1장 선택 → 마나 1 약체 카드로 교체</b> (선택 UI)</td><td>턴 유지</td></tr>
+        <tr><td>야심</td><td>상대 카드 1장 ↔ 내 카드 1장 <b>트레이드</b> (선택 UI, 2단계)</td><td>턴 유지</td></tr>
+        <tr><td>박식</td><td>적 ATK 최고 카드 1장 <b>봉쇄 3턴</b> (공격 불가, 연계 카운트 제외)</td><td>턴 유지</td></tr>
+        <tr><td>강인</td><td>내 카드 1장 <b>2턴 무적</b> — 받는 데미지 0 (반격 데미지는 유지)</td><td>턴 유지</td></tr>
+      </table>
+
+      <h5 style="color:var(--gold); margin:12px 0 4px; font-size:13px;">🎨 상태 아이콘</h5>
+      <table>
+        <tr><th style="width:40px;">아이콘</th><th>의미</th></tr>
+        <tr><td><img src="https://raw.githubusercontent.com/dc-hdmi/dc-hdmi/main/game/images/common_icon_deffence_up.png" width="26" height="26" alt="방어"></td><td><b>방어 버프</b> — 내 공격영역 카드 받는 데미지 −2 (기 연계)</td></tr>
+        <tr><td><img src="https://raw.githubusercontent.com/dc-hdmi/dc-hdmi/main/game/images/common_attack_up_01_icon.png" width="26" height="26" alt="공격"></td><td><b>공격 버프</b> — 내 공격영역 ATK +2 (참격 연계)</td></tr>
+        <tr><td><img src="https://raw.githubusercontent.com/dc-hdmi/dc-hdmi/main/game/images/popuptext_slot_poison.png" width="26" height="26" alt="독"></td><td><b>독 (DoT)</b> — 상대 턴 시작 시 공격영역 전체 −1 (지 연계)</td></tr>
+        <tr><td><img src="https://raw.githubusercontent.com/dc-hdmi/dc-hdmi/main/game/images/common_bind.png" width="26" height="26" alt="봉쇄"></td><td><b>봉쇄</b> — 공격 불가, 연계 카운트 제외 (박식 연계)<br>대상 카드에 쇠사슬 오버레이</td></tr>
+        <tr><td><img src="https://raw.githubusercontent.com/dc-hdmi/dc-hdmi/main/game/images/state_icon_invincible.png" width="26" height="26" alt="무적"></td><td><b>무적</b> — 받는 데미지 0 (강인 연계)<br>대상 카드에 무지개 테두리 + 우측 상단 아이콘</td></tr>
+        <tr><td><img src="https://raw.githubusercontent.com/dc-hdmi/dc-hdmi/main/game/images/common_icon_blind.png" width="26" height="26" alt="블라인드"></td><td><b>블라인드</b> — 상대가 내 공격영역 카드 못 봄 (타격 연계)<br>AI 가 걸리면 랜덤 공격 / 내가 걸리면 상대 카드 뒷면으로 보임</td></tr>
+      </table>
+
+      <p style="font-size:11px; color:var(--muted); margin-top:8px;">
+      ※ 아이콘 위치: 내 발동 버프/상대 발동 디버프는 내 게이지바 위 · 내 발동 디버프/상대 발동 버프는 상대 게이지바 아래<br>
+      ※ 좌→우로 채워지며, 아이콘 하단에 남은 턴/횟수 숫자 표시
+      </p>
+
+      <button id="btn-open-combo-test" style="width:100%; margin-top:10px; padding:10px; background:linear-gradient(180deg,#ffd57a,#c98f2a); color:#1a1207; border:none; border-radius:6px; font-weight:800; cursor:pointer;">🧪 연계기 테스트 열기</button>
 
       <h4>⑬ 필살기 게이지 (ULTIMATE)</h4>
       <ul>
@@ -1641,8 +1841,10 @@ function cardPool() {
     pool.push({
       id: logbook, name, attr, cls,
       mana, atk, hp, maxHp: hp,
+      baseAtk: atk,  // 참격 버프 해제 시 복원용
       effect: CLASS_EFFECT[cls] || {},
       exhausted: true,  // 소환 턴엔 공격 불가
+      blocked: 0, invincible: 0, blind: 0, atkBonus: 0, dmgReduce: 0,
     });
   });
   return pool;
@@ -1681,8 +1883,8 @@ function newGame() {
   if (state && state._autoEndTimer) clearTimeout(state._autoEndTimer);
   const firstPlayer = Math.random() < 0.5 ? 'player' : 'opp';
   state = {
-    player: { hp: 25, mana: 1, maxMana: 1, deck: makeDeck(), hand: [], field: [], _comboCooldown: 0, _ultGauge: 0 },
-    opp:    { hp: 25, mana: 1, maxMana: 1, deck: makeDeck(), hand: [], field: [], _comboCooldown: 0, _ultGauge: 0 },
+    player: { hp: 25, mana: 1, maxMana: 1, deck: makeDeck(), hand: [], field: [], statuses: [], _comboCooldown: 0, _ultGauge: 0 },
+    opp:    { hp: 25, mana: 1, maxMana: 1, deck: makeDeck(), hand: [], field: [], statuses: [], _comboCooldown: 0, _ultGauge: 0 },
     turn: firstPlayer,
     firstPlayer,
     attackingCard: null,
@@ -1693,6 +1895,7 @@ function newGame() {
     _gameOver: false,
     _locked: false,
     _autoEndTimer: null,
+    selectionMode: null,
   };
   for (let i = 0; i < 5; i++) drawCard('player');
   for (let i = 0; i < 5; i++) drawCard('opp');
@@ -1801,6 +2004,7 @@ function playUltimateIntro(side) {
 function detectCombos(side) {
   const attrMap = {}, clsMap = {};
   state[side].field.forEach(c => {
+    if (c.blocked > 0) return;  // 봉쇄 카드는 연계 카운트 제외
     (attrMap[c.attr] = attrMap[c.attr] || []).push(c);
     (clsMap[c.cls] = clsMap[c.cls] || []).push(c);
   });
@@ -1850,12 +2054,15 @@ function openComboModal() {
   const listEl = document.getElementById('combo-list');
   listEl.innerHTML = '';
   combos.forEach((combo, idx) => {
+    const effect = getComboEffect(combo);
+    const alreadyActive = isEffectActive(effect, 'player');
+    const endMark = effect.endTurn ? ' · 턴 종료' : '';
     const item = document.createElement('div');
     item.className = 'combo-item';
     item.innerHTML = `
       <div class="combo-label">${comboLabel(combo)} 연계 (${combo.cards.length}장)</div>
       <div class="combo-cards"></div>
-      <button data-idx="${idx}">⚡ 발동 (적 전체 −2)</button>
+      <button data-idx="${idx}"${alreadyActive ? ' disabled style="opacity:0.4;cursor:not-allowed;"' : ''}>⚡ ${alreadyActive ? '이미 적용 중' : `발동 — ${effect.label}${endMark}`}</button>
     `;
     const cardsEl = item.querySelector('.combo-cards');
     combo.cards.slice(0, 4).forEach(c => {
@@ -1879,17 +2086,52 @@ function closeComboModal() {
   document.getElementById('combo-modal').classList.add('hidden');
 }
 
+// 효과 정의 — 각 연계기별 세분화
+const COMBO_EFFECTS = {
+  'attr:STR': { kind: 'aoe_dmg', value: 3, endTurn: true, label: '적 전체 −3' },
+  'attr:DEX': { kind: 'buff_defense', value: 2, turns: 3, label: '방어 버프 (3턴 −2 받는 데미지)' },
+  'attr:QCK': { kind: 'enemy_hp_to_1', label: 'HP 최고 적 → HP 1' },
+  'attr:PSY': { kind: 'self_heal', value: 2, label: '내 공격영역 전체 HP +2' },
+  'attr:INT': { kind: 'debuff_dot', value: 1, turns: 3, label: '상대 영역 DoT (3회)' },
+  'class:Fighter': { kind: 'enemy_random_dmg', value: 3, count: 2, label: '랜덤 적 2장 −3' },
+  'class:Slasher': { kind: 'buff_attack', value: 2, turns: 3, label: '공격 버프 (3턴 ATK +2)' },
+  'class:Striker': { kind: 'debuff_blind', turns: 3, label: '블라인드 (3턴)' },
+  'class:Shooter': { kind: 'enemy_recall', count: 2, label: '적 랜덤 2장 회수' },
+  'class:Free Spirit': { kind: 'enemy_swap_weak', label: '적 1장 → 약체 교체' },
+  'class:Driven': { kind: 'trade', label: '상대 ↔ 내 트레이드' },
+  'class:Cerebral': { kind: 'enemy_block_top', turns: 3, label: '적 ATK 최고 봉쇄 (3턴)' },
+  'class:Powerhouse': { kind: 'self_invincible', turns: 2, label: '내 1장 무적 (2턴)' },
+};
+
+function getComboEffect(combo) {
+  return COMBO_EFFECTS[`${combo.group}:${combo.key}`] || { kind: 'aoe_dmg', value: 2, label: '적 전체 −2' };
+}
+
+function isEffectActive(effect, side) {
+  const targetSide = side === 'player' ? 'opp' : 'player';
+  const kind = effect.kind;
+  // 상태 띠 체크
+  if (['buff_defense', 'buff_attack', 'self_invincible'].includes(kind)) {
+    return state[side].statuses.some(s => s.kind === kind);
+  }
+  if (['debuff_dot', 'debuff_blind', 'enemy_block_top'].includes(kind)) {
+    return state[targetSide].statuses.some(s => s.kind === kind);
+  }
+  return false;
+}
+
 async function triggerCombo(combo, side) {
   if (state[side]._comboCooldown > 0 || state._gameOver) return;
-  state[side]._comboCooldown = 2;  // 2턴 쿨다운
+  const effect = getComboEffect(combo);
+  if (isEffectActive(effect, side)) return;  // 이미 적용 중 → 발동 X
+  state[side]._comboCooldown = 2;
   const wasLocked = state._locked;
   if (!wasLocked) setLocked(true);
 
   const targetSide = side === 'player' ? 'opp' : 'player';
   const sideLabel = side === 'player' ? '내' : '상대';
-  const label = comboLabel(combo);
-  log(`⚡ ${sideLabel} 연계 — ${label} → 전체 −2`, side);
-  showMiniBanner(`⚡ ${sideLabel} 연계 발동!<br>${label}`);
+  log(`⚡ ${sideLabel} 연계 — ${effect.label}`, side);
+  showMiniBanner(`⚡ ${sideLabel} 연계 발동!<br>${effect.label}`);
   await sleep(1300);
 
   // 공격자 들어올림
@@ -1897,77 +2139,333 @@ async function triggerCombo(combo, side) {
   const atkEls = attackers.map(c => findCardEl(c.instanceId)).filter(Boolean);
   atkEls.forEach(el => el.classList.add('combo-attacker'));
   await sleep(500);
-
-  // 공격 플래시
   atkEls.forEach(el => {
     el.classList.remove('combo-blast');
     void el.offsetWidth;
     el.classList.add('combo-blast');
   });
 
-  // AOE 플래시 (타겟 필드 전체)
-  const zoneSelector = targetSide === 'opp' ? '.opp-field' : '.player-field';
-  const zoneEl = document.querySelector(zoneSelector);
-  if (zoneEl) {
-    zoneEl.classList.remove('aoe-flash');
-    void zoneEl.offsetWidth;
-    zoneEl.classList.add('aoe-flash');
-  }
-
-  // 타겟 전체에 데미지 숫자 + 피격 플래시
-  state[targetSide].field.forEach(t => {
-    const el = findCardEl(t.instanceId);
-    if (el) { showFloatDmg(el, '-2', '#ff5555'); flashCard(el); }
-  });
-  await sleep(300);
-  const totalDmg = state[targetSide].field.length * 2;
-  state[targetSide].field.forEach(t => { t.hp -= 2; });
-  const comboUlt = addUltGauge(side, totalDmg);
-  await sleep(500);
-
-  // 죽는 카드 흔들림 → 샤터
-  const dying = state[targetSide].field.filter(t => t.hp <= 0);
-  await Promise.all(dying.map(t => {
-    const el = findCardEl(t.instanceId);
-    return el ? destroyCard(el) : Promise.resolve();
-  }));
-  cleanupDead(targetSide);
+  // 효과 적용
+  await applyComboEffect(effect, side, targetSide);
 
   // 공격자 복귀
-  atkEls.forEach(el => {
-    el.classList.remove('combo-attacker', 'combo-blast');
-  });
+  atkEls.forEach(el => el.classList.remove('combo-attacker', 'combo-blast'));
 
   if (checkWin()) return;
   render();
-  if (comboUlt) await triggerUltimate(side);
 
-  // 플레이어 연계 발동 후엔 자동 턴 종료 (연계는 "턴을 쓰는" 액션)
-  if (side === 'player' && state.turn === 'player') {
+  // 턴 종료 (힘속성만)
+  if (side === 'player' && effect.endTurn && state.turn === 'player') {
     await sleep(400);
     setLocked(false);
     await endTurn();
+  } else if (!wasLocked && state.turn === 'player') {
+    setLocked(false);
   }
+}
+
+// ─────────── 효과 적용 로직 ───────────
+async function applyComboEffect(effect, side, targetSide) {
+  switch (effect.kind) {
+    case 'aoe_dmg': return effectAoeDmg(effect, side, targetSide);
+    case 'buff_defense': return effectBuffDefense(effect, side);
+    case 'buff_attack': return effectBuffAttack(effect, side);
+    case 'self_heal': return effectSelfHeal(effect, side);
+    case 'self_invincible': return effectSelfInvincible(effect, side);
+    case 'enemy_hp_to_1': return effectEnemyHpTo1(effect, side, targetSide);
+    case 'enemy_random_dmg': return effectEnemyRandomDmg(effect, side, targetSide);
+    case 'enemy_recall': return effectEnemyRecall(effect, side, targetSide);
+    case 'enemy_swap_weak': return effectEnemySwapWeak(effect, side, targetSide);
+    case 'enemy_block_top': return effectEnemyBlockTop(effect, side, targetSide);
+    case 'debuff_dot': return effectDebuffDot(effect, side, targetSide);
+    case 'debuff_blind': return effectDebuffBlind(effect, side, targetSide);
+    case 'trade': return effectTrade(effect, side, targetSide);
+  }
+}
+
+async function effectAoeDmg(effect, side, targetSide) {
+  const zone = document.querySelector(targetSide === 'opp' ? '.opp-field' : '.player-field');
+  if (zone) { zone.classList.remove('aoe-flash'); void zone.offsetWidth; zone.classList.add('aoe-flash'); }
+  state[targetSide].field.forEach(t => {
+    const el = findCardEl(t.instanceId);
+    if (el) { showFloatDmg(el, `-${effect.value}`, '#ff5555'); flashCard(el); }
+  });
+  await sleep(300);
+  const total = state[targetSide].field.length * effect.value;
+  state[targetSide].field.forEach(t => { t.hp -= effect.value; });
+  const comboUlt = addUltGauge(side, total);
+  await sleep(500);
+  const dying = state[targetSide].field.filter(t => t.hp <= 0);
+  await Promise.all(dying.map(t => { const el = findCardEl(t.instanceId); return el ? destroyCard(el) : Promise.resolve(); }));
+  cleanupDead(targetSide);
+  if (comboUlt) await triggerUltimate(side);
+}
+
+function effectBuffDefense(effect, side) {
+  state[side].statuses.push({
+    kind: 'buff_defense', turns: effect.turns, value: effect.value,
+    icon: 'https://raw.githubusercontent.com/dc-hdmi/dc-hdmi/main/game/images/common_icon_deffence_up.png',
+    title: `방어 버프 (받는 데미지 −${effect.value})`,
+  });
+  state[side].field.forEach(c => c.dmgReduce = effect.value);
+}
+
+function effectBuffAttack(effect, side) {
+  state[side].statuses.push({
+    kind: 'buff_attack', turns: effect.turns, value: effect.value,
+    icon: 'https://raw.githubusercontent.com/dc-hdmi/dc-hdmi/main/game/images/common_attack_up_01_icon.png',
+    title: `공격 버프 (ATK +${effect.value})`,
+  });
+  state[side].field.forEach(c => c.atkBonus = effect.value);
+}
+
+async function effectSelfHeal(effect, side) {
+  state[side].field.forEach(c => {
+    c.hp += effect.value;  // maxHp 유지 (overheal)
+    const el = findCardEl(c.instanceId);
+    if (el) { showFloatDmg(el, `+${effect.value}`, '#5aff5a'); flashCard(el); }
+  });
+  await sleep(500);
+}
+
+async function effectEnemyHpTo1(effect, side, targetSide) {
+  if (!state[targetSide].field.length) return;
+  const target = state[targetSide].field.reduce((a, b) => a.hp > b.hp ? a : b);
+  const before = target.hp;
+  target.hp = 1;
+  const el = findCardEl(target.instanceId);
+  if (el) { showFloatDmg(el, `${before}→1`, '#ff5555'); flashCard(el); }
+  await sleep(500);
+}
+
+async function effectEnemyRandomDmg(effect, side, targetSide) {
+  const picks = [...state[targetSide].field].sort(() => Math.random() - 0.5).slice(0, effect.count);
+  for (const c of picks) {
+    c.hp -= effect.value;
+    const el = findCardEl(c.instanceId);
+    if (el) { showFloatDmg(el, `-${effect.value}`, '#ff5555'); flashCard(el); }
+    addUltGauge(side, effect.value);
+  }
+  await sleep(500);
+  const dying = state[targetSide].field.filter(t => t.hp <= 0);
+  await Promise.all(dying.map(t => { const el = findCardEl(t.instanceId); return el ? destroyCard(el) : Promise.resolve(); }));
+  cleanupDead(targetSide);
+}
+
+async function effectEnemyRecall(effect, side, targetSide) {
+  const picks = [...state[targetSide].field].sort(() => Math.random() - 0.5).slice(0, effect.count);
+  for (const c of picks) {
+    const el = findCardEl(c.instanceId);
+    if (el) {
+      await el.animate([
+        { transform: 'scale(1)', opacity: 1 },
+        { transform: 'translateY(-100px) scale(0.3) rotate(45deg)', opacity: 0 }
+      ], { duration: 500, easing: 'ease-in', fill: 'forwards' }).finished;
+    }
+    // 상태 리셋 후 덱 수량만 증가 (손패 X)
+    const freshIdx = c.id;
+    state[targetSide].field = state[targetSide].field.filter(x => x.instanceId !== c.instanceId);
+    // 덱 수량 +1 (실제 카드는 pool 에서 새로 뽑히므로 간단히 더미 push)
+    state[targetSide].deck.push({ id: freshIdx, name: '회수카드', attr: 'STR', cls: 'Fighter', mana: 1, atk: 1, hp: 1, maxHp: 1, baseAtk: 1, effect: {}, exhausted: true, blocked: 0, invincible: 0, blind: 0, atkBonus: 0, dmgReduce: 0 });
+    render();
+  }
+}
+
+async function effectEnemySwapWeak(effect, side, targetSide) {
+  const pickTarget = async () => {
+    if (side === 'player') {
+      return await selectOne(`교체할 상대 카드 선택`, targetSide);
+    } else {
+      return state[targetSide].field.reduce((a, b) => a.atk > b.atk ? a : b);
+    }
+  };
+  const chosen = await pickTarget();
+  if (!chosen) return;
+  const pool = cardPool().filter(c => c.mana <= 2);
+  if (!pool.length) return;
+  const picked = pool[Math.floor(Math.random() * pool.length)];
+  const newCard = { ...picked, instanceId: Math.random().toString(36).slice(2, 8), _justSummoned: true, baseAtk: picked.atk, blocked: 0, invincible: 0, blind: 0, atkBonus: 0, dmgReduce: 0 };
+  const idx = state[targetSide].field.findIndex(c => c.instanceId === chosen.instanceId);
+  if (idx >= 0) state[targetSide].field[idx] = newCard;
+}
+
+async function effectEnemyBlockTop(effect, side, targetSide) {
+  if (!state[targetSide].field.length) return;
+  const target = state[targetSide].field.reduce((a, b) => a.atk > b.atk ? a : b);
+  target.blocked = effect.turns;
+  state[targetSide].statuses.push({
+    kind: 'enemy_block_top', turns: effect.turns,
+    icon: 'https://raw.githubusercontent.com/dc-hdmi/dc-hdmi/main/game/images/common_bind.png',
+    title: `봉쇄: ${target.name}`,
+    targetId: target.instanceId,
+  });
+  flashCard(findCardEl(target.instanceId));
+  await sleep(500);
+}
+
+function effectDebuffDot(effect, side, targetSide) {
+  state[targetSide].statuses.push({
+    kind: 'debuff_dot', turns: effect.turns, value: effect.value,
+    icon: 'https://raw.githubusercontent.com/dc-hdmi/dc-hdmi/main/game/images/popuptext_slot_poison.png',
+    title: `독 DoT (턴 시작시 전체 −${effect.value})`,
+  });
+}
+
+function effectDebuffBlind(effect, side, targetSide) {
+  state[targetSide].statuses.push({
+    kind: 'debuff_blind', turns: effect.turns,
+    icon: 'https://raw.githubusercontent.com/dc-hdmi/dc-hdmi/main/game/images/common_icon_blind.png',
+    title: `블라인드 (${side === 'player' ? '내' : '상대'} 카드 못 봄)`,
+    blindSide: side,  // 발동자 측 카드가 "숨겨지는 대상"
+  });
+  // 플레이어가 못 보는 경우만 뒷면 표시 (AI 발동 → AI 카드 숨김)
+  if (side === 'opp') {
+    state.opp.field.forEach(c => c.blind = effect.turns);
+  }
+}
+
+async function effectSelfInvincible(effect, side) {
+  const applyInvincible = (chosen) => {
+    chosen.invincible = effect.turns;
+    chosen.blocked = 0;  // 봉쇄 해제
+    state[side].statuses.push({
+      kind: 'self_invincible', turns: effect.turns,
+      icon: 'https://raw.githubusercontent.com/dc-hdmi/dc-hdmi/main/game/images/state_icon_invincible.png',
+      title: `무적: ${chosen.name}`,
+      targetId: chosen.instanceId,
+    });
+  };
+  if (side === 'player') {
+    const chosen = await selectOne('무적을 걸 내 카드 선택', side);
+    if (chosen) applyInvincible(chosen);
+  } else {
+    if (!state[side].field.length) return;
+    const chosen = state[side].field.reduce((a, b) => a.atk > b.atk ? a : b);
+    applyInvincible(chosen);
+  }
+}
+
+async function effectTrade(effect, side, targetSide) {
+  let oppPick, myPick;
+  if (side === 'player') {
+    const picks = await driveTradeFlow(targetSide, side);
+    if (!picks) return;
+    oppPick = picks.oppPick; myPick = picks.myPick;
+  } else {
+    if (!state[targetSide].field.length || !state[side].field.length) return;
+    oppPick = state[targetSide].field.reduce((a, b) => a.atk > b.atk ? a : b);
+    myPick = state[side].field.reduce((a, b) => a.atk < b.atk ? a : b);
+  }
+  await animateTrade(oppPick, targetSide, myPick, side);
+  const idxO = state[targetSide].field.findIndex(c => c.instanceId === oppPick.instanceId);
+  const idxM = state[side].field.findIndex(c => c.instanceId === myPick.instanceId);
+  if (idxO < 0 || idxM < 0) return;
+  state[targetSide].field[idxO] = myPick;
+  state[side].field[idxM] = oppPick;
+  // 개별 상태 리셋
+  oppPick.blocked = 0; oppPick.invincible = 0;
+  myPick.blocked = 0; myPick.invincible = 0;
+}
+
+// ─────────── 선택 UI ───────────
+function selectOne(prompt, side) {
+  return new Promise(resolve => {
+    state.selectionMode = { type: 'single', prompt, side, resolve };
+    render();
+  });
+}
+
+function driveTradeFlow(sideT, sideA) {
+  return new Promise(resolve => {
+    state.selectionMode = {
+      type: 'drive', step: 1, sideT, sideA,
+      firstPick: null,
+      prompt: '교체할 상대 카드를 선택하세요',
+      resolve,
+    };
+    render();
+  });
+}
+
+function handleComboSelection(c, side) {
+  const mode = state.selectionMode;
+  if (!mode) return;
+  if (mode.type === 'drive') {
+    if (mode.step === 1 && side === mode.sideT) {
+      mode.firstPick = c; mode.step = 2;
+      mode.prompt = `${c.name} 선택됨 — 교체할 내 카드 선택`;
+      render(); return;
+    }
+    if (mode.step === 2 && side === mode.sideT && mode.firstPick && mode.firstPick.instanceId === c.instanceId) {
+      mode.firstPick = null; mode.step = 1;
+      mode.prompt = '교체할 상대 카드를 선택하세요';
+      render(); return;
+    }
+    if (mode.step === 2 && side === mode.sideA) {
+      const picks = { oppPick: mode.firstPick, myPick: c };
+      const resolve = mode.resolve;
+      state.selectionMode = null; render();
+      if (resolve) resolve(picks);
+    }
+    return;
+  }
+  if (mode.type === 'single' && mode.side === side) {
+    const resolve = mode.resolve;
+    state.selectionMode = null; render();
+    if (resolve) resolve(c);
+  }
+}
+
+async function animateTrade(cardA, sideA, cardB, sideB) {
+  const elA = findCardEl(cardA.instanceId);
+  const elB = findCardEl(cardB.instanceId);
+  if (!elA || !elB) { await sleep(300); return; }
+  const rA = elA.getBoundingClientRect();
+  const rB = elB.getBoundingClientRect();
+  const dx = (rB.left + rB.width/2) - (rA.left + rA.width/2);
+  const dy = (rB.top + rB.height/2) - (rA.top + rA.height/2);
+  elA.style.zIndex = '100'; elB.style.zIndex = '100';
+  await Promise.all([
+    elA.animate([
+      { transform: 'translate(0,0) scale(1)' },
+      { transform: `translate(${dx*0.5}px, ${dy*0.5}px) scale(1.15) rotate(5deg)`, offset: 0.5 },
+      { transform: `translate(${dx}px, ${dy}px) scale(1) rotate(0)` },
+    ], { duration: 800, easing: 'ease-in-out', fill: 'forwards' }).finished,
+    elB.animate([
+      { transform: 'translate(0,0) scale(1)' },
+      { transform: `translate(${-dx*0.5}px, ${-dy*0.5}px) scale(1.15) rotate(-5deg)`, offset: 0.5 },
+      { transform: `translate(${-dx}px, ${-dy}px) scale(1) rotate(0)` },
+    ], { duration: 800, easing: 'ease-in-out', fill: 'forwards' }).finished,
+  ]);
+  elA.style.zIndex = ''; elB.style.zIndex = '';
 }
 
 function previewDmg(attacker, target) {
   let mult = 1.0;
+  const atkAtk = attacker.atk + (attacker.atkBonus || 0);
+  const tgtAtk = target.atk + (target.atkBonus || 0);
   if (ATTR_COUNTER[attacker.attr] === target.attr) mult = 1.25;
   else if (ATTR_COUNTER[target.attr] === attacker.attr) mult = 0.75;
 
   // 공격 데미지
-  let dmg = Math.round(attacker.atk * mult);
-  if (mult > 1) dmg = Math.max(dmg, attacker.atk + 1);
-  if (mult < 1) dmg = Math.min(dmg, attacker.atk - 1);
+  let dmg = Math.round(atkAtk * mult);
+  if (mult > 1) dmg = Math.max(dmg, atkAtk + 1);
+  if (mult < 1) dmg = Math.min(dmg, atkAtk - 1);
   dmg = Math.max(1, dmg);
   if (attacker.effect && attacker.effect.onAttack === 'bonus1') dmg += 1;
+  // 수비자 방어 버프
+  dmg = Math.max(0, dmg - (target.dmgReduce || 0));
+  // 수비자 무적
+  if (target.invincible > 0) dmg = 0;
 
-  // 반격 데미지 — 상성 반대 적용 (공격자 유리면 반격 감소)
+  // 반격 데미지 — 상성 반대 적용
   const counterMult = mult === 1.25 ? 0.75 : mult === 0.75 ? 1.25 : 1.0;
-  let counterDmg = Math.round(target.atk * counterMult);
-  if (counterMult > 1) counterDmg = Math.max(counterDmg, target.atk + 1);
-  if (counterMult < 1) counterDmg = Math.min(counterDmg, target.atk - 1);
+  let counterDmg = Math.round(tgtAtk * counterMult);
+  if (counterMult > 1) counterDmg = Math.max(counterDmg, tgtAtk + 1);
+  if (counterMult < 1) counterDmg = Math.min(counterDmg, tgtAtk - 1);
   counterDmg = Math.max(1, counterDmg);
+  // 공격자 방어 버프
+  counterDmg = Math.max(0, counterDmg - (attacker.dmgReduce || 0));
 
   return { dmg, mult, counterDmg, counterMult };
 }
@@ -2022,6 +2520,61 @@ function startTurn(side) {
   drawCard(side, side === 'player');
   s.field.forEach(c => { c.exhausted = false; });
   s.field.forEach(c => applyEffect(c, 'onTurn', side));
+
+  // 연계 상태 처리 (DoT 발동 + 턴 감소)
+  processTurnStartStatuses(side);
+}
+
+// 턴 시작 시 상태 처리
+function processTurnStartStatuses(side) {
+  // 1. DoT 디버프 발동 (내 영역 카드 전체 피해)
+  const myStatuses = state[side].statuses;
+  myStatuses.forEach(st => {
+    if (st.kind === 'debuff_dot') {
+      state[side].field.forEach(c => {
+        if (c.invincible > 0) return;  // 무적 무시
+        c.hp -= st.value;
+        const el = findCardEl(c.instanceId);
+        if (el) { showFloatDmg(el, `-${st.value}`, '#ff5555'); flashCard(el); }
+      });
+    }
+  });
+  // 2. 양쪽 상태 턴 감소
+  ['player', 'opp'].forEach(sd => {
+    state[sd].statuses = state[sd].statuses.filter(st => {
+      st.turns--;
+      if (st.turns <= 0) {
+        clearStatusEffect(st, sd);
+        return false;
+      }
+      return true;
+    });
+    // 카드 개별 상태 턴 감소
+    state[sd].field.forEach(c => {
+      if (c.blocked > 0) c.blocked--;
+      if (c.invincible > 0) c.invincible--;
+      if (c.blind > 0) c.blind--;
+    });
+  });
+  // 3. DoT 후 cleanupDead
+  cleanupDead('player');
+  cleanupDead('opp');
+}
+
+function clearStatusEffect(st, side) {
+  if (st.kind === 'buff_defense') state[side].field.forEach(c => c.dmgReduce = 0);
+  if (st.kind === 'buff_attack') state[side].field.forEach(c => c.atkBonus = 0);
+  if (st.kind === 'debuff_blind' && st.blindSide) {
+    state[st.blindSide].field.forEach(c => c.blind = 0);
+  }
+  if (st.kind === 'enemy_block_top' && st.targetId) {
+    const t = state[side].field.find(c => c.instanceId === st.targetId);
+    if (t) t.blocked = 0;
+  }
+  if (st.kind === 'self_invincible' && st.targetId) {
+    const t = state[side].field.find(c => c.instanceId === st.targetId);
+    if (t) t.invincible = 0;
+  }
 }
 
 async function applyEffect(card, trigger, side) {
@@ -2100,8 +2653,20 @@ async function endTurn() {
 }
 
 function pickOppMove(attacker) {
-  // 각 대상에 대해 공격 가치 점수화. 자살 공격은 금지, 리더 처치 가능하면 최우선.
+  // 봉쇄 상태 공격 불가
+  if (attacker.blocked > 0) return null;
   const player = state.player;
+  // 블라인드 디버프 걸림 → 랜덤 공격
+  const isBlind = state.opp.statuses.some(s => s.kind === 'debuff_blind');
+  if (isBlind) {
+    const targets = player.field;
+    if (targets.length === 0) return { type: 'face', score: attacker.atk };
+    const randTarget = targets[Math.floor(Math.random() * targets.length)];
+    return Math.random() < 0.3
+      ? { type: 'face', score: attacker.atk }
+      : { type: 'card', target: randTarget, score: 1 };
+  }
+  // 각 대상에 대해 공격 가치 점수화. 자살 공격은 금지, 리더 처치 가능하면 최우선.
   const options = [];
 
   // 몬스터 공격 평가
@@ -2162,7 +2727,7 @@ async function oppTurn() {
   }
 
   // 공격 루프 — 연계 안 했을 때만 (연계는 "턴을 쓰는" 액션)
-  const attackers = comboTriggered ? [] : [...state.opp.field.filter(c => !c.exhausted)];
+  const attackers = comboTriggered ? [] : [...state.opp.field.filter(c => !c.exhausted && c.blocked === 0)];
   for (const atk of attackers) {
     if (atk.hp <= 0) continue;
     if (state._gameOver) return;
@@ -2461,6 +3026,34 @@ function render() {
   updateEndButton();
   updateComboBadge();
   updateUltBars();
+  renderStatusStrips();
+  renderSelectionPrompt();
+}
+
+function renderStatusStrips() {
+  ['player', 'opp'].forEach(side => {
+    const el = document.getElementById(`${side}-status`);
+    if (!el) return;
+    el.innerHTML = '';
+    (state[side].statuses || []).forEach(st => {
+      const d = document.createElement('div');
+      d.className = 'status-icon';
+      d.title = st.title;
+      d.innerHTML = `<img src="${st.icon}" alt="${st.kind}"><span class="count">${st.turns}</span>`;
+      el.appendChild(d);
+    });
+  });
+}
+
+function renderSelectionPrompt() {
+  const p = document.getElementById('selection-prompt');
+  if (!p) return;
+  if (state.selectionMode) {
+    p.textContent = state.selectionMode.prompt;
+    p.classList.remove('hidden');
+  } else {
+    p.classList.add('hidden');
+  }
 }
 
 function renderField(elId, field, side) {
@@ -2546,20 +3139,53 @@ function cardEl(c, context) {
   if (state.attackingCard && state.attackingCard.instanceId === c.instanceId) classes.push('selected');
   if (c._justSummoned && context !== 'handCard') { classes.push('summoned'); c._justSummoned = false; }
   if (c._justDrawn && context === 'handCard') { classes.push('drawn'); c._justDrawn = false; }
+  // 연계 상태 오버레이
+  if (c.blocked > 0 && context !== 'handCard') classes.push('blocked');
+  if (c.invincible > 0 && context !== 'handCard') classes.push('invincible');
+  if (c.blind > 0 && context !== 'handCard') classes.push('blind-back');
+  // 선택 UI 하이라이트
+  const sel = state.selectionMode;
+  const sideForCard = context === 'playerFieldCard' ? 'player' : (context === 'oppFieldCard' ? 'opp' : null);
+  if (sel && sideForCard) {
+    if (sel.type === 'drive') {
+      const need = sel.step === 1 ? sel.sideT : sel.sideA;
+      if (sideForCard === need) classes.push('selectable-target');
+      if (sel.step === 2 && sideForCard === sel.sideT) {
+        if (sel.firstPick && sel.firstPick.instanceId === c.instanceId) {
+          classes.push('selection-firstpick', 'selectable-target');
+        } else {
+          classes.push('selection-dim');
+        }
+      }
+    } else if (sel.type === 'single' && sel.side === sideForCard) {
+      classes.push('selectable-target');
+    }
+  }
   el.className = classes.join(' ');
   el.dataset.iid = c.instanceId;
   const cls = CLASS_LABEL[c.cls];
   const classBadge = cls
     ? `<span class="class-badge" style="background:${cls.color};" title="${cls.ko}형">${cls.char}</span>`
     : `<span></span>`;
+  const displayAtk = c.atk + (c.atkBonus || 0);
   el.innerHTML = `
+    ${c.blind > 0 ? '<div class="blind-mark">?</div>' : ''}
     <div class="cost-badge">${c.mana}</div>
     <div class="attr-tag" style="color: var(--${c.attr});">${ATTR_KO[c.attr] || c.attr}</div>
     <div class="thumb"><img src="${img(c.id)}" alt="${c.name}" data-fb="${imgFallback(c.id)}" onerror="if(this.dataset.fb){this.src=this.dataset.fb;this.dataset.fb='';}else{this.style.display='none';this.parentElement.innerHTML='<div class=placeholder>#${c.id}</div>';}"></div>
     <div class="name">${c.name.length > 10 ? c.name.slice(0,10)+'…' : c.name}</div>
-    <div class="stats">${classBadge}<span class="atk">⚔${c.atk}</span><span class="hp">♥${c.hp}</span></div>
+    <div class="stats">${classBadge}<span class="atk">⚔${displayAtk}</span><span class="hp">♥${c.hp}</span></div>
+    ${c.invincible > 0 ? '<div class="invincible-corner"></div>' : ''}
   `;
-  el.addEventListener('click', (e) => { e.stopPropagation(); handleCardClick(c, context, e); });
+  el.addEventListener('click', (e) => {
+    e.stopPropagation();
+    // 연계 선택 UI 우선
+    if (state.selectionMode && sideForCard) {
+      handleComboSelection(c, sideForCard);
+      return;
+    }
+    handleCardClick(c, context, e);
+  });
   return el;
 }
 
@@ -2571,6 +3197,7 @@ async function handleCardClick(c, context, e) {
     return;
   }
   if (context === 'playerFieldCard') {
+    if (c.blocked > 0) { log('봉쇄 중 — 공격 불가'); return; }
     if (c.exhausted) { log('이 턴엔 공격 불가'); return; }
     // 토글
     if (state.attackingCard && state.attackingCard.instanceId === c.instanceId) {
@@ -2689,6 +3316,16 @@ document.getElementById('btn-help').addEventListener('click', () => {
 });
 document.getElementById('help-close').addEventListener('click', () => {
   document.getElementById('help-modal').classList.add('hidden');
+});
+document.getElementById('btn-open-combo-test').addEventListener('click', () => {
+  const iframe = document.getElementById('test-iframe');
+  if (iframe.src === 'about:blank' || !iframe.src.includes('card-battle-test')) {
+    iframe.src = 'card-battle-test.html';
+  }
+  document.getElementById('test-modal').classList.remove('hidden');
+});
+document.getElementById('test-close').addEventListener('click', () => {
+  document.getElementById('test-modal').classList.add('hidden');
 });
 
 // ─────────── 카드 교체 (1회 한정) ───────────
