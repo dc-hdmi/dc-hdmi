@@ -719,16 +719,17 @@ const COMBO_EFFECTS = {
   'class:Driven': async (actor) => {
     const t = actor === 'player' ? 'opp' : 'player';
     if (actor === 'player') {
-      await selectOne('교체할 상대 카드 선택', t, async (oppPick) => {
-        await selectOne('교체할 내 카드 선택', actor, (myPick) => {
-          tradeCards(oppPick, t, myPick, actor);
-          showBanner(`🔥 야심 연계 — ${oppPick.name} ↔ ${myPick.name}`);
-        });
-      });
+      const picks = await driveTradeFlow(t, actor);
+      await animateTrade(picks.oppPick, t, picks.myPick, actor);
+      tradeCards(picks.oppPick, t, picks.myPick, actor);
+      render();
+      showBanner(`🔥 야심 연계 — ${picks.oppPick.name} ↔ ${picks.myPick.name}`);
     } else {
       const oppPick = state[t].field.reduce((a, b) => a.atk > b.atk ? a : b);
       const myPick = state[actor].field.reduce((a, b) => a.atk < b.atk ? a : b);
+      await animateTrade(oppPick, t, myPick, actor);
       tradeCards(oppPick, t, myPick, actor);
+      render();
       showBanner(`🔥 야심 연계 (AI) — ${oppPick.name} ↔ ${myPick.name}`);
     }
   },
@@ -791,9 +792,49 @@ function tradeCards(cardA, sideA, cardB, sideB) {
 // 선택 UI
 function selectOne(prompt, side, onSelect) {
   return new Promise(resolve => {
-    state.selectionMode = { prompt, side, onSelect, resolve };
+    state.selectionMode = { type: 'single', prompt, side, onSelect, resolve };
     render();
   });
+}
+
+// 야심 전용: 상대 1장 → 내 1장 2단계, 1단계 재선택 가능
+function driveTradeFlow(sideT, sideA) {
+  return new Promise(resolve => {
+    state.selectionMode = {
+      type: 'drive',
+      step: 1,
+      sideT, sideA,
+      firstPick: null,
+      prompt: '교체할 상대 카드를 선택하세요',
+      resolve,
+    };
+    render();
+  });
+}
+
+async function animateTrade(cardA, sideA, cardB, sideB) {
+  const elA = document.querySelector(`[data-iid="${cardA.instanceId}"]`);
+  const elB = document.querySelector(`[data-iid="${cardB.instanceId}"]`);
+  if (!elA || !elB) { await sleep(300); return; }
+  const rA = elA.getBoundingClientRect();
+  const rB = elB.getBoundingClientRect();
+  const dx = (rB.left + rB.width/2) - (rA.left + rA.width/2);
+  const dy = (rB.top + rB.height/2) - (rA.top + rA.height/2);
+  elA.style.zIndex = '100';
+  elB.style.zIndex = '100';
+  const animA = elA.animate([
+    { transform: 'translate(0,0) scale(1)' },
+    { transform: `translate(${dx*0.5}px, ${dy*0.5}px) scale(1.15) rotate(5deg)`, offset: 0.5 },
+    { transform: `translate(${dx}px, ${dy}px) scale(1) rotate(0)` },
+  ], { duration: 800, easing: 'ease-in-out', fill: 'forwards' });
+  const animB = elB.animate([
+    { transform: 'translate(0,0) scale(1)' },
+    { transform: `translate(${-dx*0.5}px, ${-dy*0.5}px) scale(1.15) rotate(-5deg)`, offset: 0.5 },
+    { transform: `translate(${-dx}px, ${-dy}px) scale(1) rotate(0)` },
+  ], { duration: 800, easing: 'ease-in-out', fill: 'forwards' });
+  await Promise.all([animA.finished, animB.finished]);
+  elA.style.zIndex = '';
+  elB.style.zIndex = '';
 }
 
 async function flashCard(card) {
@@ -905,11 +946,21 @@ function cardEl(c, side) {
   // 블라인드: 상대가 입은 경우(= blind > 0인 쪽의 상대가 발동자). 테스트에서는 blind > 0인 카드를 뒷면으로.
   if (c.blind > 0) classes.push('blind-back');
   // 선택 가능 하이라이트
-  if (state.selectionMode && state.selectionMode.side === side) {
-    classes.push('selectable');
-  }
-  if (state.selectionMode && state.selectionMode.firstPick === c.instanceId) {
-    classes.push('selected-first');
+  const mode = state.selectionMode;
+  if (mode) {
+    if (mode.type === 'drive') {
+      const needSide = mode.step === 1 ? mode.sideT : mode.sideA;
+      if (side === needSide) classes.push('selectable');
+      if (mode.step === 2 && side === mode.sideT) {
+        if (mode.firstPick && mode.firstPick.instanceId === c.instanceId) {
+          classes.push('selected-first', 'selectable');  // 재클릭 가능
+        } else {
+          classes.push('deselect');
+        }
+      }
+    } else if (mode.type === 'single' && mode.side === side) {
+      classes.push('selectable');
+    }
   }
   el.className = classes.join(' ');
   el.dataset.iid = c.instanceId;
@@ -926,25 +977,59 @@ function cardEl(c, side) {
     <div class="stats">${classBadge}<span class="atk">⚔${c.atk + (c.atkBonus || 0)}</span><span class="hp">♥${c.hp}</span></div>
     ${c.invincible > 0 ? '<div class="invincible-corner"></div>' : ''}
   `;
-  if (state.selectionMode && state.selectionMode.side === side) {
-    el.addEventListener('click', () => handleSelection(c));
+  if (mode) {
+    const canClick = (mode.type === 'drive')
+      ? (mode.step === 1 ? side === mode.sideT
+          : (side === mode.sideA || (mode.firstPick && mode.firstPick.instanceId === c.instanceId)))
+      : (mode.type === 'single' && mode.side === side);
+    if (canClick) {
+      el.addEventListener('click', () => handleSelection(c, side));
+    }
   }
   return el;
 }
 
-function handleSelection(c) {
+function handleSelection(c, side) {
   const mode = state.selectionMode;
   if (!mode) return;
-  if (mode.firstPick === c.instanceId) {
-    // 재선택 취소 (야심 1단계)
-    mode.firstPick = null;
-    render();
+
+  if (mode.type === 'drive') {
+    // 1단계: 상대 카드 선택
+    if (mode.step === 1 && side === mode.sideT) {
+      mode.firstPick = c;
+      mode.step = 2;
+      mode.prompt = `${c.name} 선택됨 — 교체할 내 카드 선택 (상대 카드 다시 눌러 변경 가능)`;
+      render();
+      return;
+    }
+    // 2단계: 선택한 상대 카드 재클릭 → 1단계로 되돌림
+    if (mode.step === 2 && side === mode.sideT
+        && mode.firstPick && mode.firstPick.instanceId === c.instanceId) {
+      mode.firstPick = null;
+      mode.step = 1;
+      mode.prompt = '교체할 상대 카드를 선택하세요';
+      render();
+      return;
+    }
+    // 2단계: 내 카드 선택 → 트레이드 완료
+    if (mode.step === 2 && side === mode.sideA) {
+      const picks = { oppPick: mode.firstPick, myPick: c };
+      const resolve = mode.resolve;
+      state.selectionMode = null;
+      render();
+      if (resolve) resolve(picks);
+      return;
+    }
     return;
   }
-  state.selectionMode = null;
-  render();
-  mode.onSelect(c);
-  if (mode.resolve) mode.resolve();
+
+  // single 모드
+  if (mode.type === 'single') {
+    state.selectionMode = null;
+    render();
+    mode.onSelect(c);
+    if (mode.resolve) mode.resolve();
+  }
 }
 
 function renderStatus(elId, statuses) {
