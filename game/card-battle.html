@@ -1477,6 +1477,9 @@
   body.locked .card.hand,
   body.locked .card { pointer-events: none; }
   body.locked #btn-end { pointer-events: none; }
+  /* 연계 선택 UI 중엔 선택 가능한 카드만 클릭 가능 */
+  body.locked .card.selectable-target,
+  body.locked .card.selection-firstpick { pointer-events: auto !important; }
 
   /* ───── 턴 종료 버튼 깜빡 (액션 소진 시) ───── */
   button#btn-end.pulse-end {
