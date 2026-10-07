@@ -500,10 +500,21 @@ const SAMPLE_CARDS = [
 ];
 
 function sampleByAttr(attr) {
-  return SAMPLE_CARDS.filter(c => c.attr === attr);
+  const base = SAMPLE_CARDS.filter(c => c.attr === attr);
+  return padTo3(base, { attr });
 }
 function sampleByClass(cls) {
-  return SAMPLE_CARDS.filter(c => c.cls === cls);
+  const base = SAMPLE_CARDS.filter(c => c.cls === cls);
+  return padTo3(base, { cls });
+}
+// 3장 미만일 때 자동 보강 — 랜덤 샘플에 조건 override
+function padTo3(base, override) {
+  const result = [...base];
+  while (result.length < 3) {
+    const r = SAMPLE_CARDS[Math.floor(Math.random() * SAMPLE_CARDS.length)];
+    result.push({ ...r, ...override });
+  }
+  return result;
 }
 function randomCards(n, pool) {
   const shuffled = [...pool].sort(() => Math.random() - 0.5);
@@ -543,12 +554,8 @@ async function runCombo(comboKey) {
   const actor = getActor();
   const target = actor === 'player' ? 'opp' : 'player';
 
-  // 1. 발동 측에 조건 충족 카드 3장 세팅
+  // 1. 발동 측에 조건 충족 카드 3장 세팅 (부족하면 padTo3 가 자동 보강)
   const comboCards = (group === 'attr' ? sampleByAttr(key) : sampleByClass(key));
-  if (comboCards.length < 3) {
-    alert(`샘플 카드 부족: ${key} ${comboCards.length}장`);
-    return;
-  }
   state[actor].field = randomCards(3, comboCards);
 
   // 2. 타겟 측에 샘플 적 카드 2-3장 세팅
