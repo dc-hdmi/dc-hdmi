@@ -667,17 +667,26 @@ const COMBO_EFFECTS = {
     showBanner('⚔ 참격 연계 — 내 ATK +2 3턴');
   },
 
-  // 💥 타격 — 내 공격영역 블라인드 3턴
+  // 💥 타격 — 상대에게 블라인드 디버프 (상대가 내 카드 못 봄)
   'class:Striker': async (actor) => {
-    addStatus(actor, {
+    const t = actor === 'player' ? 'opp' : 'player';
+    // 디버프 아이콘은 상대 쪽에 걸림 (상대가 "눈이 가려진" 상태)
+    addStatus(t, {
       kind: 'blind_debuff',
       turns: 3,
       icon: 'https://raw.githubusercontent.com/dc-hdmi/dc-hdmi/main/game/images/common_icon_blind.png',
-      title: '블라인드 (상대에게 안 보임)',
-      side: actor,  // 발동자 카드가 숨겨짐, 아이콘은 상대에게 보임
+      title: `블라인드 (${actor === 'player' ? '내' : 'AI'} 카드 못 봄 → 랜덤 공격)`,
+      side: t,
+      blindSide: actor,  // 발동자 측 카드 (상대가 못 보는 대상)
     });
-    state[actor].field.forEach(c => c.blind = 3);
-    showBanner('💥 타격 연계 — 내 공격영역 블라인드 3턴');
+    // 뒷면 처리는 "플레이어가 상대 카드를 못 보는 경우"만 (AI 발동 → AI 카드 숨김)
+    // 내 발동 시 상대는 AI이므로 뒷면 처리 불필요 (랜덤 공격 로직만 반영)
+    if (actor === 'opp') {
+      state.opp.field.forEach(c => c.blind = 3);
+    }
+    showBanner(actor === 'player'
+      ? '💥 타격 연계 — AI 가 내 카드 못 봄 (랜덤 공격 3턴)'
+      : '💥 타격 연계 — AI 카드 뒷면 3턴');
   },
 
   // 🏹 사격 — 적 랜덤 2장 회수 (상태 리셋)
@@ -851,7 +860,9 @@ function nextTurn() {
         // 효과 해제
         if (st.kind === 'defense_buff') state[side].field.forEach(c => c.dmgReduce = 0);
         if (st.kind === 'atk_buff') state[side].field.forEach(c => c.atkBonus = 0);
-        if (st.kind === 'blind_debuff') state[side].field.forEach(c => c.blind = 0);
+        if (st.kind === 'blind_debuff' && st.blindSide) {
+          state[st.blindSide].field.forEach(c => c.blind = 0);
+        }
         return false;
       }
       return true;
