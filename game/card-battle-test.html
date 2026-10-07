@@ -452,11 +452,6 @@
     <div class="status-strip" id="player-status"></div>
   </div>
 
-  <!-- 디버그 패널 -->
-  <div class="debug-panel">
-    <h3>📊 현재 상태</h3>
-    <div id="debug-list"></div>
-  </div>
 </div>
 
 <div class="selection-prompt hidden" id="selection-prompt"></div>
@@ -475,28 +470,37 @@ const CLASS_LABEL = {
   'Powerhouse':  { ko: '강인', char: '강', color: '#8a8a9e' },
 };
 
-// 각 속성/타입별 샘플 (이름/이모지/스탯 다양)
+// hayaden 썸네일 URL (실제 캐릭 이미지)
+const THUMB_BASE = 'https://hayaden.github.io/optcDB_Ko/api/images/thumbnail/jap';
+function img(id) {
+  const padded = String(id).padStart(4, '0');
+  const d1 = padded[0];
+  const bucket = String(Math.floor(id / 100) * 100 % 1000).padStart(3, '0');
+  return `${THUMB_BASE}/${d1}/${bucket}/${padded}.png`;
+}
+
+// OPTC 로그북 ID 매핑 (유명 캐릭 사용). 썸네일 로드 실패 시 이모지 fallback.
 const SAMPLE_CARDS = [
   // 힘속성
-  { name: '루피', attr: 'STR', cls: 'Fighter', atk: 5, hp: 6, mana: 4, emoji: '👒' },
-  { name: '에이스', attr: 'STR', cls: 'Striker', atk: 7, hp: 5, mana: 5, emoji: '🔥' },
-  { name: '검은수염', attr: 'STR', cls: 'Powerhouse', atk: 4, hp: 10, mana: 5, emoji: '🖤' },
+  { id: 1,    name: '루피',       attr: 'STR', cls: 'Fighter',    atk: 5, hp: 6, mana: 4, emoji: '👒' },
+  { id: 118,  name: '에이스',     attr: 'STR', cls: 'Striker',    atk: 7, hp: 5, mana: 5, emoji: '🔥' },
+  { id: 459,  name: '검은수염',   attr: 'STR', cls: 'Powerhouse', atk: 4, hp: 10, mana: 5, emoji: '🖤' },
   // 기속성
-  { name: '조로', attr: 'DEX', cls: 'Slasher', atk: 6, hp: 5, mana: 4, emoji: '⚔' },
-  { name: '트라팔가', attr: 'DEX', cls: 'Free Spirit', atk: 5, hp: 7, mana: 5, emoji: '🏴‍☠️' },
-  { name: '빅맘', attr: 'DEX', cls: 'Powerhouse', atk: 8, hp: 8, mana: 7, emoji: '🍰' },
+  { id: 17,   name: '조로',       attr: 'DEX', cls: 'Slasher',    atk: 6, hp: 5, mana: 4, emoji: '⚔' },
+  { id: 1309, name: '트라팔가',   attr: 'DEX', cls: 'Free Spirit', atk: 5, hp: 7, mana: 5, emoji: '🏴‍☠️' },
+  { id: 2554, name: '빅맘',       attr: 'DEX', cls: 'Powerhouse', atk: 8, hp: 8, mana: 7, emoji: '🍰' },
   // 속속성
-  { name: '상디', attr: 'QCK', cls: 'Fighter', atk: 6, hp: 4, mana: 4, emoji: '🦵' },
-  { name: '마르코', attr: 'QCK', cls: 'Free Spirit', atk: 5, hp: 6, mana: 4, emoji: '🔥' },
-  { name: '카이도', attr: 'QCK', cls: 'Striker', atk: 9, hp: 9, mana: 7, emoji: '🐉' },
+  { id: 94,   name: '상디',       attr: 'QCK', cls: 'Fighter',    atk: 6, hp: 4, mana: 4, emoji: '🦵' },
+  { id: 723,  name: '마르코',     attr: 'QCK', cls: 'Free Spirit', atk: 5, hp: 6, mana: 4, emoji: '🔥' },
+  { id: 2554, name: '카이도',     attr: 'QCK', cls: 'Striker',    atk: 9, hp: 9, mana: 7, emoji: '🐉' },
   // 심속성
-  { name: '쵸파', attr: 'PSY', cls: 'Striker', atk: 3, hp: 4, mana: 2, emoji: '🦌' },
-  { name: '한콕', attr: 'PSY', cls: 'Shooter', atk: 6, hp: 6, mana: 5, emoji: '🐍' },
-  { name: '카타쿠리', attr: 'PSY', cls: 'Striker', atk: 8, hp: 7, mana: 6, emoji: '🍡' },
+  { id: 71,   name: '쵸파',       attr: 'PSY', cls: 'Striker',    atk: 3, hp: 4, mana: 2, emoji: '🦌' },
+  { id: 322,  name: '한콕',       attr: 'PSY', cls: 'Shooter',    atk: 6, hp: 6, mana: 5, emoji: '🐍' },
+  { id: 2708, name: '카타쿠리',   attr: 'PSY', cls: 'Striker',    atk: 8, hp: 7, mana: 6, emoji: '🍡' },
   // 지속성
-  { name: '로빈', attr: 'INT', cls: 'Cerebral', atk: 4, hp: 5, mana: 3, emoji: '🌸' },
-  { name: '크로커다일', attr: 'INT', cls: 'Driven', atk: 7, hp: 6, mana: 5, emoji: '🏜' },
-  { name: '도플라밍고', attr: 'INT', cls: 'Driven', atk: 8, hp: 7, mana: 6, emoji: '🎪' },
+  { id: 110,  name: '로빈',       attr: 'INT', cls: 'Cerebral',   atk: 4, hp: 5, mana: 3, emoji: '🌸' },
+  { id: 60,   name: '크로커다일', attr: 'INT', cls: 'Driven',     atk: 7, hp: 6, mana: 5, emoji: '🏜' },
+  { id: 1055, name: '도플라밍고', attr: 'INT', cls: 'Driven',     atk: 8, hp: 7, mana: 6, emoji: '🎪' },
 ];
 
 function sampleByAttr(attr) {
@@ -951,7 +955,6 @@ function render() {
   renderStatus('opp-status', state.opp.statuses);
   renderStatus('player-status', state.player.statuses);
   renderPrompt();
-  renderDebug();
 }
 
 function renderField(elId, field, side) {
@@ -998,7 +1001,7 @@ function cardEl(c, side) {
     ${c.blind > 0 ? '<div class="blind-mark">?</div>' : ''}
     <div class="cost-badge">${c.mana}</div>
     <div class="attr-tag">${ATTR_KO[c.attr] || c.attr}</div>
-    <div class="thumb">${c.emoji || '?'}</div>
+    <div class="thumb">${c.id ? `<img src="${img(c.id)}" alt="${c.name}" style="width:100%;height:100%;object-fit:cover;" data-fb="${c.emoji || '?'}" onerror="this.outerHTML='<span style=font-size:28px>'+this.dataset.fb+'</span>';">` : (c.emoji || '?')}</div>
     <div class="name">${c.name}</div>
     <div class="stats">${classBadge}<span class="atk">⚔${c.atk + (c.atkBonus || 0)}</span><span class="hp">♥${c.hp}</span></div>
     ${c.invincible > 0 ? '<div class="invincible-corner"></div>' : ''}
