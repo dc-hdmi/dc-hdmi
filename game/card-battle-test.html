@@ -575,8 +575,13 @@ const COMBO_EFFECTS = {
   // 💪 힘 — 적 전체 −3 (턴 종료)
   'attr:STR': async (actor) => {
     const t = actor === 'player' ? 'opp' : 'player';
-    for (const c of state[t].field) { c.hp -= 3; await flashCard(c); }
-    await sleep(300);
+    for (const c of state[t].field) {
+      c.hp -= 3;
+      showFloat(c, '-3');
+    }
+    await sleep(200);
+    for (const c of state[t].field) await flashCard(c);
+    await sleep(400);
     cleanDead(t);
     showBanner('💪 힘속성 연계 — 적 전체 −3 (턴 종료)');
   },
