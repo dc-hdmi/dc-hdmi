@@ -3606,8 +3606,9 @@ async function performMerge(incoming, existing, side) {
   const incomingWins = incomingStat > existingStat;
   const base = incomingWins ? incoming : existing;
   const material = incomingWins ? existing : incoming;
-  const atkGain = material.atk;
-  const hpGain = material.hp;
+  // 재료 스탯의 50%만 가산 (반올림) — 100% 가산은 밸런스 붕괴
+  const atkGain = Math.round(material.atk * 0.5);
+  const hpGain = Math.round(material.hp * 0.5);
 
   // 이펙트 (2.6초: 2.1초 애니 + 0.5초 결과 등장)
   await playMergeEffect(base, material, atkGain, hpGain, incomingWins);
