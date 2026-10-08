@@ -844,20 +844,8 @@ function simCard(name, id, atk, hp, attr, labelTag, labelColor) {
 
 // ─────────── 대전 중 하단 버튼 ───────────
 function renderCombatBar() {
-  const body = document.getElementById('viewer-body');
-  body.innerHTML = `
-    <div style="position:absolute; inset:0; display:flex; flex-direction:column;">
-      <div style="flex:1; display:flex; align-items:center; justify-content:center; color:#789; font-size:14px;">
-        (대전 영역 — 하단 버튼만 표시)
-      </div>
-      <div class="combat-bar-preview">
-        <button class="back-btn" id="cb-back">돌아가기</button>
-        <button class="log-btn">📜</button>
-        <button>턴 종료</button>
-      </div>
-    </div>
-  `;
-  body.querySelector('#cb-back').addEventListener('click', () => showBackDialog());
+  // 1단계 기준 대전 뷰 (보스/보상 자동 소환 + 하단 버튼 포함)
+  renderCombatSim(1);
 }
 
 // ─────────── 보스 테이블 ───────────
