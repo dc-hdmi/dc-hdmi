@@ -2262,6 +2262,12 @@
         <li>좌상단 <strong>"🔄 처음부터"</strong> 로 전체 진행 초기화 가능</li>
         <li>보상 캐릭 ID 는 손패 뽑기에서 자동 제외 (중복 방지)</li>
         <li>10단계 아카이누 격파 시 <strong>최종 클리어</strong> (추후 스테이지 추가 예정)</li>
+        <li><strong>난이도 보정</strong>:
+          <ul>
+            <li>플레이어 시작 마나 = 스테이지 번호 (최대 7). 초반 소환 여유 확보</li>
+            <li>양쪽 리더 HP = 25 + (스테이지−1) × 5. 보스 집중 공격 또는 리더 몰빵 쉬운 승리 방지 (10단계 양쪽 70)</li>
+          </ul>
+        </li>
       </ul>
 
       <hr>
@@ -2468,6 +2474,14 @@ function newGame(mode = 'single', adventureStage = null) {
     });
     // 보스는 지연 소환 — _pendingBossStage 저장
     state._pendingBossStage = adventureStage;
+    // 플레이어 시작 마나 보정 — 스테이지 번호 (cap 7)
+    const startMana = Math.min(7, adventureStage);
+    state.player.mana = startMana;
+    state.player.maxMana = startMana;
+    // 양쪽 리더 HP 보정 — 25 + (stage-1) × 5
+    const bonusHp = (adventureStage - 1) * 5;
+    state.player.hp = 25 + bonusHp;
+    state.opp.hp = 25 + bonusHp;
   }
   for (let i = 0; i < 5; i++) drawCard('player');
   for (let i = 0; i < 5; i++) drawCard('opp');
