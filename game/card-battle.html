@@ -109,9 +109,11 @@
     overflow-y: hidden;
     scrollbar-width: none;
     display: flex;
-    align-items: center;
-    padding: 60px 20px;
+    align-items: center;      /* 세로 중앙 정렬 */
+    justify-content: flex-start;
+    padding: 20px 20px;        /* 상하 균형 — 화살표 공간 확보 */
     position: relative;
+    min-height: 0;
   }
   .stage-scroll-wrap::-webkit-scrollbar { display: none; }
   .stage-track { display: flex; align-items: center; padding: 0 40px; }
@@ -3971,8 +3973,10 @@ function advDialog(msg, onOk, onCancel, opts = {}) {
   cancel.addEventListener('click', onCancelWrap);
 }
 
-async function showRewardAcquired(stage) {
-  const reward = REWARDS[stage - 1];
+async function showRewardAcquired(clearedStage) {
+  // 이 스테이지 클리어 보상 = 다음 스테이지의 자동 소환 캐릭 (REWARDS[clearedStage])
+  const reward = REWARDS[clearedStage];
+  if (!reward) return;  // 10단계 클리어 → 보상 없음
   const modal = document.getElementById('reward-modal');
   modal.innerHTML = `
     <div class="reward-rays"></div>
