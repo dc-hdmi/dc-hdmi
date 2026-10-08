@@ -776,29 +776,54 @@ function renderCombatSim(stage) {
   const header = document.getElementById('viewer-header');
   header.textContent = `🎮 대전 시뮬 — ${boss.name} (스테이지 ${stage})`;
   body.innerHTML = `
-    <div style="position:absolute; inset:0; display:flex; flex-direction:column; background: linear-gradient(180deg, #0a1612, #050a08);">
-      <!-- 상대 영역 -->
-      <div style="padding:10px; border-bottom:1px solid #1f3028;">
-        <div style="color:#ff6060; font-size:12px; font-weight:700; margin-bottom:6px;">👹 상대 필드 (보스 자동 소환)</div>
-        <div style="display:flex; justify-content:center;">
+    <div style="position:absolute; inset:0; display:flex; flex-direction:column; background: #0a1612;">
+      <!-- 상대 리더 영역 -->
+      <div style="padding:4px 10px; background:#1a0808; border-bottom:1px solid #1f3028;">
+        <div style="color:#ff9090; font-size:11px; font-weight:700;">👹 상대 리더 — HP 25</div>
+      </div>
+
+      <!-- 상대 공격영역 (아레나 상단) -->
+      <div style="flex:1 1 0; padding:8px;
+                  background: repeating-linear-gradient(45deg, rgba(227,91,91,0.08) 0 10px, transparent 10px 20px),
+                              linear-gradient(180deg, rgba(227,91,91,0.15), rgba(60,20,20,0.3));
+                  border-bottom: 1px dashed rgba(255,215,122,0.3);
+                  display:flex; flex-direction:column;">
+        <div style="color:#ff9090; font-size:10px; font-weight:700; margin-bottom:4px; letter-spacing:0.5px;">
+          🎯 상대 공격영역 — 보스 자동 소환
+        </div>
+        <div style="flex:1; display:flex; align-items:center; justify-content:center;">
           ${simCard(boss.bossName, boss.bossId, boss.atk, boss.hp, boss.attr, '보스', '#ff5555')}
         </div>
       </div>
 
-      <!-- 중간 아레나 -->
-      <div style="flex:1; display:flex; align-items:center; justify-content:center;
-                  background: radial-gradient(ellipse, rgba(60,135,90,0.3), rgba(15,45,30,0.5));
-                  border-top: 2px solid rgba(255,215,122,0.4);
-                  border-bottom: 2px solid rgba(255,215,122,0.4);
-                  color:#789; font-size:12px;">
-        (아레나 — 전투 공간)
+      <!-- 내 공격영역 (아레나 하단) -->
+      <div style="flex:1 1 0; padding:8px;
+                  background: repeating-linear-gradient(45deg, rgba(75,191,118,0.08) 0 10px, transparent 10px 20px),
+                              linear-gradient(0deg, rgba(75,191,118,0.15), rgba(20,60,30,0.3));
+                  display:flex; flex-direction:column;">
+        <div style="flex:1; display:flex; align-items:center; justify-content:center;">
+          ${simCard(reward.charName, reward.id, reward.atk, reward.hp, 'STR', '보상', '#4bbf76')}
+        </div>
+        <div style="color:#9bffb0; font-size:10px; font-weight:700; margin-top:4px; text-align:right; letter-spacing:0.5px;">
+          🎯 내 공격영역 — 보상 자동 소환
+        </div>
       </div>
 
-      <!-- 내 영역 -->
-      <div style="padding:10px; border-top:1px solid #1f3028;">
-        <div style="color:#4bbf76; font-size:12px; font-weight:700; margin-bottom:6px;">🙂 내 필드 (보상 자동 소환)</div>
-        <div style="display:flex; justify-content:center;">
-          ${simCard(reward.charName, reward.id, reward.atk, reward.hp, 'STR', '보상', '#4bbf76')}
+      <!-- 내 리더 영역 -->
+      <div style="padding:4px 10px; background:#081a0f; border-top:1px solid #1f3028;">
+        <div style="color:#9bffb0; font-size:11px; font-weight:700;">🙂 내 리더 — HP 25</div>
+      </div>
+
+      <!-- 손패 영역 (별도 — 비어있음을 명시) -->
+      <div style="padding:12px 10px; background:#0e1f1a; border-top:2px solid #1f3028;
+                  display:flex; flex-direction:column; align-items:center;">
+        <div style="color:#789; font-size:10px; margin-bottom:6px;">🃏 내 손패 영역 (턴 시작 시 자동 뽑기 — 아직 비어있음)</div>
+        <div style="display:flex; gap:4px;">
+          <div style="width:40px; height:52px; border:1px dashed #333; border-radius:4px;"></div>
+          <div style="width:40px; height:52px; border:1px dashed #333; border-radius:4px;"></div>
+          <div style="width:40px; height:52px; border:1px dashed #333; border-radius:4px;"></div>
+          <div style="width:40px; height:52px; border:1px dashed #333; border-radius:4px;"></div>
+          <div style="width:40px; height:52px; border:1px dashed #333; border-radius:4px;"></div>
         </div>
       </div>
 
