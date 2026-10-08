@@ -4081,11 +4081,7 @@ async function enterAdventure() {
       cell.innerHTML = `<div class="stage-name">${BOSSES[0].name}</div><div class="arrow-indicator"></div>`;
       await sleep(500);
       cell.classList.remove('just-unlocked');
-      // 클릭 바인딩
-      cell.addEventListener('click', () => {
-        showScreen('combat');
-        newGame('adventure', 1);
-      });
+      // 클릭 리스너는 renderStageSelect 가 이미 바인딩함 — 중복 금지
     }
   }
 }
