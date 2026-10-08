@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>OPTC 연계기 테스트</title>
+<title>OPTC 연계기 · 합체 테스트</title>
 <style>
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   :root {
@@ -397,13 +397,120 @@
     80%  { opacity: 1; transform: translate(-50%, -35px) scale(1); }
     100% { opacity: 0; transform: translate(-50%, -50px) scale(0.9); }
   }
+
+  /* ───── 탈진 (합체 후 공격 불가 표시) — 본게임 동일 ───── */
+  .card.exhausted .thumb,
+  .card.exhausted .name {
+    opacity: 0.4;
+    filter: grayscale(70%);
+  }
+  .card.exhausted .stats {
+    opacity: 0.75;
+    filter: grayscale(40%);
+  }
+  .card.exhausted { opacity: 0.95; }
+
+  /* ───── 소환 안착 애니메이션 — 본게임 동일 ───── */
+  .card.summoned {
+    animation: summon-pop 0.55s cubic-bezier(0.2, 1.3, 0.4, 1);
+  }
+  @keyframes summon-pop {
+    0%   { transform: translateY(60px) scale(0.3) rotate(-10deg); opacity: 0; }
+    60%  { transform: translateY(-6px) scale(1.12) rotate(2deg); opacity: 1; }
+    100% { transform: translateY(0) scale(1) rotate(0); opacity: 1; }
+  }
+
+  /* ───── 카드 합체 이펙트 — 본게임(card-battle.html) 동일 ───── */
+  .merge-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.88);
+    z-index: 450;
+    display: none;
+    overflow: hidden;
+  }
+  .merge-overlay.show { display: block; }
+  .merge-card-wrap {
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 110px; aspect-ratio: 3/4;
+    max-height: 150px;
+    margin: -75px 0 0 -55px;
+    transform-style: preserve-3d;
+  }
+  .merge-card-wrap .card,
+  .merge-result-wrap .card {
+    width: 100%; height: 100%; max-height: none;
+  }
+  .merge-card-wrap.left { animation: merge-anim-left 2.1s cubic-bezier(0.4, 0.1, 0.5, 1) forwards; }
+  .merge-card-wrap.right { animation: merge-anim-right 2.1s cubic-bezier(0.4, 0.1, 0.5, 1) forwards; }
+  @keyframes merge-anim-left {
+    0%   { transform: translateX(0) scale(0) rotateY(0); opacity: 0; }
+    15%  { transform: translateX(-100px) scale(1.35) rotateY(0); opacity: 1; }
+    75%  { transform: translateX(-100px) scale(1.35) rotateY(1440deg); opacity: 1; }
+    90%  { transform: translateX(0) scale(1.1) rotateY(1440deg); opacity: 1; }
+    100% { transform: translateX(0) scale(0.3) rotateY(1440deg); opacity: 0; }
+  }
+  @keyframes merge-anim-right {
+    0%   { transform: translateX(0) scale(0) rotateY(0); opacity: 0; }
+    15%  { transform: translateX(100px) scale(1.35) rotateY(0); opacity: 1; }
+    75%  { transform: translateX(100px) scale(1.35) rotateY(-1440deg); opacity: 1; }
+    90%  { transform: translateX(0) scale(1.1) rotateY(-1440deg); opacity: 1; }
+    100% { transform: translateX(0) scale(0.3) rotateY(-1440deg); opacity: 0; }
+  }
+  .merge-flash {
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 10px; height: 10px;
+    margin: -5px 0 0 -5px;
+    background: radial-gradient(circle, #fff 0%, rgba(255,230,100,0.9) 30%, rgba(255,170,0,0.5) 60%, transparent 100%);
+    border-radius: 50%;
+    opacity: 0;
+    animation: merge-flash 0.5s ease-out 2s forwards;
+    pointer-events: none;
+  }
+  @keyframes merge-flash {
+    0%   { width: 10px; height: 10px; margin: -5px 0 0 -5px; opacity: 0; }
+    50%  { width: 500px; height: 500px; margin: -250px 0 0 -250px; opacity: 1; }
+    100% { width: 700px; height: 700px; margin: -350px 0 0 -350px; opacity: 0; }
+  }
+  .merge-result-wrap {
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 110px; aspect-ratio: 3/4; max-height: 150px;
+    margin: -75px 0 0 -55px;
+    opacity: 0;
+    animation: merge-result-pop 0.5s cubic-bezier(0.3, 1.3, 0.5, 1) 2.1s forwards;
+  }
+  @keyframes merge-result-pop {
+    0%   { transform: scale(0); opacity: 0; filter: brightness(3); }
+    60%  { transform: scale(1.4); opacity: 1; filter: brightness(1.5); }
+    100% { transform: scale(1.3); opacity: 1; filter: brightness(1); }
+  }
+  .merge-stat-gain {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, 90px);
+    color: #4bbf76;
+    font-size: 20px;
+    font-weight: 900;
+    text-shadow: 0 0 6px #000, 0 0 3px #000, 2px 2px 0 #000;
+    opacity: 0;
+    animation: merge-stat-rise 0.6s ease-out 2.3s forwards;
+    white-space: nowrap;
+    text-align: center;
+  }
+  @keyframes merge-stat-rise {
+    0%   { transform: translate(-50%, 90px); opacity: 0; }
+    50%  { transform: translate(-50%, 70px); opacity: 1; }
+    100% { transform: translate(-50%, 60px); opacity: 1; }
+  }
 </style>
 </head>
 <body>
 <div id="app">
   <!-- 테스트 컨트롤 -->
   <div class="test-panel">
-    <h3>🧪 연계기 테스트</h3>
+    <h3>🧪 연계기 · 합체 테스트</h3>
 
     <div class="toggle-row">
       <label>
@@ -435,6 +542,14 @@
       <button class="combo-btn" data-combo="class:Driven">야심<br>트레이드</button>
       <button class="combo-btn" data-combo="class:Cerebral">박식<br>봉쇄 3턴</button>
       <button class="combo-btn" data-combo="class:Powerhouse">강인<br>무적 2턴</button>
+    </div>
+
+    <div class="btn-row">
+      <div class="group-label">🧬 카드 합체 (손패 소환 → 자동 합체 시뮬레이션)</div>
+      <button class="combo-btn attr-STR" data-merge="incoming">합체<br>소환카드 기준</button>
+      <button class="combo-btn attr-STR" data-merge="existing">합체<br>기존카드 기준</button>
+      <button class="combo-btn attr-STR" data-merge="tie">합체<br>동률→기존 기준</button>
+      <button class="combo-btn attr-STR" data-merge="solo">합체<br>필드 1장 (자리)</button>
     </div>
 
     <div class="util-row">
@@ -977,6 +1092,8 @@ function cardEl(c, side) {
   const classes = ['card', c.attr];
   if (c.blocked > 0) classes.push('blocked');
   if (c.invincible > 0) classes.push('invincible');
+  if (c.exhausted) classes.push('exhausted');
+  if (c._justSummoned) { classes.push('summoned'); c._justSummoned = false; }
   // 블라인드: 상대가 입은 경우(= blind > 0인 쪽의 상대가 발동자). 테스트에서는 blind > 0인 카드를 뒷면으로.
   if (c.blind > 0) classes.push('blind-back');
   // 선택 가능 하이라이트
@@ -1118,9 +1235,127 @@ function renderDebug() {
   el.innerHTML = rows.map(r => `<div class="debug-row ${r.side}">${r.text}</div>`).join('');
 }
 
+// ─────────── 카드 합체 시뮬레이션 — 본게임(card-battle.html) 동일 로직 포팅 ───────────
+// 이름 베이스 — 부제 제거 ("루피 – 기어4" → "루피")
+function nameBase(name) {
+  if (!name) return '';
+  return name.split(/\s+[-–—]\s+/)[0].trim();
+}
+
+// 공격영역에서 합체 대상 찾기 (같은 이름 + 보호 X + 미합체)
+function findMergeTarget(side, incoming) {
+  if (!incoming || incoming._isBoss || incoming._isReward || incoming._merged) return null;
+  const base = nameBase(incoming.name);
+  if (!base) return null;
+  return state[side].field.find(c =>
+    !c._isBoss && !c._isReward && !c._merged
+    && nameBase(c.name) === base
+  );
+}
+
+// 시나리오별 기존/소환 카드 조합
+function mergePair(scenario) {
+  const weak   = { id: 1,    name: '루피',         attr: 'STR', cls: 'Fighter', atk: 5, hp: 6, mana: 4, emoji: '👒' };
+  const strong = { id: 1923, name: '루피 – 기어4', attr: 'STR', cls: 'Fighter', atk: 8, hp: 7, mana: 6, emoji: '👊' };
+  if (scenario === 'existing') return { existing: strong, incoming: weak };   // 기존카드가 기준
+  if (scenario === 'tie')      return { existing: weak, incoming: { ...weak, name: '루피 – 변장' } }; // 동률 → 기존카드 기준
+  return { existing: weak, incoming: strong };  // incoming / solo — 소환카드가 기준
+}
+
+async function runMergeTest(scenario) {
+  reset();
+  const pair = mergePair(scenario);
+  const existing = instance(pair.existing);
+  if (scenario === 'solo') {
+    // 필드 1장 → 합체 후에도 첫(유일) 자리
+    state.player.field = [existing];
+  } else {
+    // 가운데 자리의 카드가 재료 → 합체 후 맨 끝으로 이동하는지 확인
+    state.player.field = [instance(SAMPLE_CARDS[3]), existing, instance(SAMPLE_CARDS[6])];
+  }
+  state.opp.field = randomCards(2, SAMPLE_CARDS);
+  render();
+  await sleep(500);
+
+  const incoming = instance(pair.incoming);
+  showBanner(`손패에서 ${incoming.name} 소환 → 동일 이름 감지, 합체!`);
+  await sleep(600);
+
+  const target = findMergeTarget('player', incoming);
+  if (!target) { showBanner('⚠ 합체 대상 없음 — 로직 오류'); return; }
+  await performMerge(incoming, target, 'player');
+}
+
+// 카드 합체 — 기준/재료 결정 후 이펙트 + state 변경 (본게임 동일)
+async function performMerge(incoming, existing, side) {
+  // 기준 = ATK+HP 큰 쪽, 동률 시 공격영역 기존 카드
+  const incomingStat = incoming.atk + incoming.hp;
+  const existingStat = existing.atk + existing.hp;
+  const incomingWins = incomingStat > existingStat;
+  const base = incomingWins ? incoming : existing;
+  const material = incomingWins ? existing : incoming;
+  const atkGain = material.atk;
+  const hpGain = material.hp;
+
+  await playMergeEffect(base, material, atkGain, hpGain, incomingWins);
+
+  state[side].field = state[side].field.filter(c => c.instanceId !== existing.instanceId);
+  base.atk += atkGain;
+  base.hp += hpGain;
+  base._merged = true;
+  base.exhausted = true;  // 합체 턴 공격 불가
+  base._justSummoned = true;  // 공격영역 안착 애니메이션
+  state[side].field.push(base);
+  render();
+  showBanner(`합체 완료 — ${base.name} ⚔${base.atk} ♥${base.hp} (기준: ${incomingWins ? '소환카드' : '기존카드'})`);
+}
+
+async function playMergeEffect(base, material, atkGain, hpGain, incomingWins) {
+  const overlay = document.createElement('div');
+  overlay.className = 'merge-overlay show';
+
+  // 두 카드 렌더 — incoming 왼쪽, existing 오른쪽 (본게임과 동일 배치)
+  const incoming = incomingWins ? base : material;
+  const existing = incomingWins ? material : base;
+
+  const wrapL = document.createElement('div');
+  wrapL.className = 'merge-card-wrap left';
+  wrapL.appendChild(cardEl({ ...incoming, exhausted: false }, 'merge'));
+  const wrapR = document.createElement('div');
+  wrapR.className = 'merge-card-wrap right';
+  wrapR.appendChild(cardEl({ ...existing, exhausted: false }, 'merge'));
+  overlay.appendChild(wrapL);
+  overlay.appendChild(wrapR);
+
+  // 섬광
+  const flash = document.createElement('div');
+  flash.className = 'merge-flash';
+  overlay.appendChild(flash);
+
+  // 결과 카드 (2.1초 후 등장) — 가산된 스탯 미리 반영
+  const resultWrap = document.createElement('div');
+  resultWrap.className = 'merge-result-wrap';
+  const resultView = { ...base, atk: base.atk + atkGain, hp: base.hp + hpGain, exhausted: false };
+  resultWrap.appendChild(cardEl(resultView, 'merge'));
+  overlay.appendChild(resultWrap);
+
+  // 스탯 증가 표시
+  const stat = document.createElement('div');
+  stat.className = 'merge-stat-gain';
+  stat.innerHTML = `⚔ +${atkGain} &nbsp; ♥ +${hpGain}`;
+  overlay.appendChild(stat);
+
+  document.body.appendChild(overlay);
+  await sleep(2900);
+  overlay.remove();
+}
+
 // ─────────── Bind ───────────
-document.querySelectorAll('.combo-btn').forEach(btn => {
+document.querySelectorAll('.combo-btn[data-combo]').forEach(btn => {
   btn.addEventListener('click', () => runCombo(btn.dataset.combo));
+});
+document.querySelectorAll('[data-merge]').forEach(btn => {
+  btn.addEventListener('click', () => runMergeTest(btn.dataset.merge));
 });
 document.getElementById('btn-reset').addEventListener('click', reset);
 document.getElementById('btn-next-turn').addEventListener('click', nextTurn);
