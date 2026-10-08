@@ -3520,19 +3520,19 @@ async function oppTurn() {
   showBanner(`턴 ${Math.ceil(state.turnNo / 2)}`, '#4bbf76');
 }
 
-// 이름 토큰 — 부제 제거 후 공백/구두점 단위 분해 ("몽키 D.루피" → [몽키, D, 루피])
-function nameTokens(name) {
+// 이름 세그먼트 — 부제 제거 → & 로 캐릭터 분리 → 캐릭터별 토큰 분해
+// "루피&조로&상디" → [[루피], [조로], [상디]] / "몽키 D.루피" → [[몽키, D, 루피]]
+function nameSegments(name) {
   if (!name) return [];
   return name.split(/\s+[-–—]\s+/)[0]
-    .split(/[\s&.·,/()\[\]「」‘’“”'"]+/)
+    .split(/[&＆]/)
+    .map(seg => seg.split(/[\s.·,/()\[\]「」‘’“”'"]+/).filter(t => t.length > 0))
     .filter(t => t.length > 0);
 }
 
-// 동일 캐릭터 판정 — 짧은 쪽 토큰열이 긴 쪽에 연속으로 포함되면 매칭
+// 토큰열 매칭 — 짧은 쪽 토큰열이 긴 쪽에 연속으로 포함되면 매칭
 // ("루피" ⊂ [몽키, D, 루피] ✓ / "나미" vs "페로나 미스티…" ✗ — 토큰 경계 넘는 오매칭 방지)
-function sameCharacter(nameA, nameB) {
-  const ta = nameTokens(nameA), tb = nameTokens(nameB);
-  if (!ta.length || !tb.length) return false;
+function tokensMatch(ta, tb) {
   const [shorter, longer] = ta.length <= tb.length ? [ta, tb] : [tb, ta];
   if (shorter.length === 1 && shorter[0].length < 2) return false;  // 1글자 단독 토큰 오매칭 방지
   outer: for (let i = 0; i + shorter.length <= longer.length; i++) {
@@ -3540,6 +3540,18 @@ function sameCharacter(nameA, nameB) {
       if (longer[i + j] !== shorter[j]) continue outer;
     }
     return true;
+  }
+  return false;
+}
+
+// 동일 캐릭터 판정 — 양쪽 세그먼트(캐릭터) 중 한 쌍이라도 매칭되면 합체
+// ("루피&조로&상디" ↔ "몽키 D.루피" → 루피 세그먼트끼리 매칭 ✓)
+function sameCharacter(nameA, nameB) {
+  const sa = nameSegments(nameA), sb = nameSegments(nameB);
+  for (const ta of sa) {
+    for (const tb of sb) {
+      if (tokensMatch(ta, tb)) return true;
+    }
   }
   return false;
 }
