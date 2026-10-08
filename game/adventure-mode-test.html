@@ -831,11 +831,33 @@ function renderCombatSim(stage) {
       <div class="combat-bar-preview">
         <button class="back-btn" id="sim-back">돌아가기</button>
         <button class="log-btn">📜</button>
-        <button>턴 종료</button>
+        <button id="sim-win" style="background: linear-gradient(180deg, #4bbf76, #2d8f4e);">⚔ 승리 시뮬</button>
       </div>
     </div>
   `;
   body.querySelector('#sim-back').addEventListener('click', () => showBackDialog());
+  body.querySelector('#sim-win').addEventListener('click', async () => {
+    // 승리 → 보상 알림 → 확인 → 스테이지 복귀 → 복귀 시퀀스
+    rewardIdx = stage - 1;  // 그 스테이지 보상
+    await showRewardModal();
+    // 보상 알림이 자동으로 안 닫히므로, 사용자가 확인 누를 때까지 대기
+    await waitRewardClose();
+    // 스테이지 화면으로 복귀 + 복귀 시퀀스 자동 재생
+    currentClearCount = stage - 1;  // 아직 미클리어 상태로 세팅
+    showView('stage-select');
+    await sleep(400);
+    await playClearSequence();
+  });
+}
+
+function waitRewardClose() {
+  return new Promise(resolve => {
+    const modal = document.querySelector('.reward-modal');
+    if (!modal) { resolve(); return; }
+    const closeBtn = modal.querySelector('.reward-close');
+    if (!closeBtn) { resolve(); return; }
+    closeBtn.addEventListener('click', () => { modal.remove(); resolve(); }, { once: true });
+  });
 }
 
 function simCard(name, id, atk, hp, attr, labelTag, labelColor) {
