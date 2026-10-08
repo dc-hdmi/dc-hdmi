@@ -228,17 +228,17 @@
     letter-spacing: 1.5px;
   }
 
-  /* 파도 물결 라인 (셀 사이) */
+  /* 파도 물결 라인 (셀 사이) — 화살표가 지나갈 공간 확보 */
   .wave-link {
-    width: 42px;
+    width: 130px;
     height: 7px;
     flex-shrink: 0;
     background: repeating-linear-gradient(
       90deg,
-      #87ceeb 0 6px,
-      #ffffff 6px 12px,
-      #4aa3d9 12px 18px,
-      #ffffff 18px 24px
+      #87ceeb 0 8px,
+      #ffffff 8px 16px,
+      #4aa3d9 16px 24px,
+      #ffffff 24px 32px
     );
     border-radius: 3px;
     position: relative;
@@ -249,10 +249,10 @@
     position: absolute;
     width: 100%; height: 3px;
     left: 0;
-    background: repeating-linear-gradient(90deg, transparent 0 4px, rgba(255,255,255,0.5) 4px 8px);
+    background: repeating-linear-gradient(90deg, transparent 0 5px, rgba(255,255,255,0.6) 5px 10px);
   }
-  .wave-link::before { top: -2px; }
-  .wave-link::after { bottom: -2px; }
+  .wave-link::before { top: -3px; }
+  .wave-link::after { bottom: -3px; }
 
   /* 잠금 흔들림 애니 */
   .stage-cell.unlocking {
@@ -761,6 +761,88 @@ function renderStageSelect(clearCount) {
       if (nav === 'main') showView('main-menu');
     });
   });
+
+  // 활성 셀 클릭 → 대전 시뮬 진입
+  track.querySelectorAll('.stage-cell.active').forEach(cell => {
+    cell.addEventListener('click', () => {
+      const stage = parseInt(cell.dataset.stage);
+      renderCombatSim(stage);
+    });
+  });
+}
+
+// ─────────── 대전 시뮬 (활성 셀 클릭 → 보스+보상 자동 소환 레이아웃 확인) ───────────
+function renderCombatSim(stage) {
+  const body = document.getElementById('viewer-body');
+  const boss = BOSSES[stage - 1];
+  const reward = REWARDS[stage - 1];
+  const header = document.getElementById('viewer-header');
+  header.textContent = `🎮 대전 시뮬 — ${boss.name} (스테이지 ${stage})`;
+  body.innerHTML = `
+    <div style="position:absolute; inset:0; display:flex; flex-direction:column; background: linear-gradient(180deg, #0a1612, #050a08);">
+      <!-- 상대 영역 -->
+      <div style="padding:10px; border-bottom:1px solid #1f3028;">
+        <div style="color:#ff6060; font-size:12px; font-weight:700; margin-bottom:6px;">👹 상대 필드 (보스 자동 소환)</div>
+        <div style="display:flex; justify-content:center;">
+          ${simCard(boss.bossName, boss.bossId, boss.atk, boss.hp, boss.attr, '보스', '#ff5555')}
+        </div>
+      </div>
+
+      <!-- 중간 아레나 -->
+      <div style="flex:1; display:flex; align-items:center; justify-content:center;
+                  background: radial-gradient(ellipse, rgba(60,135,90,0.3), rgba(15,45,30,0.5));
+                  border-top: 2px solid rgba(255,215,122,0.4);
+                  border-bottom: 2px solid rgba(255,215,122,0.4);
+                  color:#789; font-size:12px;">
+        (아레나 — 전투 공간)
+      </div>
+
+      <!-- 내 영역 -->
+      <div style="padding:10px; border-top:1px solid #1f3028;">
+        <div style="color:#4bbf76; font-size:12px; font-weight:700; margin-bottom:6px;">🙂 내 필드 (보상 자동 소환)</div>
+        <div style="display:flex; justify-content:center;">
+          ${simCard(reward.charName, reward.id, reward.atk, reward.hp, 'STR', '보상', '#4bbf76')}
+        </div>
+      </div>
+
+      <!-- 하단 버튼 -->
+      <div class="combat-bar-preview">
+        <button class="back-btn" id="sim-back">돌아가기</button>
+        <button class="log-btn">📜</button>
+        <button>턴 종료</button>
+      </div>
+    </div>
+  `;
+  body.querySelector('#sim-back').addEventListener('click', () => showBackDialog());
+}
+
+function simCard(name, id, atk, hp, attr, labelTag, labelColor) {
+  const url = thumbUrl(id);
+  const shortName = name.length > 10 ? name.slice(0, 10) + '…' : name;
+  return `
+    <div style="width:90px; aspect-ratio:3/4; max-height:120px; border:2px solid ${labelColor};
+                border-radius:8px; background:linear-gradient(180deg, #1a2a24, #0e1812);
+                position:relative; display:flex; flex-direction:column; overflow:hidden;
+                box-shadow: 0 0 10px ${labelColor}66;">
+      <div style="position:absolute; top:-8px; right:-4px; background:${labelColor}; color:#000;
+                  font-size:8px; font-weight:900; padding:1px 5px; border-radius:3px; z-index:3;">
+        ${labelTag}
+      </div>
+      <div style="flex:1 1 60%; overflow:hidden; background:radial-gradient(circle, #203028, #000);">
+        <img src="${url}" alt="${name}" style="width:100%; height:100%; object-fit:cover;"
+             onerror="this.style.display='none';">
+      </div>
+      <div style="font-size:9px; font-weight:700; color:#fff; text-align:center; padding:2px;
+                  background:rgba(0,0,0,0.5); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+        ${shortName}
+      </div>
+      <div style="display:flex; justify-content:space-between; padding:2px 6px;
+                  background:#000; font-size:11px; font-weight:800;">
+        <span style="color:#d9b64a;">⚔${atk}</span>
+        <span style="color:#ff6060;">♥${hp}</span>
+      </div>
+    </div>
+  `;
 }
 
 // ─────────── 대전 중 하단 버튼 ───────────
@@ -772,12 +854,13 @@ function renderCombatBar() {
         (대전 영역 — 하단 버튼만 표시)
       </div>
       <div class="combat-bar-preview">
-        <button class="back-btn">돌아가기</button>
+        <button class="back-btn" id="cb-back">돌아가기</button>
         <button class="log-btn">📜</button>
         <button>턴 종료</button>
       </div>
     </div>
   `;
+  body.querySelector('#cb-back').addEventListener('click', () => showBackDialog());
 }
 
 // ─────────── 보스 테이블 ───────────
@@ -866,7 +949,6 @@ async function playFirstEnter() {
 }
 
 async function playClearSequence() {
-  // 현재 clearCount 기준 다음 단계로 진행
   if (currentClearCount >= 10) {
     showStatus('이미 전체 클리어');
     return;
@@ -878,36 +960,71 @@ async function playClearSequence() {
   const clearingCell = document.querySelector(`.stage-cell[data-stage="${clearingStage}"]`);
   if (!clearingCell) return;
 
+  // 셀 안의 화살표 제거 (바로 떼어내서 scroll wrap 쪽으로 이동)
+  const arrowInCell = clearingCell.querySelector('.arrow-indicator');
+  if (arrowInCell) arrowInCell.remove();
+
   // 1. 샤터
   await shatterCell(clearingCell);
-  // 상태 변경
   clearingCell.className = 'stage-cell cleared';
   clearingCell.style.backgroundImage = `url('${IMG.cellCleared}')`;
   clearingCell.innerHTML = '';
   await sleep(300);
 
-  // 2. 다음 셀로 스크롤 + 화살표 이동
   const nextStage = clearingStage + 1;
   if (nextStage > 10) {
-    // 마지막 스테이지 클리어 — 추가 처리 없음
     showStatus('최종 스테이지 클리어');
     currentClearCount = clearingStage;
     return;
   }
   const nextCell = document.querySelector(`.stage-cell[data-stage="${nextStage}"]`);
-  if (nextCell) {
-    nextCell.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
-    await sleep(500);
-    // 다음 셀 잠김 흔들림 → 풀림
-    nextCell.classList.add('unlocking');
-    await sleep(900);
-    nextCell.classList.remove('unlocking');
-    nextCell.className = 'stage-cell active just-unlocked';
-    nextCell.style.backgroundImage = `url('${IMG.cellActive}')`;
-    nextCell.innerHTML = `<div class="stage-name">${BOSSES[nextStage-1].name}</div><div class="arrow-indicator"></div>`;
-    await sleep(500);
-    nextCell.classList.remove('just-unlocked');
+  if (!nextCell) return;
+
+  // 2. 다음 셀로 스크롤
+  nextCell.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+  await sleep(600);
+
+  // 3. 화살표 생성 — scroll wrap 기준 absolute, 현재 클리어 셀 위에서 → 다음 셀로 5번 점프 이동
+  const scrollWrap = document.getElementById('stage-scroll');
+  const track = document.getElementById('stage-track');
+  const srcRect = clearingCell.getBoundingClientRect();
+  const dstRect = nextCell.getBoundingClientRect();
+  const wrapRect = scrollWrap.getBoundingClientRect();
+  const srcX = (srcRect.left + srcRect.width / 2) - wrapRect.left + scrollWrap.scrollLeft;
+  const dstX = (dstRect.left + dstRect.width / 2) - wrapRect.left + scrollWrap.scrollLeft;
+  const yTop = (srcRect.top - wrapRect.top) - 30;  // 셀 위
+
+  const travelArrow = document.createElement('div');
+  travelArrow.className = 'arrow-indicator';
+  travelArrow.style.cssText = `position:absolute; top:${yTop}px; left:${srcX}px; animation:none; z-index:50;`;
+  scrollWrap.appendChild(travelArrow);
+  await sleep(100);
+
+  // 5번 점프하며 이동 (총 ~2초)
+  const steps = 5;
+  const stepDur = 400;
+  for (let i = 0; i < steps; i++) {
+    const nextX = srcX + ((dstX - srcX) * (i + 1) / steps);
+    travelArrow.animate([
+      { left: travelArrow.style.left, transform: 'translateX(-50%) translateY(0)' },
+      { transform: 'translateX(-50%) translateY(-25px)', offset: 0.5 },
+      { left: nextX + 'px', transform: 'translateX(-50%) translateY(0)' },
+    ], { duration: stepDur, easing: 'ease-out', fill: 'forwards' });
+    await sleep(stepDur);
+    travelArrow.style.left = nextX + 'px';
   }
+  travelArrow.remove();
+
+  // 4. 다음 셀 잠김 흔들림 → 풀림
+  nextCell.classList.add('unlocking');
+  await sleep(900);
+  nextCell.classList.remove('unlocking');
+  nextCell.className = 'stage-cell active just-unlocked';
+  nextCell.style.backgroundImage = `url('${IMG.cellActive}')`;
+  nextCell.innerHTML = `<div class="stage-name">${BOSSES[nextStage-1].name}</div><div class="arrow-indicator"></div>`;
+  await sleep(500);
+  nextCell.classList.remove('just-unlocked');
+
   currentClearCount = clearingStage;
   showStatus(`${clearingStage}단계 클리어 — 다음 단계 ${nextStage} 활성화`);
 }
