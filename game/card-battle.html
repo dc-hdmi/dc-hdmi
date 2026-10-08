@@ -42,6 +42,324 @@
     overflow: hidden;
   }
 
+  /* ───── 스크린 전환 ───── */
+  .screen { display: none; position: absolute; inset: 0; }
+  .screen.active { display: flex; flex-direction: column; }
+  #screen-combat.active { display: flex; }
+
+  /* ───── 메인 메뉴 ───── */
+  #screen-main {
+    background: linear-gradient(180deg, #87ceeb 0%, #4a9fd9 50%, #2e86ab 100%);
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .mode-grid {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+  }
+  .mode-button {
+    width: 45%; aspect-ratio: 1; max-width: 180px;
+    background-size: cover; background-position: center;
+    border: 3px solid var(--gold);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; position: relative; overflow: hidden;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.5);
+    transition: transform 0.2s;
+  }
+  .mode-button:active { transform: scale(0.95); }
+  .mode-button .mode-name {
+    color: #fff; font-size: 20px; font-weight: 900;
+    text-shadow: 2px 2px 4px #000, 0 0 10px rgba(0,0,0,0.8);
+    letter-spacing: 2px;
+    background: rgba(0,0,0,0.4);
+    padding: 6px 14px; border-radius: 8px;
+  }
+
+  /* ───── 스테이지 선택 ───── */
+  #screen-stage {
+    background: linear-gradient(180deg, #1a5490 0%, #0e4a78 50%, #082040 100%);
+    position: relative;
+  }
+  .stage-nav-top {
+    position: absolute; top: 10px; left: 10px; z-index: 10;
+  }
+  .stage-nav-bot {
+    position: absolute; bottom: 10px; left: 10px; z-index: 10;
+  }
+  .stage-nav-btn {
+    background: rgba(0,0,0,0.6);
+    color: var(--gold);
+    border: 1.5px solid var(--gold);
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .stage-nav-btn:active { transform: scale(0.95); }
+
+  .stage-scroll-wrap {
+    flex: 1;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    display: flex;
+    align-items: center;
+    padding: 60px 20px;
+    position: relative;
+  }
+  .stage-scroll-wrap::-webkit-scrollbar { display: none; }
+  .stage-track { display: flex; align-items: center; padding: 0 40px; }
+
+  .stage-cell {
+    position: relative;
+    width: 98px; height: 126px;
+    background-size: contain; background-position: center;
+    background-repeat: no-repeat;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; overflow: visible;
+  }
+  .stage-cell.active {
+    cursor: pointer;
+    filter: drop-shadow(0 0 12px rgba(255,165,0,0.85));
+  }
+  .stage-cell.active::before {
+    content: '';
+    position: absolute;
+    width: 18px; height: 18px;
+    background: url('https://raw.githubusercontent.com/dc-hdmi/dc-hdmi/main/game/images/popuptext_slot_rainbow.png') center/contain no-repeat;
+    top: 50%; left: 50%;
+    margin: -9px 0 0 -9px;
+    animation: stage-orbit 3s linear infinite;
+    z-index: 5;
+    pointer-events: none;
+  }
+  @keyframes stage-orbit {
+    from { transform: rotate(0deg)   translate(52px) rotate(0deg); }
+    to   { transform: rotate(360deg) translate(52px) rotate(-360deg); }
+  }
+  .stage-cell.locked {
+    cursor: not-allowed;
+    filter: drop-shadow(0 0 10px rgba(180,180,180,0.6));
+  }
+  .stage-cell.cleared {
+    cursor: default;
+    filter: drop-shadow(0 0 10px rgba(180,180,180,0.6));
+  }
+  .stage-cell .stage-name {
+    color: #fff; font-size: 12px; font-weight: 900;
+    text-align: center;
+    text-shadow: 0 0 5px #000, 0 0 3px #000, 2px 2px 0 #000;
+    letter-spacing: 0.5px;
+    padding: 0 6px; line-height: 1.2;
+  }
+  .stage-cell.cleared::after {
+    content: 'CLEAR';
+    position: absolute; bottom: 6px; left: 50%;
+    transform: translateX(-50%);
+    color: var(--gold);
+    font-size: 13px; font-weight: 900;
+    text-shadow: 0 0 4px #000, 0 0 8px rgba(0,0,0,0.9);
+    letter-spacing: 1.5px;
+  }
+  .stage-cell.unlocking { animation: stage-shake 0.9s ease-in-out; }
+  @keyframes stage-shake {
+    0%, 100% { transform: translateX(0); }
+    10% { transform: translateX(-6px) rotate(-3deg); }
+    20% { transform: translateX(6px) rotate(3deg); }
+    30% { transform: translateX(-5px) rotate(-2deg); }
+    40% { transform: translateX(5px) rotate(2deg); }
+    50% { transform: translateX(-4px) rotate(-1deg); filter: brightness(1.5); }
+    60% { transform: translateX(4px) rotate(1deg); filter: brightness(1.8); }
+    70% { transform: translateX(-3px); filter: brightness(2); }
+    80% { transform: translateX(3px); filter: brightness(1.5); }
+    90% { transform: translateX(0); filter: brightness(1.2); }
+  }
+  .stage-cell.just-unlocked { animation: stage-unlock 0.5s ease-out; }
+  @keyframes stage-unlock {
+    0% { filter: brightness(2) drop-shadow(0 0 20px gold); }
+    100% { filter: none; }
+  }
+
+  .wave-link {
+    width: 130px; height: 0;
+    flex-shrink: 0;
+    border-top: 5px dashed #5a3315;
+  }
+
+  /* 노란 화살표 — 상시 점프 */
+  .stage-cell .arrow-indicator {
+    position: absolute;
+    top: -28px; left: 50%;
+    transform: translateX(-50%);
+    width: 0; height: 0;
+    border-left: 11px solid transparent;
+    border-right: 11px solid transparent;
+    border-top: 17px solid #ffd57a;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.7));
+    animation: arrow-jump 0.9s ease-in-out infinite;
+    z-index: 20;
+  }
+  @keyframes arrow-jump {
+    0%, 100% { transform: translateX(-50%) translateY(0); }
+    50%      { transform: translateX(-50%) translateY(-12px); }
+  }
+
+  /* 모험 모드 전용 다이얼로그 */
+  .adv-dialog {
+    position: absolute; inset: 0;
+    background: rgba(0,0,0,0.9);
+    z-index: 320;
+    display: none;
+    align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  .adv-dialog.show { display: flex; }
+  .adv-dialog-box {
+    background: var(--bg2);
+    border: 2px solid var(--gold);
+    border-radius: 10px;
+    padding: 20px;
+    max-width: 320px;
+    text-align: center;
+  }
+  .adv-dialog-box p {
+    color: #fff; margin: 0 0 16px; line-height: 1.5;
+  }
+  .adv-dialog-box .btn-row {
+    display: flex; gap: 8px; justify-content: center;
+  }
+  .adv-dialog-box button {
+    padding: 8px 20px; border-radius: 6px;
+    border: none; cursor: pointer; font-weight: 700;
+    flex: initial;
+  }
+  .adv-dialog-box .btn-ok { background: #c04040; color: #fff; }
+  .adv-dialog-box .btn-cancel { background: #444; color: #fff; }
+
+  /* 보상 획득 모달 (하스스톤식) */
+  .reward-modal {
+    position: absolute; inset: 0;
+    background: rgba(0,0,0,0.92);
+    z-index: 310;
+    display: none;
+    align-items: center; justify-content: center;
+    overflow: hidden;
+  }
+  .reward-modal.show { display: flex; }
+  .reward-rays {
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 10px; height: 10px;
+    transform: translate(-50%, -50%);
+    animation: reward-rays 2.5s ease-out forwards;
+  }
+  .reward-rays::before, .reward-rays::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: conic-gradient(from 0deg,
+      transparent 0deg, rgba(255,255,120,0.9) 15deg, transparent 30deg,
+      transparent 90deg, rgba(255,220,80,0.7) 105deg, transparent 120deg,
+      transparent 180deg, rgba(255,255,120,0.9) 195deg, transparent 210deg,
+      transparent 270deg, rgba(255,220,80,0.7) 285deg, transparent 300deg,
+      transparent 360deg);
+    border-radius: 50%;
+    animation: reward-spin 2.5s linear infinite;
+    mix-blend-mode: screen;
+  }
+  .reward-rays::after { animation-direction: reverse; opacity: 0.5; }
+  @keyframes reward-rays {
+    0%   { opacity: 0; width: 10px; height: 10px; }
+    30%  { opacity: 1; width: 800px; height: 800px; }
+    100% { opacity: 0.3; width: 800px; height: 800px; }
+  }
+  @keyframes reward-spin {
+    from { transform: rotate(0); }
+    to   { transform: rotate(360deg); }
+  }
+  .reward-card-wrap {
+    position: relative; perspective: 1200px;
+    z-index: 10; text-align: center;
+  }
+  .reward-card-anim {
+    width: 160px; aspect-ratio: 3/4;
+    position: relative; transform-style: preserve-3d;
+    animation: card-flip 1.8s ease-in-out 0.5s forwards;
+    transform: rotateY(0);
+  }
+  @keyframes card-flip {
+    0%   { transform: rotateY(0) scale(0.5); }
+    30%  { transform: rotateY(180deg) scale(1); }
+    60%  { transform: rotateY(360deg) scale(1.1); }
+    80%  { transform: rotateY(540deg) scale(1.1); }
+    100% { transform: rotateY(540deg) scale(1); }
+  }
+  .reward-card-anim .card-face {
+    position: absolute; inset: 0;
+    backface-visibility: hidden;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+  }
+  .reward-card-anim .card-back-face {
+    background: repeating-linear-gradient(45deg, #4a1515 0 8px, #2a0e0e 8px 16px);
+    border: 3px solid #d9b64a;
+    font-size: 48px; color: rgba(255,255,255,0.3); font-weight: 900;
+  }
+  .reward-card-anim .card-front-face {
+    background: linear-gradient(180deg, #1a2a24, #0e1812);
+    border: 3px solid var(--gold);
+    transform: rotateY(180deg);
+    padding: 6px; flex-direction: column;
+  }
+  .reward-card-anim .card-front-face img { width: 100%; height: 60%; object-fit: cover; border-radius: 6px; }
+  .reward-card-anim .card-front-face .r-name { color: #fff; font-size: 12px; font-weight: 700; margin-top: 4px; text-align: center; }
+  .reward-card-anim .card-front-face .r-stats {
+    color: var(--gold); font-size: 14px; font-weight: 800;
+    display: flex; gap: 10px; justify-content: center; margin-top: 4px;
+  }
+  .reward-text {
+    color: var(--gold); font-size: 24px; font-weight: 900;
+    letter-spacing: 3px; margin-top: 20px;
+    text-shadow: 0 0 10px #ff5500, 0 0 20px #ffee55, 0 4px 8px #000;
+    animation: reward-text-pop 2s ease-out 1s forwards;
+    opacity: 0;
+  }
+  @keyframes reward-text-pop {
+    0% { opacity: 0; transform: scale(0.5); }
+    40% { opacity: 1; transform: scale(1.2); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+  .reward-sparkle {
+    position: absolute; width: 8px; height: 8px;
+    background: radial-gradient(circle, #fff, transparent 70%);
+    border-radius: 50%; pointer-events: none;
+    animation: reward-sparkle 1.8s ease-out forwards;
+  }
+  @keyframes reward-sparkle {
+    0% { opacity: 0; transform: scale(0); }
+    50% { opacity: 1; transform: scale(1.5); }
+    100% { opacity: 0; transform: scale(0.5); }
+  }
+  .reward-close-btn {
+    position: absolute;
+    bottom: 20px; left: 50%;
+    transform: translateX(-50%);
+    background: var(--gold); color: #000;
+    border: none; padding: 10px 24px;
+    border-radius: 20px;
+    font-weight: 900; cursor: pointer; z-index: 20;
+    opacity: 0;
+    animation: reward-close-show 0.4s ease-out 2.4s forwards;
+  }
+  @keyframes reward-close-show { to { opacity: 1; } }
+
   /* ───── Zones ───── */
   .zone {
     flex: 0 0 auto;
@@ -1516,6 +1834,47 @@
 </head>
 <body>
 <div id="app">
+  <!-- ───── 메인 메뉴 스크린 ───── -->
+  <div class="screen" id="screen-main">
+    <div class="mode-grid">
+      <div class="mode-button" id="btn-mode-single" style="background-image: url('https://raw.githubusercontent.com/dc-hdmi/dc-hdmi/main/game/replace_slot_icon_blank.png'); background-color:#2a3a60;">
+        <div class="mode-name">싱글 모드</div>
+      </div>
+      <div class="mode-button" id="btn-mode-adventure" style="background-image: url('https://raw.githubusercontent.com/dc-hdmi/dc-hdmi/main/game/common_del.png'); background-color:#602a2a;">
+        <div class="mode-name">모험 모드</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ───── 스테이지 선택 스크린 ───── -->
+  <div class="screen" id="screen-stage">
+    <div class="stage-nav-top">
+      <button class="stage-nav-btn" id="btn-adv-reset">🔄 처음부터 다시하기</button>
+    </div>
+    <div class="stage-nav-bot">
+      <button class="stage-nav-btn" id="btn-adv-main">🏠 메인으로</button>
+    </div>
+    <div class="stage-scroll-wrap" id="stage-scroll">
+      <div class="stage-track" id="stage-track"></div>
+    </div>
+  </div>
+
+  <!-- ───── 모험 모드 다이얼로그 ───── -->
+  <div class="adv-dialog" id="adv-dialog">
+    <div class="adv-dialog-box">
+      <p id="adv-dialog-msg"></p>
+      <div class="btn-row">
+        <button class="btn-cancel" id="adv-dialog-cancel">취소</button>
+        <button class="btn-ok" id="adv-dialog-ok">확인</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ───── 보상 획득 모달 ───── -->
+  <div class="reward-modal" id="reward-modal"></div>
+
+  <!-- ───── 전투 스크린 (기존 모든 전투 UI) ───── -->
+  <div class="screen" id="screen-combat">
   <!-- Opponent zones -->
   <div class="zone opp-leader-zone">
     <div class="zone-label">
@@ -1573,7 +1932,7 @@
   <!-- Controls -->
   <div class="controls">
     <button class="secondary" id="btn-new">새 게임</button>
-    <button class="log-btn" id="btn-log" title="배틀 로그">📜</button>
+    <button class="secondary" id="btn-home">메인으로</button>
     <button id="btn-end">턴 종료</button>
   </div>
 
@@ -1791,6 +2150,27 @@
         <li>후공자는 첫 턴에 <strong>마나 +1 보너스</strong> (코인) — 선공 불리 보상</li>
       </ul>
 
+      <h4>⑮ 모험 모드</h4>
+      <ul>
+        <li>메인 메뉴 → <strong>"모험 모드"</strong> 선택 → 스테이지 선택 화면</li>
+        <li>원피스 사가 순 <strong>10개 스테이지</strong> (이스트블루 → 정상전쟁) 순차 진행</li>
+        <li>스테이지 셀 3가지 상태:
+          <ul>
+            <li><strong>활성</strong>: 클릭 가능 (노란 화살표 깜빡)</li>
+            <li><strong>클리어</strong>: 하단 "CLEAR" 노란 글씨</li>
+            <li><strong>잠김</strong>: 봉쇄 이미지, 클릭 불가</li>
+          </ul>
+        </li>
+        <li>대전 입장 시 <strong>보스 카드</strong>(상대 공격영역) + <strong>보상 카드</strong>(내 공격영역) <strong>자동 소환</strong> (다음 턴부터 공격 가능)</li>
+        <li>승리 → <strong>보상 카드 획득 알림</strong> → 스테이지 복귀 → 샤터 → 다음 스테이지 활성화</li>
+        <li>패배 → <strong>재도전</strong> 또는 스테이지 선택 복귀</li>
+        <li>모험 중 하단 버튼: <strong>[돌아가기] [메인으로] [턴 종료]</strong></li>
+        <li>진행 상태 <strong>자동 저장</strong> (브라우저 재접속해도 유지)</li>
+        <li>좌상단 <strong>"🔄 처음부터"</strong> 로 전체 진행 초기화 가능</li>
+        <li>보상 캐릭 ID 는 손패 뽑기에서 자동 제외 (중복 방지)</li>
+        <li>10단계 아카이누 격파 시 <strong>최종 클리어</strong> (추후 스테이지 추가 예정)</li>
+      </ul>
+
       <hr>
 
       <h4>초보 꿀팁</h4>
@@ -1811,6 +2191,7 @@
       <button id="btn-restart">다시 시작</button>
     </div>
   </div>
+  </div>  <!-- /screen-combat -->
 </div>
 
 <script>
@@ -1838,6 +2219,57 @@ const CLASS_LABEL = {
   'Cerebral':    { ko: '박식', char: '박', color: '#d9b64a' },
   'Powerhouse':  { ko: '강인', char: '강', color: '#8a8a9e' },
 };
+
+// ─────────── 모험 모드 데이터 ───────────
+const ADV_IMG = {
+  single:     'https://raw.githubusercontent.com/dc-hdmi/dc-hdmi/main/game/replace_slot_icon_blank.png',
+  adventure:  'https://raw.githubusercontent.com/dc-hdmi/dc-hdmi/main/game/common_del.png',
+  cellActive: 'https://raw.githubusercontent.com/dc-hdmi/dc-hdmi/main/game/potentialskill_iconframe.png',
+  cellCleared:'https://raw.githubusercontent.com/dc-hdmi/dc-hdmi/main/game/common_slot_bind.png',
+  cellLocked: 'https://raw.githubusercontent.com/dc-hdmi/dc-hdmi/main/game/common_change_lock.png',
+};
+
+const BOSSES = [
+  { stage: 1,  name: '이스트 블루',    bossName: '아론',        bossId: 3428, atk: 4,  hp: 11, attr: 'STR', cls: 'Powerhouse' },
+  { stage: 2,  name: '알라바스타',     bossName: '크로커다일',  bossId: 4274, atk: 6,  hp: 16, attr: 'DEX', cls: 'Cerebral' },
+  { stage: 3,  name: '하늘섬',         bossName: '에넬',        bossId: 4579, atk: 7,  hp: 19, attr: 'PSY', cls: 'Driven' },
+  { stage: 4,  name: '워터 세븐',      bossName: '블루노',      bossId: 756,  atk: 6,  hp: 20, attr: 'INT', cls: 'Powerhouse' },
+  { stage: 5,  name: '에니에스 로비',  bossName: '롭 루치',     bossId: 4170, atk: 9,  hp: 25, attr: 'DEX', cls: 'Powerhouse' },
+  { stage: 6,  name: '스릴러 바크',    bossName: '게코 모리아', bossId: 3409, atk: 9,  hp: 26, attr: 'DEX', cls: 'Driven' },
+  { stage: 7,  name: '샤본디 제도',    bossName: '키자루',      bossId: 4366, atk: 11, hp: 31, attr: 'DEX', cls: 'Shooter' },
+  { stage: 8,  name: '아마존 릴리',    bossName: '보아 행콕',   bossId: 4418, atk: 12, hp: 34, attr: 'QCK', cls: 'Striker' },
+  { stage: 9,  name: '임펠 다운',      bossName: '마젤란',      bossId: 4256, atk: 13, hp: 37, attr: 'QCK', cls: 'Shooter' },
+  { stage: 10, name: '정상 전쟁',      bossName: '아카이누',    bossId: 4217, atk: 14, hp: 40, attr: 'STR', cls: 'Fighter' },
+];
+
+const REWARDS = [
+  { stage: 1,  charName: '몽키 D.루피 – 고무고무 바주카', id: 3,   atk: 3,  hp: 9,  attr: 'STR', cls: 'Fighter' },
+  { stage: 2,  charName: '롤로노아 조로 – 삼천세계',       id: 6,   atk: 5,  hp: 14, attr: 'DEX', cls: 'Slasher' },
+  { stage: 3,  charName: '왕녀 비비',                     id: 73,  atk: 6,  hp: 16, attr: 'PSY', cls: 'Slasher' },
+  { stage: 4,  charName: '에넬',                          id: 545, atk: 5,  hp: 17, attr: 'PSY', cls: 'Shooter' },
+  { stage: 5,  charName: '프랑키',                        id: 336, atk: 8,  hp: 21, attr: 'PSY', cls: 'Shooter' },
+  { stage: 6,  charName: '니코 로빈',                     id: 210, atk: 8,  hp: 22, attr: 'INT', cls: 'Fighter' },
+  { stage: 7,  charName: '브룩',                          id: 423, atk: 9,  hp: 26, attr: 'QCK', cls: 'Slasher' },
+  { stage: 8,  charName: '실버즈 레일리',                 id: 366, atk: 10, hp: 29, attr: 'INT', cls: 'Fighter' },
+  { stage: 9,  charName: '보아 행콕',                     id: 415, atk: 11, hp: 31, attr: 'QCK', cls: 'Fighter' },
+  { stage: 10, charName: '포트거스 D.에이스',             id: 74,  atk: 12, hp: 34, attr: 'QCK', cls: 'Fighter' },
+];
+
+const ADV_STORAGE_KEY = 'optc_adventure_progress';
+
+function loadAdvProgress() {
+  try {
+    const raw = localStorage.getItem(ADV_STORAGE_KEY);
+    if (!raw) return { clearCount: 0 };
+    return JSON.parse(raw);
+  } catch { return { clearCount: 0 }; }
+}
+function saveAdvProgress(data) {
+  try { localStorage.setItem(ADV_STORAGE_KEY, JSON.stringify(data)); } catch {}
+}
+function clearAdvProgress() {
+  localStorage.removeItem(ADV_STORAGE_KEY);
+}
 
 function cardPool() {
   if (!window.units) return [];
@@ -1898,13 +2330,19 @@ function shuffle(arr) {
 // ─────────── Game state ───────────
 let state = null;
 
-function newGame() {
+function newGame(mode = 'single', adventureStage = null) {
   const pool = cardPool();
   if (pool.length < 30) {
     log('캐릭 풀 부족 (★5+ 필요). units.js 로드 확인.');
     return;
   }
-  const makeDeck = () => shuffle(pool).slice(0, 15).map(c => ({ ...c }));
+  // 모험 모드: 보상 캐릭 id 는 손패 뽑기 풀에서 제외
+  const rewardIdFilter = (mode === 'adventure' && adventureStage)
+    ? REWARDS[adventureStage - 1].id : null;
+  const filteredPool = rewardIdFilter
+    ? pool.filter(c => c.id !== rewardIdFilter)
+    : pool;
+  const makeDeck = () => shuffle(filteredPool).slice(0, 15).map(c => ({ ...c }));
   if (state && state._autoEndTimer) clearTimeout(state._autoEndTimer);
   const firstPlayer = Math.random() < 0.5 ? 'player' : 'opp';
   state = {
@@ -1915,6 +2353,8 @@ function newGame() {
     attackingCard: null,
     turnNo: 1,
     history: [],
+    mode,
+    adventureStage,
     _coinUsed: false,
     _swapUsed: false,
     _gameOver: false,
@@ -1922,17 +2362,51 @@ function newGame() {
     _autoEndTimer: null,
     selectionMode: null,
   };
+  // 모험 모드: 보스/보상 카드 자동 소환 (exhausted = true, 다음 턴부터 공격)
+  if (mode === 'adventure' && adventureStage) {
+    const boss = BOSSES[adventureStage - 1];
+    const reward = REWARDS[adventureStage - 1];
+    state.opp.field.push({
+      id: boss.bossId, name: boss.bossName, attr: boss.attr, cls: boss.cls,
+      mana: 0, atk: boss.atk, hp: boss.hp, maxHp: boss.hp, baseAtk: boss.atk,
+      effect: {}, exhausted: true,
+      blocked: 0, invincible: 0, blind: 0, atkBonus: 0, dmgReduce: 0,
+      instanceId: 'boss_' + Math.random().toString(36).slice(2, 8),
+    });
+    state.player.field.push({
+      id: reward.id, name: reward.charName.split(/\s+[-–—]\s+/)[0],
+      attr: reward.attr, cls: reward.cls,
+      mana: 0, atk: reward.atk, hp: reward.hp, maxHp: reward.hp, baseAtk: reward.atk,
+      effect: {}, exhausted: true,
+      blocked: 0, invincible: 0, blind: 0, atkBonus: 0, dmgReduce: 0,
+      instanceId: 'reward_' + Math.random().toString(36).slice(2, 8),
+    });
+  }
   for (let i = 0; i < 5; i++) drawCard('player');
   for (let i = 0; i < 5; i++) drawCard('opp');
   setLocked(false);
   logTurn(`─── 게임 시작 · ${firstPlayer === 'player' ? '내가 선공' : '상대가 선공'} ───`);
   document.getElementById('btn-swap').classList.remove('used');
+  updateBottomBar();
   render();
   if (firstPlayer === 'player') {
     showBanner('내 턴 (선공)', '#4bbf76');
   } else {
     showBanner('상대 선공', '#ff6b6b');
     setTimeout(() => oppTurn(), 700);
+  }
+}
+
+// 모험 모드 시 하단 "새 게임" → "돌아가기" 로 변경
+function updateBottomBar() {
+  const newBtn = document.getElementById('btn-new');
+  if (!newBtn) return;
+  if (state && state.mode === 'adventure') {
+    newBtn.textContent = '돌아가기';
+    newBtn.dataset.mode = 'back';
+  } else {
+    newBtn.textContent = '새 게임';
+    newBtn.dataset.mode = 'new';
   }
 }
 
@@ -3334,7 +3808,9 @@ document.getElementById('btn-restart').addEventListener('click', () => {
   document.getElementById('gameover').classList.add('hidden');
   newGame();
 });
-document.getElementById('btn-log').addEventListener('click', openLogPanel);
+// btn-log 요소는 제거됐지만 openLogPanel 함수는 유지 (디버그용)
+const _btnLog = document.getElementById('btn-log');
+if (_btnLog) _btnLog.addEventListener('click', openLogPanel);
 document.getElementById('log-close').addEventListener('click', closeLogPanel);
 document.getElementById('btn-help').addEventListener('click', () => {
   document.getElementById('help-modal').classList.remove('hidden');
@@ -3412,13 +3888,346 @@ setViewportHeight();
 window.addEventListener('resize', setViewportHeight);
 window.addEventListener('orientationchange', setViewportHeight);
 
+// ─────────── 모험 모드 ───────────
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(`screen-${name}`).classList.add('active');
+}
+
+function renderStageSelect() {
+  const prog = loadAdvProgress();
+  const track = document.getElementById('stage-track');
+  track.innerHTML = '';
+  BOSSES.forEach((b, i) => {
+    const state_ = i < prog.clearCount ? 'cleared' : i === prog.clearCount ? 'active' : 'locked';
+    const cell = document.createElement('div');
+    cell.className = `stage-cell ${state_}`;
+    cell.dataset.stage = b.stage;
+    cell.style.backgroundImage = `url('${state_ === 'cleared' ? ADV_IMG.cellCleared : state_ === 'locked' ? ADV_IMG.cellLocked : ADV_IMG.cellActive}')`;
+    if (state_ === 'active') {
+      cell.innerHTML = `<div class="stage-name">${b.name}</div><div class="arrow-indicator"></div>`;
+      cell.addEventListener('click', () => {
+        showScreen('combat');
+        newGame('adventure', b.stage);
+      });
+    }
+    track.appendChild(cell);
+    if (i < BOSSES.length - 1) {
+      const wave = document.createElement('div');
+      wave.className = 'wave-link';
+      track.appendChild(wave);
+    }
+  });
+  setTimeout(() => {
+    const activeCell = track.querySelector('.stage-cell.active') || track.querySelector('.stage-cell:first-child');
+    if (activeCell) activeCell.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+  }, 100);
+}
+
+async function enterAdventure() {
+  showScreen('stage');
+  const prog = loadAdvProgress();
+  renderStageSelect();
+  // 최초 진입 (clearCount=0) + 1단계 잠금 풀림 이펙트
+  if (prog.clearCount === 0) {
+    await sleep(400);
+    const cell = document.querySelector('.stage-cell[data-stage="1"]');
+    if (cell) {
+      cell.className = 'stage-cell locked';
+      cell.style.backgroundImage = `url('${ADV_IMG.cellLocked}')`;
+      cell.innerHTML = '<div class="arrow-indicator"></div>';
+      await sleep(600);
+      cell.classList.add('unlocking');
+      await sleep(900);
+      cell.classList.remove('unlocking');
+      cell.className = 'stage-cell active just-unlocked';
+      cell.style.backgroundImage = `url('${ADV_IMG.cellActive}')`;
+      cell.innerHTML = `<div class="stage-name">${BOSSES[0].name}</div><div class="arrow-indicator"></div>`;
+      await sleep(500);
+      cell.classList.remove('just-unlocked');
+      // 클릭 바인딩
+      cell.addEventListener('click', () => {
+        showScreen('combat');
+        newGame('adventure', 1);
+      });
+    }
+  }
+}
+
+function advDialog(msg, onOk, onCancel, opts = {}) {
+  const dlg = document.getElementById('adv-dialog');
+  document.getElementById('adv-dialog-msg').innerHTML = msg;
+  dlg.classList.add('show');
+  const ok = document.getElementById('adv-dialog-ok');
+  const cancel = document.getElementById('adv-dialog-cancel');
+  cancel.style.display = opts.hideCancel ? 'none' : '';
+  const onOkWrap = () => { dlg.classList.remove('show'); cleanup(); if (onOk) onOk(); };
+  const onCancelWrap = () => { dlg.classList.remove('show'); cleanup(); if (onCancel) onCancel(); };
+  function cleanup() {
+    ok.removeEventListener('click', onOkWrap);
+    cancel.removeEventListener('click', onCancelWrap);
+  }
+  ok.addEventListener('click', onOkWrap);
+  cancel.addEventListener('click', onCancelWrap);
+}
+
+async function showRewardAcquired(stage) {
+  const reward = REWARDS[stage - 1];
+  const modal = document.getElementById('reward-modal');
+  modal.innerHTML = `
+    <div class="reward-rays"></div>
+    <div class="reward-card-wrap">
+      <div class="reward-card-anim">
+        <div class="card-face card-back-face">?</div>
+        <div class="card-face card-front-face">
+          <img src="${img(reward.id)}" alt="${reward.charName}" onerror="this.style.display='none'">
+          <div class="r-name">${reward.charName.length > 20 ? reward.charName.slice(0, 20) + '…' : reward.charName}</div>
+          <div class="r-stats"><span>⚔${reward.atk}</span><span>♥${reward.hp}</span></div>
+        </div>
+      </div>
+      <div class="reward-text">NEW CARD!</div>
+    </div>
+    <button class="reward-close-btn">확인</button>
+  `;
+  // sparkle
+  for (let i = 0; i < 20; i++) {
+    const sp = document.createElement('div');
+    sp.className = 'reward-sparkle';
+    sp.style.cssText = `left:${30 + Math.random()*40}%; top:${30 + Math.random()*40}%; animation-delay:${Math.random()*1.5}s;`;
+    modal.appendChild(sp);
+  }
+  modal.classList.add('show');
+  return new Promise(resolve => {
+    modal.querySelector('.reward-close-btn').addEventListener('click', () => {
+      modal.classList.remove('show');
+      modal.innerHTML = '';
+      resolve();
+    }, { once: true });
+  });
+}
+
+function animateScrollLeft(el, from, to, duration) {
+  return new Promise(resolve => {
+    const start = performance.now();
+    function tick(now) {
+      const t = Math.min(1, (now - start) / duration);
+      const eased = 1 - (1 - t) * (1 - t);
+      el.scrollLeft = from + (to - from) * eased;
+      if (t < 1) requestAnimationFrame(tick);
+      else resolve();
+    }
+    requestAnimationFrame(tick);
+  });
+}
+
+async function playStageClearSequence(clearedStage) {
+  showScreen('stage');
+  renderStageSelect();
+  await sleep(300);
+  const clearingCell = document.querySelector(`.stage-cell[data-stage="${clearedStage}"]`);
+  if (!clearingCell) return;
+  // 활성 상태로 임시 세팅 (아직 샤터 전)
+  clearingCell.className = 'stage-cell active';
+  clearingCell.style.backgroundImage = `url('${ADV_IMG.cellActive}')`;
+  clearingCell.innerHTML = `<div class="stage-name">${BOSSES[clearedStage-1].name}</div>`;
+  await sleep(300);
+
+  // 1. 샤터
+  await shatterStageCell(clearingCell);
+  clearingCell.className = 'stage-cell cleared';
+  clearingCell.style.backgroundImage = `url('${ADV_IMG.cellCleared}')`;
+  clearingCell.innerHTML = '';
+  await sleep(1200);
+
+  // 저장
+  const prog = loadAdvProgress();
+  prog.clearCount = Math.max(prog.clearCount, clearedStage);
+  saveAdvProgress(prog);
+
+  const nextStage = clearedStage + 1;
+  if (nextStage > 10) {
+    // 10단계 최종 클리어 — 알림 → 메인 메뉴
+    await sleep(500);
+    advDialog(
+      '다음 스테이지가 추가될 예정입니다.',
+      () => { showScreen('main'); },
+      null,
+      { hideCancel: true }
+    );
+    return;
+  }
+  const nextCell = document.querySelector(`.stage-cell[data-stage="${nextStage}"]`);
+  if (!nextCell) return;
+
+  // 2. 화살표 이동 + 스크롤 동시
+  const scrollWrap = document.getElementById('stage-scroll');
+  const srcRect = clearingCell.getBoundingClientRect();
+  const wrapRect = scrollWrap.getBoundingClientRect();
+  const srcX = (srcRect.left + srcRect.width / 2) - wrapRect.left + scrollWrap.scrollLeft;
+  const yTop = (srcRect.top - wrapRect.top) - 30;
+  const dstRect = nextCell.getBoundingClientRect();
+  const dstX = (dstRect.left + dstRect.width / 2) - wrapRect.left + scrollWrap.scrollLeft;
+  const dstScroll = Math.max(0, dstX - scrollWrap.clientWidth / 2);
+  const srcScroll = scrollWrap.scrollLeft;
+
+  const travelArrow = document.createElement('div');
+  travelArrow.className = 'arrow-indicator';
+  travelArrow.style.cssText = `position:absolute; top:${yTop}px; left:${srcX}px; animation:none; z-index:50;`;
+  scrollWrap.appendChild(travelArrow);
+  await sleep(400);
+  const steps = 5, stepDur = 600;
+  for (let i = 0; i < steps; i++) {
+    const t = (i + 1) / steps;
+    const nextX = srcX + ((dstX - srcX) * t);
+    const nextScroll = srcScroll + ((dstScroll - srcScroll) * t);
+    const curX = travelArrow.style.left;
+    const arrowAnim = travelArrow.animate([
+      { left: curX, transform: 'translateX(-50%) translateY(0)' },
+      { transform: 'translateX(-50%) translateY(-30px)', offset: 0.5 },
+      { left: nextX + 'px', transform: 'translateX(-50%) translateY(0)' },
+    ], { duration: stepDur, easing: 'ease-out', fill: 'forwards' });
+    const scrollAnim = animateScrollLeft(scrollWrap, scrollWrap.scrollLeft, nextScroll, stepDur);
+    await Promise.all([arrowAnim.finished, scrollAnim]);
+    travelArrow.style.left = nextX + 'px';
+  }
+  await sleep(500);
+  travelArrow.remove();
+
+  // 3. 잠김 흔들림 → 활성화
+  nextCell.classList.add('unlocking');
+  await sleep(1200);
+  nextCell.classList.remove('unlocking');
+  nextCell.className = 'stage-cell active just-unlocked';
+  nextCell.style.backgroundImage = `url('${ADV_IMG.cellActive}')`;
+  nextCell.innerHTML = `<div class="stage-name">${BOSSES[nextStage-1].name}</div><div class="arrow-indicator"></div>`;
+  await sleep(1000);
+  nextCell.classList.remove('just-unlocked');
+  nextCell.addEventListener('click', () => {
+    showScreen('combat');
+    newGame('adventure', nextStage);
+  });
+}
+
+async function shatterStageCell(cell) {
+  const rect = cell.getBoundingClientRect();
+  const parent = cell.parentElement.parentElement;
+  const parentRect = parent.getBoundingClientRect();
+  const bgImg = cell.style.backgroundImage;
+  const container = document.createElement('div');
+  container.style.cssText = `position:absolute; left:${rect.left - parentRect.left + parent.scrollLeft}px; top:${rect.top - parentRect.top}px; width:${rect.width}px; height:${rect.height}px; pointer-events:none; z-index:30;`;
+  parent.appendChild(container);
+  cell.style.visibility = 'hidden';
+  const clips = [
+    'polygon(0 0, 55% 0, 45% 50%, 0 60%)',
+    'polygon(55% 0, 100% 0, 100% 55%, 45% 50%)',
+    'polygon(0 60%, 45% 50%, 55% 100%, 0 100%)',
+    'polygon(45% 50%, 100% 55%, 100% 100%, 55% 100%)',
+  ];
+  const anims = clips.map((clip, i) => {
+    const p = document.createElement('div');
+    p.style.cssText = `position:absolute; inset:0; background-image:${bgImg}; background-size:cover; clip-path:${clip};`;
+    container.appendChild(p);
+    const angle = (i / 4) * Math.PI * 2 + Math.PI / 4;
+    const dist = 60;
+    const dx = Math.cos(angle) * dist;
+    const dy = Math.sin(angle) * dist;
+    const rot = (Math.random() - 0.5) * 120;
+    return p.animate([
+      { transform: 'translate(0,0) rotate(0)', opacity: 1 },
+      { transform: `translate(${dx}px, ${dy+30}px) rotate(${rot}deg)`, opacity: 0 },
+    ], { duration: 650, easing: 'cubic-bezier(0.3, 0.2, 0.6, 1)', fill: 'forwards' }).finished;
+  });
+  await Promise.all(anims);
+  container.remove();
+  cell.style.visibility = '';
+}
+
+// 승리/패배 → 모험 모드 전용 처리
+async function onAdventureWin() {
+  const stage = state.adventureStage;
+  await sleep(600);
+  await showRewardAcquired(stage);
+  await playStageClearSequence(stage);
+}
+
+function onAdventureLose() {
+  const stage = state.adventureStage;
+  const boss = BOSSES[stage - 1];
+  advDialog(
+    `${boss.bossName} 에게 패배...<br>다시 도전하시겠습니까?`,
+    () => { showScreen('combat'); newGame('adventure', stage); },  // 재도전
+    () => { showScreen('stage'); renderStageSelect(); }             // 복귀
+  );
+}
+
+// checkWin 훅: 모험 모드면 전용 흐름
+const _origShowResult = showResult;
+showResult = function(title, msg) {
+  if (state && state.mode === 'adventure') {
+    if (title.includes('승리')) {
+      setLocked(true);
+      state._gameOver = true;
+      onAdventureWin();
+      return;
+    }
+    if (title.includes('패배')) {
+      setLocked(true);
+      state._gameOver = true;
+      onAdventureLose();
+      return;
+    }
+  }
+  _origShowResult(title, msg);
+};
+
+// 하단 "새 게임" 버튼 → 모험 모드면 돌아가기 다이얼로그
+document.getElementById('btn-new').addEventListener('click', (e) => {
+  if (state && state.mode === 'adventure') {
+    advDialog(
+      '현재 플레이 상태가 사라집니다.<br>돌아가시겠습니까?',
+      () => { showScreen('stage'); renderStageSelect(); },
+      null
+    );
+    e.stopImmediatePropagation();
+  }
+}, true);
+
+// 하단 "메인으로" 버튼 — 다이얼로그 후 메인 메뉴 복귀
+document.getElementById('btn-home').addEventListener('click', () => {
+  advDialog(
+    '메인화면으로 돌아가시겠습니까?<br>현재 플레이 상태가 사라집니다.',
+    () => { showScreen('main'); },
+    null
+  );
+});
+
+// 메인 메뉴 모드 선택
+document.getElementById('btn-mode-single').addEventListener('click', () => {
+  showScreen('combat');
+  newGame('single');
+});
+document.getElementById('btn-mode-adventure').addEventListener('click', () => {
+  enterAdventure();
+});
+document.getElementById('btn-adv-main').addEventListener('click', () => {
+  showScreen('main');
+});
+document.getElementById('btn-adv-reset').addEventListener('click', () => {
+  advDialog(
+    '지금까지의 모든 진행이 사라집니다.<br>정말 초기화하시겠습니까?',
+    () => { clearAdvProgress(); renderStageSelect(); },
+    null
+  );
+});
+
 window.addEventListener('load', () => {
   setViewportHeight();
   if (!window.units) {
     log('units.js 로드 실패');
     return;
   }
-  newGame();
+  // 메인 메뉴부터 시작 (모드 선택 전까지 newGame 호출 안 함)
+  showScreen('main');
 });
 </script>
 </body>
