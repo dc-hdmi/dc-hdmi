@@ -284,6 +284,87 @@
     100% { transform: scale(1) skewX(0); opacity: 1; }
   }
 
+  /* ───── 카드 합체 이펙트 ───── */
+  .merge-overlay {
+    position: absolute; inset: 0;
+    background: rgba(0,0,0,0.88);
+    z-index: 450;
+    display: none;
+    overflow: hidden;
+  }
+  .merge-overlay.show { display: block; }
+  .merge-card-wrap {
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 110px; aspect-ratio: 3/4;
+    max-height: 150px;
+    margin: -75px 0 0 -55px;
+    transform-style: preserve-3d;
+  }
+  .merge-card-wrap.left { animation: merge-anim-left 2.1s cubic-bezier(0.4, 0.1, 0.5, 1) forwards; }
+  .merge-card-wrap.right { animation: merge-anim-right 2.1s cubic-bezier(0.4, 0.1, 0.5, 1) forwards; }
+  @keyframes merge-anim-left {
+    0%   { transform: translateX(0) scale(0) rotateY(0); opacity: 0; }
+    15%  { transform: translateX(-100px) scale(1.35) rotateY(0); opacity: 1; }
+    75%  { transform: translateX(-100px) scale(1.35) rotateY(1440deg); opacity: 1; }
+    90%  { transform: translateX(0) scale(1.1) rotateY(1440deg); opacity: 1; }
+    100% { transform: translateX(0) scale(0.3) rotateY(1440deg); opacity: 0; }
+  }
+  @keyframes merge-anim-right {
+    0%   { transform: translateX(0) scale(0) rotateY(0); opacity: 0; }
+    15%  { transform: translateX(100px) scale(1.35) rotateY(0); opacity: 1; }
+    75%  { transform: translateX(100px) scale(1.35) rotateY(-1440deg); opacity: 1; }
+    90%  { transform: translateX(0) scale(1.1) rotateY(-1440deg); opacity: 1; }
+    100% { transform: translateX(0) scale(0.3) rotateY(-1440deg); opacity: 0; }
+  }
+  .merge-flash {
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 10px; height: 10px;
+    margin: -5px 0 0 -5px;
+    background: radial-gradient(circle, #fff 0%, rgba(255,230,100,0.9) 30%, rgba(255,170,0,0.5) 60%, transparent 100%);
+    border-radius: 50%;
+    opacity: 0;
+    animation: merge-flash 0.5s ease-out 2s forwards;
+    pointer-events: none;
+  }
+  @keyframes merge-flash {
+    0%   { width: 10px; height: 10px; margin: -5px 0 0 -5px; opacity: 0; }
+    50%  { width: 500px; height: 500px; margin: -250px 0 0 -250px; opacity: 1; }
+    100% { width: 700px; height: 700px; margin: -350px 0 0 -350px; opacity: 0; }
+  }
+  .merge-result-wrap {
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 110px; aspect-ratio: 3/4; max-height: 150px;
+    margin: -75px 0 0 -55px;
+    opacity: 0;
+    animation: merge-result-pop 0.5s cubic-bezier(0.3, 1.3, 0.5, 1) 2.1s forwards;
+  }
+  @keyframes merge-result-pop {
+    0%   { transform: scale(0); opacity: 0; filter: brightness(3); }
+    60%  { transform: scale(1.4); opacity: 1; filter: brightness(1.5); }
+    100% { transform: scale(1.3); opacity: 1; filter: brightness(1); }
+  }
+  .merge-stat-gain {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, 90px);
+    color: #4bbf76;
+    font-size: 20px;
+    font-weight: 900;
+    text-shadow: 0 0 6px #000, 0 0 3px #000, 2px 2px 0 #000;
+    opacity: 0;
+    animation: merge-stat-rise 0.6s ease-out 2.3s forwards;
+    white-space: nowrap;
+    text-align: center;
+  }
+  @keyframes merge-stat-rise {
+    0%   { transform: translate(-50%, 90px); opacity: 0; }
+    50%  { transform: translate(-50%, 70px); opacity: 1; }
+    100% { transform: translate(-50%, 60px); opacity: 1; }
+  }
+
   /* 보스 카드 등장 시 상단에서 슬라이드 다운 */
   .card.boss-entering {
     animation: boss-slide-down 0.7s cubic-bezier(0.3, 1.2, 0.4, 1);
@@ -3380,10 +3461,11 @@ async function oppTurn() {
   render();
   await sleep(500);
 
-  // 소환 루프 (비싼 카드부터)
-  while (state.opp.field.length < 4) {
+  // 소환 루프 (비싼 카드부터) — 필드 꽉 차도 합체 가능하면 소환
+  while (true) {
     const affordable = state.opp.hand
       .filter(c => c.mana <= state.opp.mana)
+      .filter(c => state.opp.field.length < 4 || findMergeTarget('opp', c))
       .sort((a, b) => b.mana - a.mana);
     if (!affordable.length) break;
     await summonCard(affordable[0], 'opp');
@@ -3438,24 +3520,125 @@ async function oppTurn() {
   showBanner(`턴 ${Math.ceil(state.turnNo / 2)}`, '#4bbf76');
 }
 
+// 이름 베이스 — 부제 제거 ("몽키 D.루피 – 바주카" → "몽키 D.루피")
+function nameBase(name) {
+  if (!name) return '';
+  return name.split(/\s+[-–—]\s+/)[0].trim();
+}
+
+// 공격영역에서 합체 대상 찾기 (같은 이름 + 보호 X + 미합체)
+function findMergeTarget(side, incoming) {
+  if (!incoming || incoming._isBoss || incoming._isReward || incoming._merged) return null;
+  const base = nameBase(incoming.name);
+  if (!base) return null;
+  return state[side].field.find(c =>
+    !c._isBoss && !c._isReward && !c._merged
+    && nameBase(c.name) === base
+  );
+}
+
 async function summonCard(card, side) {
   const s = state[side];
   if (s.mana < card.mana) return false;
-  if (s.field.length >= 4) return false;
-  // 손패 → 필드로 이동 + 애니메이션 플래그
+
+  // 합체 대상 체크
+  const mergeTarget = findMergeTarget(side, card);
+  // 합체 아닌 경우만 자리 체크
+  if (!mergeTarget && s.field.length >= 4) return false;
+
+  // 손패에서 제거 + 마나 소비 (공통)
   s.hand = s.hand.filter(c => c.instanceId !== card.instanceId);
+  s.mana -= card.mana;
+
+  if (mergeTarget) {
+    // 합체 플로우
+    log(`${side === 'player' ? '내' : '상대'} ${card.name} 합체!`, side);
+    await performMerge(card, mergeTarget, side);
+    return true;
+  }
+
+  // 일반 소환
   card.exhausted = true;
   card._justSummoned = true;
   s.field.push(card);
-  s.mana -= card.mana;
   log(`${side === 'player' ? '내' : '상대'} ${card.name} 소환 (💧${card.mana})`, side);
   cleanupDead('player');
   cleanupDead('opp');
   render();
   await sleep(550);
-  // 소환 애니메이션 끝난 뒤 효과 발동 (가시성↑)
   await applyEffect(card, 'onPlay', side);
   return true;
+}
+
+// 카드 합체 — 기준/재료 결정 후 이펙트 + state 변경
+async function performMerge(incoming, existing, side) {
+  // 기준 = ATK+HP 큰 쪽, 동률 시 공격영역 기존 카드
+  const incomingStat = incoming.atk + incoming.hp;
+  const existingStat = existing.atk + existing.hp;
+  const incomingWins = incomingStat > existingStat;
+  const base = incomingWins ? incoming : existing;
+  const material = incomingWins ? existing : incoming;
+  const atkGain = material.atk;
+  const hpGain = material.hp;
+
+  // 이펙트 (2.6초: 2.1초 애니 + 0.5초 결과 등장)
+  await playMergeEffect(base, material, atkGain, hpGain, incomingWins);
+
+  // state 변경
+  // 공격영역에서 existing (기준이든 재료든) 제거
+  state[side].field = state[side].field.filter(c => c.instanceId !== existing.instanceId);
+  // 기준 카드 업데이트
+  base.atk += atkGain;
+  base.hp += hpGain;
+  base._merged = true;
+  base.exhausted = true;  // 합체 턴 공격 불가
+  base._justSummoned = true;  // 공격영역 안착 애니메이션
+  // 공격영역 끝에 push
+  state[side].field.push(base);
+  render();
+}
+
+async function playMergeEffect(base, material, atkGain, hpGain, incomingWins) {
+  const overlay = document.createElement('div');
+  overlay.className = 'merge-overlay show';
+  overlay.id = 'merge-overlay';
+
+  // 두 카드 렌더 (왼쪽/오른쪽) — incoming 왼쪽, existing 오른쪽 (일관성)
+  const incoming = incomingWins ? base : material;
+  const existing = incomingWins ? material : base;
+
+  const wrapL = document.createElement('div');
+  wrapL.className = 'merge-card-wrap left';
+  wrapL.appendChild(cardEl({ ...incoming, exhausted: false }, 'merge'));
+  const wrapR = document.createElement('div');
+  wrapR.className = 'merge-card-wrap right';
+  wrapR.appendChild(cardEl({ ...existing, exhausted: false }, 'merge'));
+
+  overlay.appendChild(wrapL);
+  overlay.appendChild(wrapR);
+
+  // 섬광
+  const flash = document.createElement('div');
+  flash.className = 'merge-flash';
+  overlay.appendChild(flash);
+
+  // 결과 카드 (2.1초 후 등장) — base 복제 but 가산된 스탯 미리 반영
+  const resultWrap = document.createElement('div');
+  resultWrap.className = 'merge-result-wrap';
+  const resultView = { ...base, atk: base.atk + atkGain, hp: base.hp + hpGain, exhausted: false };
+  resultWrap.appendChild(cardEl(resultView, 'merge'));
+  overlay.appendChild(resultWrap);
+
+  // 스탯 증가 표시
+  const stat = document.createElement('div');
+  stat.className = 'merge-stat-gain';
+  stat.innerHTML = `⚔ +${atkGain} &nbsp; ♥ +${hpGain}`;
+  overlay.appendChild(stat);
+
+  document.getElementById('app').appendChild(overlay);
+  // 총 2.6초: 2.1 애니 + 0.5 결과
+  await sleep(2900);
+  overlay.remove();
 }
 
 async function performAttack(attacker, atkSide, target, defSide) {
@@ -3800,7 +3983,7 @@ function renderHand(elId, hand) {
     card.style.zIndex = z;
 
     const canPlay = c.mana <= state.player.mana
-      && state.player.field.length < 4
+      && (state.player.field.length < 4 || findMergeTarget('player', c))
       && state.turn === 'player'
       && !state._locked;
     card.classList.add(canPlay ? 'playable' : 'unaffordable');
