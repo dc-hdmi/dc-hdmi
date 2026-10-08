@@ -550,6 +550,7 @@
       <button class="combo-btn attr-STR" data-merge="existing">합체<br>기존카드 기준</button>
       <button class="combo-btn attr-STR" data-merge="tie">합체<br>동률→기존 기준</button>
       <button class="combo-btn attr-STR" data-merge="solo">합체<br>필드 1장 (자리)</button>
+      <button class="combo-btn attr-STR" data-merge="partial">합체<br>부분 일치 이름</button>
     </div>
 
     <div class="util-row">
@@ -1236,20 +1237,36 @@ function renderDebug() {
 }
 
 // ─────────── 카드 합체 시뮬레이션 — 본게임(card-battle.html) 동일 로직 포팅 ───────────
-// 이름 베이스 — 부제 제거 ("루피 – 기어4" → "루피")
-function nameBase(name) {
-  if (!name) return '';
-  return name.split(/\s+[-–—]\s+/)[0].trim();
+// 이름 토큰 — 부제 제거 후 공백/구두점 단위 분해 ("몽키 D.루피" → [몽키, D, 루피])
+function nameTokens(name) {
+  if (!name) return [];
+  return name.split(/\s+[-–—]\s+/)[0]
+    .split(/[\s&.·,/()\[\]「」‘’“”'"]+/)
+    .filter(t => t.length > 0);
 }
 
-// 공격영역에서 합체 대상 찾기 (같은 이름 + 보호 X + 미합체)
+// 동일 캐릭터 판정 — 짧은 쪽 토큰열이 긴 쪽에 연속으로 포함되면 매칭
+// ("루피" ⊂ [몽키, D, 루피] ✓ / "나미" vs "페로나 미스티…" ✗ — 토큰 경계 넘는 오매칭 방지)
+function sameCharacter(nameA, nameB) {
+  const ta = nameTokens(nameA), tb = nameTokens(nameB);
+  if (!ta.length || !tb.length) return false;
+  const [shorter, longer] = ta.length <= tb.length ? [ta, tb] : [tb, ta];
+  if (shorter.length === 1 && shorter[0].length < 2) return false;  // 1글자 단독 토큰 오매칭 방지
+  outer: for (let i = 0; i + shorter.length <= longer.length; i++) {
+    for (let j = 0; j < shorter.length; j++) {
+      if (longer[i + j] !== shorter[j]) continue outer;
+    }
+    return true;
+  }
+  return false;
+}
+
+// 공격영역에서 합체 대상 찾기 (같은 캐릭터 + 보호 X + 미합체)
 function findMergeTarget(side, incoming) {
   if (!incoming || incoming._isBoss || incoming._isReward || incoming._merged) return null;
-  const base = nameBase(incoming.name);
-  if (!base) return null;
   return state[side].field.find(c =>
     !c._isBoss && !c._isReward && !c._merged
-    && nameBase(c.name) === base
+    && sameCharacter(c.name, incoming.name)
   );
 }
 
@@ -1259,6 +1276,10 @@ function mergePair(scenario) {
   const strong = { id: 1923, name: '루피 – 기어4', attr: 'STR', cls: 'Fighter', atk: 8, hp: 7, mana: 6, emoji: '👊' };
   if (scenario === 'existing') return { existing: strong, incoming: weak };   // 기존카드가 기준
   if (scenario === 'tie')      return { existing: weak, incoming: { ...weak, name: '루피 – 변장' } }; // 동률 → 기존카드 기준
+  if (scenario === 'partial')  return {  // "몽키 D.루피" ⊃ "루피" — 부분 일치 합체
+    existing: { id: 1,    name: '몽키 D.루피',    attr: 'STR', cls: 'Fighter', atk: 5, hp: 6, mana: 4, emoji: '👒' },
+    incoming: { id: 1593, name: '루피 – 기어 4', attr: 'STR', cls: 'Fighter', atk: 8, hp: 7, mana: 6, emoji: '👊' },
+  };
   return { existing: weak, incoming: strong };  // incoming / solo — 소환카드가 기준
 }
 
