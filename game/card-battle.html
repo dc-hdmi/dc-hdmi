@@ -2499,6 +2499,7 @@ function newGame(mode = 'single', adventureStage = null) {
       await summonBossIntoField(state._pendingBossStage);
       state._pendingBossStage = null;
       setLocked(false);
+      render();  // 락 해제 후 손패 playable 재평가 필요
       // 선공 처리
       if (firstPlayer === 'player') {
         showBanner('내 턴 (선공)', '#4bbf76');
