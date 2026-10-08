@@ -831,11 +831,19 @@ function renderCombatSim(stage) {
       <div class="combat-bar-preview">
         <button class="back-btn" id="sim-back">돌아가기</button>
         <button class="log-btn">📜</button>
+        <button id="sim-lose" style="background: linear-gradient(180deg, #c04040, #702020);">💀 패배 시뮬</button>
         <button id="sim-win" style="background: linear-gradient(180deg, #4bbf76, #2d8f4e);">⚔ 승리 시뮬</button>
       </div>
     </div>
   `;
   body.querySelector('#sim-back').addEventListener('click', () => showBackDialog());
+  body.querySelector('#sim-lose').addEventListener('click', () => {
+    showDialog(
+      `${boss.bossName} 에게 패배...<br>다시 도전하시겠습니까?`,
+      () => renderCombatSim(stage),      // 확인 → 재도전 (완전 초기화)
+      () => showView('stage-select')     // 취소 → 스테이지 복귀
+    );
+  });
   body.querySelector('#sim-win').addEventListener('click', async () => {
     // 승리 → 보상 알림 → 확인 → 스테이지 복귀 → 복귀 시퀀스
     rewardIdx = stage - 1;  // 그 스테이지 보상
@@ -1142,7 +1150,7 @@ async function showRewardModal() {
 }
 
 // ─────────── 다이얼로그 ───────────
-function showDialog(msg, onOk) {
+function showDialog(msg, onOk, onCancel) {
   const body = document.getElementById('viewer-body');
   const dlg = document.createElement('div');
   dlg.className = 'dialog-overlay show';
@@ -1156,7 +1164,10 @@ function showDialog(msg, onOk) {
     </div>
   `;
   body.appendChild(dlg);
-  dlg.querySelector('.btn-cancel').addEventListener('click', () => dlg.remove());
+  dlg.querySelector('.btn-cancel').addEventListener('click', () => {
+    dlg.remove();
+    if (onCancel) onCancel();
+  });
   dlg.querySelector('.btn-ok').addEventListener('click', () => {
     dlg.remove();
     if (onOk) onOk();
