@@ -2471,6 +2471,7 @@ function newGame(mode = 'single', adventureStage = null) {
       effect: {}, exhausted: true,
       blocked: 0, invincible: 0, blind: 0, atkBonus: 0, dmgReduce: 0,
       instanceId: 'reward_' + Math.random().toString(36).slice(2, 8),
+      _isReward: true,
     });
     // 보스는 지연 소환 — _pendingBossStage 저장
     state._pendingBossStage = adventureStage;
@@ -2540,6 +2541,7 @@ async function summonBossIntoField(stage) {
     blocked: 0, invincible: 0, blind: 0, atkBonus: 0, dmgReduce: 0,
     instanceId: 'boss_' + Math.random().toString(36).slice(2, 8),
     _bossEntering: true,
+    _isBoss: true,
   };
   state.opp.field.push(bossInstance);
   render();
@@ -2878,8 +2880,10 @@ async function effectSelfHeal(effect, side) {
 }
 
 async function effectEnemyHpTo1(effect, side, targetSide) {
-  if (!state[targetSide].field.length) return;
-  const target = state[targetSide].field.reduce((a, b) => a.hp > b.hp ? a : b);
+  // 보스/보상 제외
+  const candidates = state[targetSide].field.filter(c => !c._isBoss && !c._isReward);
+  if (!candidates.length) return;
+  const target = candidates.reduce((a, b) => a.hp > b.hp ? a : b);
   const before = target.hp;
   target.hp = 1;
   const el = findCardEl(target.instanceId);
@@ -2902,7 +2906,9 @@ async function effectEnemyRandomDmg(effect, side, targetSide) {
 }
 
 async function effectEnemyRecall(effect, side, targetSide) {
-  const picks = [...state[targetSide].field].sort(() => Math.random() - 0.5).slice(0, effect.count);
+  // 보스/보상 제외
+  const candidates = state[targetSide].field.filter(c => !c._isBoss && !c._isReward);
+  const picks = [...candidates].sort(() => Math.random() - 0.5).slice(0, effect.count);
   for (const c of picks) {
     const el = findCardEl(c.instanceId);
     if (el) {
@@ -2921,11 +2927,14 @@ async function effectEnemyRecall(effect, side, targetSide) {
 }
 
 async function effectEnemySwapWeak(effect, side, targetSide) {
+  const notProtected = c => !c._isBoss && !c._isReward;
   const pickTarget = async () => {
     if (side === 'player') {
-      return await selectOne(`교체할 상대 카드 선택`, targetSide);
+      return await selectOne(`교체할 상대 카드 선택`, targetSide, notProtected);
     } else {
-      return state[targetSide].field.reduce((a, b) => a.atk > b.atk ? a : b);
+      const candidates = state[targetSide].field.filter(notProtected);
+      if (!candidates.length) return null;
+      return candidates.reduce((a, b) => a.atk > b.atk ? a : b);
     }
   };
   const chosen = await pickTarget();
@@ -2995,15 +3004,18 @@ async function effectSelfInvincible(effect, side) {
 }
 
 async function effectTrade(effect, side, targetSide) {
+  const notProtected = c => !c._isBoss && !c._isReward;
   let oppPick, myPick;
   if (side === 'player') {
-    const picks = await driveTradeFlow(targetSide, side);
+    const picks = await driveTradeFlow(targetSide, side, notProtected, notProtected);
     if (!picks) return;
     oppPick = picks.oppPick; myPick = picks.myPick;
   } else {
-    if (!state[targetSide].field.length || !state[side].field.length) return;
-    oppPick = state[targetSide].field.reduce((a, b) => a.atk > b.atk ? a : b);
-    myPick = state[side].field.reduce((a, b) => a.atk < b.atk ? a : b);
+    const oppCand = state[targetSide].field.filter(notProtected);
+    const myCand  = state[side].field.filter(notProtected);
+    if (!oppCand.length || !myCand.length) return;
+    oppPick = oppCand.reduce((a, b) => a.atk > b.atk ? a : b);
+    myPick  = myCand.reduce((a, b) => a.atk < b.atk ? a : b);
   }
   await animateTrade(oppPick, targetSide, myPick, side);
   const idxO = state[targetSide].field.findIndex(c => c.instanceId === oppPick.instanceId);
@@ -3016,18 +3028,18 @@ async function effectTrade(effect, side, targetSide) {
   myPick.blocked = 0; myPick.invincible = 0;
 }
 
-// ─────────── 선택 UI ───────────
-function selectOne(prompt, side) {
+// ─────────── 선택 UI (filter: 선택 가능 카드 필터) ───────────
+function selectOne(prompt, side, filter = null) {
   return new Promise(resolve => {
-    state.selectionMode = { type: 'single', prompt, side, resolve };
+    state.selectionMode = { type: 'single', prompt, side, filter, resolve };
     render();
   });
 }
 
-function driveTradeFlow(sideT, sideA) {
+function driveTradeFlow(sideT, sideA, filterT = null, filterA = null) {
   return new Promise(resolve => {
     state.selectionMode = {
-      type: 'drive', step: 1, sideT, sideA,
+      type: 'drive', step: 1, sideT, sideA, filterT, filterA,
       firstPick: null,
       prompt: '교체할 상대 카드를 선택하세요',
       resolve,
@@ -3041,6 +3053,7 @@ function handleComboSelection(c, side) {
   if (!mode) return;
   if (mode.type === 'drive') {
     if (mode.step === 1 && side === mode.sideT) {
+      if (mode.filterT && !mode.filterT(c)) return;  // 필터 통과 X
       mode.firstPick = c; mode.step = 2;
       mode.prompt = `${c.name} 선택됨 — 교체할 내 카드 선택`;
       render(); return;
@@ -3051,6 +3064,7 @@ function handleComboSelection(c, side) {
       render(); return;
     }
     if (mode.step === 2 && side === mode.sideA) {
+      if (mode.filterA && !mode.filterA(c)) return;
       const picks = { oppPick: mode.firstPick, myPick: c };
       const resolve = mode.resolve;
       state.selectionMode = null; render();
@@ -3059,6 +3073,7 @@ function handleComboSelection(c, side) {
     return;
   }
   if (mode.type === 'single' && mode.side === side) {
+    if (mode.filter && !mode.filter(c)) return;  // 필터 통과 X
     const resolve = mode.resolve;
     state.selectionMode = null; render();
     if (resolve) resolve(c);
@@ -3799,7 +3814,9 @@ function cardEl(c, context) {
   if (sel && sideForCard) {
     if (sel.type === 'drive') {
       const need = sel.step === 1 ? sel.sideT : sel.sideA;
-      if (sideForCard === need) classes.push('selectable-target');
+      const filter = sel.step === 1 ? sel.filterT : sel.filterA;
+      const allowed = !filter || filter(c);
+      if (sideForCard === need && allowed) classes.push('selectable-target');
       if (sel.step === 2 && sideForCard === sel.sideT) {
         if (sel.firstPick && sel.firstPick.instanceId === c.instanceId) {
           classes.push('selection-firstpick', 'selectable-target');
@@ -3808,7 +3825,9 @@ function cardEl(c, context) {
         }
       }
     } else if (sel.type === 'single' && sel.side === sideForCard) {
-      classes.push('selectable-target');
+      const allowed = !sel.filter || sel.filter(c);
+      if (allowed) classes.push('selectable-target');
+      else classes.push('selection-dim');
     }
   }
   el.className = classes.join(' ');
